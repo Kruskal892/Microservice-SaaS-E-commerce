@@ -1,0 +1,44 @@
+# <type>(<scope>): <short imperative summary>
+#
+# ────────────────────────────────────────────────────────────
+# 🎯 Motivation
+# What problem does this solve, and why is this change needed?
+#
+# ✨ Changes
+# - Describe the resulting behavior, not a list of edited files.
+# - Explain important implementation decisions or tradeoffs.
+#
+# 🧪 Validation
+# - ✅ Passed: <exact command or manual check and observed result>
+# - ⏭️ Not run: <relevant check and reason>
+# - ❌ Failed: <check, failure, and remaining action, if applicable>
+#
+# ⚠️ Impact & compatibility
+# Describe affected consumers, API/data/config changes, and known limitations.
+# Call out required environment variables or dependencies when applicable.
+#
+# 🚀 Rollout & rollback
+# Describe deployment order, migrations, or manual steps when needed.
+# Explain how to recover; identify changes a simple revert cannot undo.
+#
+# 👀 Reviewer context
+# Highlight non-obvious decisions, follow-up work, or evidence worth checking.
+# Link only real screenshots, logs, or recordings; omit if unnecessary.
+# ────────────────────────────────────────────────────────────
+#
+# Footer block (optional; keep these keys unchanged):
+# Refs: <real issue or ticket reference, if applicable>
+# BREAKING CHANGE: <incompatible change and required migration, if applicable>
+#
+# 📝 Writing guide — remove this guidance from the final message
+# - Types: feat, fix, docs, refactor, perf, test, build, ci, chore, revert.
+# - Scopes: auth-service, api-gateway, workspace, docs, ci, docker, or another owner.
+# - Scope is optional. Aim for a subject of 72 characters or fewer.
+# - Keep the subject in conventional form; icons belong in the body sections.
+# - Use ! before the colon for breaking changes: feat(api-gateway)!: ...
+# - Keep a blank line between the subject, body sections, and footer block.
+# - Keep only useful sections; a small change may need just a subject and reason.
+# - Remove placeholder text, unused validation outcomes, and divider lines.
+# - Include only actual validation and real references; never invent results.
+# - Do not include credentials, private user data, or unrelated changes.
+# - Lines starting with # are discarded during normal interactive commits.

@@ -1,0 +1,26 @@
+{
+  "name": "@microservice-eshop/api-gateway-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@microservice-eshop/api-gateway"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "dependsOn": [
+          "@microservice-eshop/api-gateway:build",
+          "@microservice-eshop/api-gateway:serve"
+        ],
+        "options": {
+          "jestConfig": "apps/api-gateway-e2e/jest.config.cts",
+          "passWithNoTests": true
+        }
+      }
+    }
+  }
+}

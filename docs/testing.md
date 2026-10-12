@@ -1,0 +1,70 @@
+# Testing
+
+[Documentation index](README.md)
+
+## Existing coverage
+
+| Project | Current check | Limitation |
+| --- | --- | --- |
+| Auth service | Jest configuration with `passWithNoTests` | No unit test files |
+| Auth E2E | HTTP 200 and exact JSON at `GET /` | Scaffold response only |
+| Gateway E2E | Generated auth-style assertion | Wrong default port, route, and message for the gateway |
+| API gateway | No unit-test configuration or unit tests currently present | No isolated behavior coverage |
+
+A passing target with no tests does not establish behavior coverage. No tests were run during the documentation update.
+
+## Auth API smoke test
+
+Stop any development process using the test port before running:
+
+```sh
+npx nx e2e @microservice-eshop/auth-service-e2e
+```
+
+The configured lifecycle is:
+
+1. Nx builds and serves the auth service through target dependencies.
+2. Jest global setup waits for `HOST`/`PORT` (defaults `localhost:3000`).
+3. Test setup configures Axios's base URL.
+4. The spec sends `GET /` and asserts HTTP 200 and `{ "message": "Hello API" }`.
+5. Global teardown calls `killPort` for the selected port.
+
+Use a dedicated free port if overriding defaults. Teardown terminates the process on that port; an existing listener can also make the readiness check succeed for the wrong application.
+
+The [project configuration](../apps/auth-service-e2e/package.json), [spec](../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts), and [Jest configuration](../apps/auth-service-e2e/jest.config.cts) define this behavior.
+
+## Gateway E2E mismatch
+
+The target exists:
+
+```sh
+npx nx e2e @microservice-eshop/api-gateway-e2e
+```
+
+It is not a reliable gateway check in its current form:
+
+| Setting | Test currently uses | Gateway implements |
+| --- | --- | --- |
+| Default port | `3000` | `3333` |
+| Route | `GET /` | `GET /api` |
+| JSON message | `Hello API` | `Welcome to api-gateway!` |
+
+With no port-3000 listener, setup may wait or fail. With an auth listener, it can test the wrong process and teardown can terminate that process. Overriding the port alone does not fix the route or assertion.
+
+A future fix must align global setup, Axios setup, teardown, and the spec with the gateway. This documentation change does not modify those files.
+
+## Unit tests and type checks
+
+```sh
+npx nx test @microservice-eshop/auth-service
+npx nx typecheck @microservice-eshop/auth-service
+npx nx typecheck @microservice-eshop/api-gateway
+```
+
+Jest uses the workspace preset and SWC transforms. E2E coverage output is configured under each E2E project's `test-output/jest/coverage`; a configured path is not evidence that coverage was generated.
+
+## CI coverage boundary
+
+CI runs `lint test build typecheck` across projects. The E2E directories are excluded from Jest target inference and use explicit `e2e` targets. CI does not explicitly run either E2E target.
+
+For new behavior, add focused tests around the contract or failure mode being introduced. Record commands, results, and unverified integrations in the handoff. Keep permanent tests; remove temporary verification artifacts only after their relevant checks pass.
