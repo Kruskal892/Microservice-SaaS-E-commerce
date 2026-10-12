@@ -37,6 +37,11 @@ export default [
       '**/*.mjs',
     ],
     // Override or add rules here
-    rules: {},
+    rules: {
+      'padding-line-between-statements': [
+        'error',
+        { blankLine: 'never', prev: 'import', next: 'import' },
+      ],
+    },
   },
 ];

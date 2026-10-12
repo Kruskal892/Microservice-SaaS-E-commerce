@@ -1,6 +1,10 @@
-# Add files here to ignore them from prettier formatting
-/dist
-/coverage
-/.nx/cache
-/.nx/workspace-data
+# Dependencies and generated output across the monorepo
+node_modules/
+**/dist/
+**/coverage/
+**/out-tsc/
+**/test-output/
+.nx/
+
+# Generated dependency lockfile
 package-lock.json

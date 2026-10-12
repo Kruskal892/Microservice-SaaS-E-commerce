@@ -25,7 +25,7 @@ Start with the [developer documentation](docs/README.md) for onboarding, archite
 | WebSocket communication | Socket.IO | Planned |
 | Web push notifications | Firebase | Planned |
 | Testing | Jest, Axios | Auth smoke test configured; gateway test needs alignment |
-| API documentation | Swagger / OpenAPI | Planned |
+| API documentation | Swagger / OpenAPI | Swagger UI dependency installed; no specification or documentation route yet |
 | Cloud assets | ImageKit | Planned; inferred from the blue "i" logo in the overview |
 | Containerization | Docker | Auth-service Dockerfile and Nx Docker targets configured |
 | CI/CD | Git, GitHub Actions | CI workflow present; deployment not configured |
@@ -44,19 +44,19 @@ The intended architecture uses a Next.js frontend to consume Express service API
 
 | Application | Nx project name | Purpose |
 | --- | --- | --- |
-| `api-gateway` | `@microservice-eshop/api-gateway` | Express entry-point scaffold; request forwarding is not implemented yet |
+| `api-gateway` | `@microservice-eshop/api-gateway` | Express gateway with middleware, local `/api`, and auth-service forwarding |
 | `auth-service` | `@microservice-eshop/auth-service` | Express scaffold; authentication endpoints are not implemented yet |
 | `auth-service-e2e` | `@microservice-eshop/auth-service-e2e` | Jest/Axios smoke test against the backend |
 | `api-gateway-e2e` | `@microservice-eshop/api-gateway-e2e` | Generated smoke test; currently mismatched with the gateway |
 
-Currently, clients call each application directly. The gateway does not forward requests to the auth service. No database or message broker participates in either application's requests.
+The gateway handles `GET /api` locally and forwards other requests to the hard-coded upstream `http://localhost:6001`. Clients can also call the auth service directly. No database or message broker participates in these requests.
 
 | Application | Default URL | Response |
 | --- | --- | --- |
-| Auth service | `http://localhost:3000/` | `{ "message": "Hello API" }` |
-| API gateway | `http://localhost:3333/api` | `{ "message": "Welcome to api-gateway!" }` |
+| Auth service | `http://localhost:6001/` | `{ "message": "Hello API" }` |
+| API gateway | `http://localhost:8080/api` | `{ "message": "Welcome to api-gateway!" }` |
 
-The gateway also serves its assets under `/assets`.
+The gateway applies CORS, request logging, body parsing, cookie parsing, and IP rate limiting before route handling. Static asset serving has been removed. See the [API reference](docs/api.md) for middleware behavior and limitations.
 
 ## Repository structure
 
@@ -65,7 +65,7 @@ The gateway also serves its assets under `/assets`.
 |-- apps/
 |   |-- api-gateway/
 |   |   |-- src/main.ts          # Gateway entry point
-|   |   |-- src/assets/          # Assets served under /assets
+|   |   |-- src/assets/          # Asset directory copied during builds
 |   |   |-- package.json         # Dependencies and Nx targets
 |   |   `-- webpack.config.js   # Node application build configuration
 |   |-- api-gateway-e2e/         # Generated gateway test and setup
@@ -121,7 +121,7 @@ To start only the auth service:
 npx nx serve @microservice-eshop/auth-service
 ```
 
-The development target builds the service before starting it. Open `http://localhost:3000` or send a `GET /` request. The current endpoint returns HTTP 200 with:
+The development target builds the service before starting it. Open `http://localhost:6001` or send a `GET /` request. The current endpoint returns HTTP 200 with:
 
 ```json
 { "message": "Hello API" }
@@ -133,17 +133,17 @@ To start only the gateway:
 npx nx serve @microservice-eshop/api-gateway
 ```
 
-Open `http://localhost:3333/api` to receive `{ "message": "Welcome to api-gateway!" }`. Stop a development process with **Ctrl+C**.
+Open `http://localhost:8080/api` for the gateway response. With auth running, `http://localhost:8080/` forwards to auth and returns `{ "message": "Hello API" }`. Stop a development process with **Ctrl+C**.
 
 ### Environment configuration
 
 | Variable | Application | Local default | Purpose |
 | --- | --- | --- | --- |
 | `HOST` | Auth service | `localhost` | Interface on which the service listens |
-| `PORT` | Auth service | `3000` | HTTP port |
-| `PORT` | API gateway | `3333` | HTTP port |
+| `PORT` | Auth service | `6001` | HTTP port |
+| `PORT` | API gateway | `8080` | HTTP port |
 
-Both applications read `PORT` from the process environment. The gateway does not read `HOST`. No explicit `.env` loader or `.env.example` is configured in the application source.
+Both applications read `PORT` from the process environment. The gateway does not read `HOST`. Its upstream is fixed at `http://localhost:6001`, so overriding the auth port does not update gateway forwarding. No explicit `.env` loader or `.env.example` is configured in the application source.
 
 For example, in PowerShell:
 
@@ -181,9 +181,9 @@ Run these from the repository root. The root `dev` script starts all serve targe
 
 The auth-service build defaults to production, uses esbuild, and writes to `apps/auth-service/dist`. The gateway uses Webpack and writes to `apps/api-gateway/dist`. Auth-service unit test configuration exists, but no service unit test files are present yet.
 
-The auth-service E2E target depends on the backend build and serve targets. It waits for the configured port and checks that `GET /` returns HTTP 200 and the expected JSON. Teardown kills the process on that port, so use a free port dedicated to the test run. The test does not cover authentication or ecommerce behavior.
+The auth-service E2E target depends on the backend build and serve targets. It waits for the configured port and checks that `GET /` returns HTTP 200 and the expected JSON. Teardown kills the process on that port, so use a free port dedicated to the test run. Auth test setup, Axios, and teardown now default to port `6001`. The test does not cover authentication or ecommerce behavior.
 
-The gateway's generated E2E target is `npx nx e2e @microservice-eshop/api-gateway-e2e`, but its setup still defaults to port `3000` and its assertion expects `GET /` with `Hello API`. The gateway defaults to port `3333` and exposes `GET /api` with a different message. Align the setup and assertion before relying on this test; an already-running auth service could otherwise satisfy the wrong check.
+The gateway's generated E2E target is `npx nx e2e @microservice-eshop/api-gateway-e2e`, but its setup still defaults to port `3000` and its assertion expects `GET /` with `Hello API`. The gateway defaults to port `8080`; its root forwards to auth while `/api` returns the gateway's own message. Align the test with the intended gateway contract before relying on it; an unrelated port-3000 listener could otherwise satisfy the wrong check.
 
 ## Docker
 
@@ -201,7 +201,7 @@ Run the container with the HTTP port published:
 npx nx docker:run @microservice-eshop/auth-service -p 3000:3000
 ```
 
-The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. It sets `HOST=0.0.0.0` and `PORT=3000` inside the container. The base image follows the Node LTS tag rather than a pinned release. No Docker Compose configuration is included.
+The container still uses port `3000`, unlike the local auth default `6001`. To reach this container through the current gateway, publish it with `-p 6001:3000` instead. The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. It sets `HOST=0.0.0.0` and `PORT=3000` inside the container. The base image follows the Node LTS tag rather than a pinned release. No Docker Compose configuration is included.
 
 ## Continuous integration
 
