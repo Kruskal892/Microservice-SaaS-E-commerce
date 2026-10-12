@@ -65,6 +65,57 @@ Open **Run and Debug**, select the application configuration, and set a breakpoi
 
 ## Making a change
 
+### Commit messages
+
+Use the repository's [commit-message template](../.gitmessage) for a concise,
+reviewable record of why a change exists, what it does, and how it was verified.
+The format is `<type>(<scope>): <summary>`, with icon-labeled body sections for
+motivation, changes, validation, impact, rollout/rollback, and reviewer context,
+plus optional real issue references. Scopes name
+the owning application or system. Keep small commits brief; use impact and
+migration details when behavior, contracts, data, or configuration change.
+
+Enable it once per clone, from the repository root:
+
+```sh
+git config --local commit.template .gitmessage
+```
+
+Then stage the intended files and run `git commit` without `-m` or `-F`.
+Git opens the template in your configured editor. The template is entirely
+commented: replace or uncomment the useful lines and remove guidance. Leaving
+it untouched produces no commit message under Git's normal comment cleanup.
+Keep icons in the body, preserve conventional subject/footer syntax, and remove
+unused sections, outcomes, placeholder text, and decorative dividers before saving.
+
+This setting is already enabled in the current clone. Local Git configuration
+is not shared by cloning the repository, so other developers must run the
+setup command themselves. The template is guidance, not a validation hook;
+`git commit -m`, merge/rebase-generated messages, and GUI commit inputs may
+bypass it.
+
+Example for a documentation-only change:
+
+```text
+docs(workspace): add developer onboarding guides
+
+🎯 Motivation
+New developers need a source-backed guide to the workspace and its limits.
+
+✨ Changes
+- Document setup, application ownership, API routes, and Nx tasks.
+- Separate implemented scaffolding from planned integrations.
+
+🧪 Validation
+- ⏭️ Not run: builds, lint, tests, and runtime checks (documentation only).
+```
+
+Adapt validation to the actual commit. Include a `BREAKING CHANGE:` footer with
+migration instructions for incompatible changes and a `Refs:` footer only when
+a real reference exists. No ticket is required when none applies.
+
+### Change checklist
+
 1. Identify the owning app and search for consumers before changing shared root configuration.
 2. Keep app-specific behavior in that app. Introduce shared code only when there is a concrete shared consumer.
 3. Update the route contract and related tests when behavior changes.

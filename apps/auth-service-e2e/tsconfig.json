@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "types": ["node", "jest"],
     "outDir": "out-tsc/@microservice-eshop/auth-service-e2e",
     "esModuleInterop": true,
     "noUnusedLocals": false,
