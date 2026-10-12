@@ -1,102 +1,172 @@
-# MicroserviceEshop
+﻿# Microservice Eshop
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+A microservice ecommerce project built with an **Nx monorepo** and **TypeScript**. The intended platform combines a Next.js storefront, Express backend services, persistent storage, event messaging, real-time communication, and machine learning.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+The repository is currently at the foundation stage: an Express service scaffold, an API smoke test, Docker packaging, and a GitHub Actions workflow are present. The stack below includes the project direction from the supplied technology overview; planned integrations are not yet implemented.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/node?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Technology stack
 
-## Run tasks
+| Area | Technology | Status |
+| --- | --- | --- |
+| Architecture | Microservices | Intended architecture; one backend scaffold exists |
+| Monorepo | Nx | Configured with npm workspaces |
+| Language | TypeScript | Configured with strict compiler settings |
+| Backend | Node.js, Express | Service scaffold with `GET /` |
+| Frontend | Next.js | Planned |
+| Primary database | MongoDB | Planned |
+| Secondary data store | Redis | Planned |
+| Database ORM | Prisma | Planned |
+| Message broker | Apache Kafka | Planned |
+| Machine learning | TensorFlow.js | Planned |
+| WebSocket communication | Socket.IO | Planned |
+| Web push notifications | Firebase | Planned |
+| Testing | Jest, Axios | API smoke test configured |
+| API documentation | Swagger / OpenAPI | Planned |
+| Cloud assets | ImageKit | Planned; inferred from the blue "i" logo in the overview |
+| Containerization | Docker | Dockerfile and Nx Docker targets configured |
+| CI/CD | Git, GitHub Actions | CI workflow present; deployment not configured |
+| Deployment | AWS | Planned |
+| Domain management | Cloudflare | Planned |
 
-To run the dev server for your app, use:
+Dependency versions are recorded in [package.json](package.json) and [package-lock.json](package-lock.json). No database, message broker, frontend, or cloud integration is currently included.
 
-```sh
-npx nx serve auth-service
+## Architecture
+
+Nx manages application tasks, dependencies, and build tooling from the repository root. Applications live under `apps/`. Explicit targets are defined in each application's `package.json`; plugins in `nx.json` infer additional targets.
+
+The intended architecture uses a Next.js frontend to consume Express service APIs, MongoDB with Prisma for persistence, Redis as a secondary store, and Kafka for event messaging. Socket.IO, Firebase, TensorFlow.js, and cloud services extend that platform as features are implemented. Service boundaries, event contracts, and deployment topology remain to be designed.
+
+### Current applications
+
+| Application | Nx project name | Purpose |
+| --- | --- | --- |
+| `auth-service` | `@microservice-eshop/auth-service` | Express scaffold; authentication endpoints are not implemented yet |
+| `auth-service-e2e` | `@microservice-eshop/auth-service-e2e` | Jest/Axios smoke test against the backend |
+
+Currently, an HTTP client calls the Express service directly. No API gateway, database, or message broker participates in the request.
+
+## Repository structure
+
+```text
+.
+|-- apps/
+|   |-- auth-service/
+|   |   |-- src/main.ts          # Express entry point
+|   |   |-- src/assets/          # Assets copied during builds
+|   |   |-- Dockerfile           # Container for the compiled service
+|   |   |-- package.json         # Dependencies and Nx targets
+|   |   `-- jest.config.cts      # Service test configuration
+|   `-- auth-service-e2e/
+|       |-- src/auth-service/    # HTTP smoke test
+|       |-- src/support/         # Test setup, readiness, and teardown
+|       |-- package.json         # E2E target and service dependencies
+|       `-- jest.config.cts
+|-- .github/workflows/ci.yml     # GitHub Actions checks
+|-- nx.json                     # Nx plugins and target defaults
+|-- package.json                # Root dependencies and workspaces
+|-- package-lock.json           # Locked dependency tree
+|-- tsconfig.base.json          # Shared TypeScript compiler settings
+`-- jest.config.ts              # Workspace Jest project discovery
 ```
 
-To create a production bundle:
+## Getting started
+
+### Prerequisites
+
+- **Node.js 24**, matching the version configured in CI.
+- **npm**, used by the workspace and committed lockfile.
+- **Git** to clone the repository.
+- **Docker** only for container development.
+
+MongoDB, Redis, Kafka, and cloud credentials are not required to run the current scaffold.
+
+### Install and run
+
+From the repository root, install dependencies:
 
 ```sh
-npx nx build auth-service
+npm ci
 ```
 
-To see all available targets to run for a project, run:
+Start the backend:
 
 ```sh
-npx nx show project auth-service
+npx nx serve @microservice-eshop/auth-service
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+The development target builds the service before starting it. Open `http://localhost:3000` or send a `GET /` request. The current endpoint returns HTTP 200 with:
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```json
+{ "message": "Hello API" }
+```
 
-## Add new projects
+### Environment configuration
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+| Variable | Local default | Purpose |
+| --- | --- | --- |
+| `HOST` | `localhost` | Interface on which the service listens |
+| `PORT` | `3000` | HTTP port |
 
-Use the plugin's generator to create new projects.
+The service reads process environment variables directly. No `.env` loader or `.env.example` is configured.
 
-To generate a new application, use:
+For example, in PowerShell:
+
+```powershell
+$env:HOST = 'localhost'
+$env:PORT = '3001'
+npx nx serve @microservice-eshop/auth-service
+```
+
+## Development commands
+
+Run these from the repository root. The root `package.json` has no npm scripts; use Nx directly.
+
+| Task | Command |
+| --- | --- |
+| List projects | `npx nx show projects` |
+| Inspect service targets | `npx nx show project @microservice-eshop/auth-service` |
+| View dependency graph | `npx nx graph` |
+| Start development server | `npx nx serve @microservice-eshop/auth-service` |
+| Build service | `npx nx build @microservice-eshop/auth-service` |
+| Run service unit tests | `npx nx test @microservice-eshop/auth-service` |
+| Run API smoke test | `npx nx e2e @microservice-eshop/auth-service-e2e` |
+| Check service types | `npx nx typecheck @microservice-eshop/auth-service` |
+| Lint service | `npx nx lint @microservice-eshop/auth-service` |
+
+The build defaults to production and writes to `apps/auth-service/dist`. Unit test configuration exists, but no service unit test files are present yet.
+
+The E2E target depends on the backend build and serve targets. It waits for the configured port and checks that `GET /` returns HTTP 200 and the expected JSON. Teardown kills the process on that port, so use a free port dedicated to the test run. The test does not cover authentication or ecommerce behavior.
+
+## Docker
+
+Build the service image:
 
 ```sh
-npx nx g @nx/node:app demo
+npx nx docker:build @microservice-eshop/auth-service
 ```
 
-To generate a new library, use:
+The target depends on build and pruning tasks that prepare the distribution directory and runtime dependencies.
+
+Run the container with the HTTP port published:
 
 ```sh
-npx nx g @nx/node:lib mylib
+npx nx docker:run @microservice-eshop/auth-service -p 3000:3000
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. It sets `HOST=0.0.0.0` and `PORT=3000` inside the container. The base image follows the Node LTS tag rather than a pinned release. No Docker Compose configuration is included.
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Continuous integration
 
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
+The [GitHub Actions workflow](.github/workflows/ci.yml) is configured for pushes to `master` and pull requests. It uses Node.js 24, installs dependencies with `npm ci`, and runs:
 
 ```sh
-npx nx connect
+npx nx run-many -t lint test build typecheck
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+The dedicated `e2e` target is not included in this command. Nx Cloud task distribution is commented out. The presence of a workflow does not establish that checks have passed; production deployment is not configured.
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Project direction
 
-### Step 2
+Next steps are to implement authentication, establish database models and persistence, add the Next.js storefront, and define service boundaries for ecommerce features. Messaging, real-time updates, push notifications, machine learning, and production deployment can then be integrated as those features require them.
 
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/node?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+When extending the workspace, keep service code and configuration with its application, define cross-service API and event contracts explicitly, and update this README as integrations become available. Keep credentials out of committed files and document required environment variables when adding external services.
