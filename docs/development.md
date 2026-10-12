@@ -57,6 +57,12 @@ TypeScript configuration is split across:
 
 The shared base enables `emitDeclarationOnly`. Do not assume a standalone `tsc` invocation replaces the configured Nx runtime build. Trace the application's executor and effective compiler settings when diagnosing missing JavaScript.
 
+## Gateway configuration ownership
+
+Middleware, CORS, rate-limit options, the upstream URL, and the HTTP listener are all configured in `apps/api-gateway/src/main.ts`. Local defaults are gateway 8080 and auth 6001. The upstream is hard-coded to localhost:6001, so an auth `PORT` override does not automatically change forwarding.
+
+Auth E2E global setup, Axios setup, and teardown default to 6001. Keep these three consumers aligned when changing the auth default again. Gateway E2E configuration remains separate and still needs alignment; see [testing](testing.md).
+
 ## Debugging
 
 [.vscode/launch.json](../.vscode/launch.json) contains separate Nx launch configurations for the auth service and gateway. They set `NODE_OPTIONS` inspection ports to 9229 and 9230 respectively and use source maps.
@@ -123,6 +129,38 @@ a real reference exists. No ticket is required when none applies.
 5. Update the relevant guide and implementation status.
 6. Report exactly which checks ran and which did not.
 
-Use the formatting already configured: UTF-8, two-space indentation, final newlines, and single quotes through Prettier. ESLint extends Nx's flat configs and enforces module-boundary rules.
+### Formatting
+
+[.prettierrc](../.prettierrc) defines an 80-column print width, two-space
+indentation, spaces instead of tabs, semicolons, single quotes, trailing commas
+where supported, bracket spacing, parentheses around arrow parameters, and LF
+line endings. Print width is a formatting guideline, not a hard line-length
+limit. JSON retains double quotes as required by its syntax.
+
+[.editorconfig](../.editorconfig) aligns editors on UTF-8, two-space indentation,
+LF line endings, and final newlines. [.prettierignore](../.prettierignore) excludes
+dependencies, the npm lockfile, Nx state, and generated build/test output at any
+application depth.
+
+From the repository root:
+
+```sh
+npm run format:check
+npm run format
+```
+
+The first command checks formatting without editing files; the second rewrites
+all supported, non-ignored files. For a focused change, format only the files
+you edited, for example:
+
+```sh
+npx prettier --write apps/api-gateway/src/main.ts
+```
+
+Formatting is separate from linting. ESLint extends Nx's flat configs and
+enforces module boundaries and no blank lines between consecutive imports.
+The workspace's TypeScript save settings run Prettier and ESLint fixes; Prettier
+alone preserves existing blank lines between imports. Formatting checks are not
+currently part of CI.
 
 Do not commit generated `dist`, `node_modules`, coverage, or local Nx cache files. Preserve permanent tests; remove temporary debugging artifacts once their verification is complete. Never include credentials in examples or commits.

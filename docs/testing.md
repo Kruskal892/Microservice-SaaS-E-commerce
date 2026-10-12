@@ -24,7 +24,7 @@ npx nx e2e @microservice-eshop/auth-service-e2e
 The configured lifecycle is:
 
 1. Nx builds and serves the auth service through target dependencies.
-2. Jest global setup waits for `HOST`/`PORT` (defaults `localhost:3000`).
+2. Jest global setup waits for `HOST`/`PORT` (defaults `localhost:6001`).
 3. Test setup configures Axios's base URL.
 4. The spec sends `GET /` and asserts HTTP 200 and `{ "message": "Hello API" }`.
 5. Global teardown calls `killPort` for the selected port.
@@ -45,13 +45,17 @@ It is not a reliable gateway check in its current form:
 
 | Setting | Test currently uses | Gateway implements |
 | --- | --- | --- |
-| Default port | `3000` | `3333` |
-| Route | `GET /` | `GET /api` |
-| JSON message | `Hello API` | `Welcome to api-gateway!` |
+| Default port | `3000` | `8080` |
+| Route | `GET /` | Local `GET /api`; root proxies to auth |
+| JSON message | `Hello API` | `Welcome to api-gateway!` locally; `Hello API` via root proxy |
 
-With no port-3000 listener, setup may wait or fail. With an auth listener, it can test the wrong process and teardown can terminate that process. Overriding the port alone does not fix the route or assertion.
+With no port-3000 listener, setup may wait or fail. An unrelated listener can be tested or terminated instead. Setting `PORT=8080` does not create a complete gateway test: root forwarding requires auth running separately on 6001, but the gateway E2E target only starts the gateway. The current root assertion also does not verify the gateway's local `/api` contract.
 
-A future fix must align global setup, Axios setup, teardown, and the spec with the gateway. This documentation change does not modify those files.
+A future fix must choose the intended contract, align global setup, Axios setup, teardown, and the spec, and start auth when testing forwarding. This documentation change does not modify those files.
+
+## Gateway behavior to cover
+
+No dedicated tests currently cover CORS, HTTP 429 responses, proxy failure behavior, or client-IP handling. Future checks should distinguish local `/api` behavior from root forwarding, exercise the limiter, and verify the chosen proxy-trust policy. Do not treat the generated root assertion as coverage of these features.
 
 ## Unit tests and type checks
 

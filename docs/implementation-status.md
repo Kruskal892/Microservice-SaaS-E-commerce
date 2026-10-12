@@ -9,11 +9,13 @@ This is a source-inspected snapshot of the current working tree. "Configured" me
 | Area | Evidence and scope |
 | --- | --- |
 | Workspace | Nx, npm workspaces, root lockfile, TypeScript project references |
-| Auth scaffold | Express listener, fixed `GET /` response |
-| Gateway scaffold | Express listener, fixed `GET /api` response, static asset middleware |
+| Auth scaffold | Express listener on default port 6001, fixed `GET /` response |
+| Gateway | Default port 8080, local `GET /api`, catch-all proxy to localhost:6001 |
+| Gateway middleware | CORS, Morgan logging, JSON/URL-encoded parsers, cookie parsing, and in-memory rate limiting |
+| API documentation dependency | `swagger-ui-express` installed; no UI route or specification |
 | Local runner | `npm run dev` invokes all serve targets |
 | Build tooling | Auth esbuild configuration; gateway Webpack configuration |
-| Tests | Auth smoke spec, generated gateway spec, Jest/SWC configuration |
+| Tests | Auth smoke spec and all auth support defaults aligned to 6001; generated gateway spec still mismatched; Jest/SWC configuration |
 | Docker | Auth-service Dockerfile and build dependencies |
 | CI | GitHub Actions install and lint/test/build/typecheck commands |
 | Debugging | Separate VS Code launch configurations |
@@ -21,12 +23,16 @@ This is a source-inspected snapshot of the current working tree. "Configured" me
 
 ## Known gaps
 
-- Gateway requests are not forwarded to the auth service.
+- Gateway upstream is hard-coded; changing auth's host/port or using separate containers requires updating it.
 - The gateway E2E defaults and assertion do not match the gateway; see [testing](testing.md).
 - No authentication endpoints, token/session handling, or user persistence exist.
 - No storefront, product catalog, cart, checkout, orders, or payments exist.
 - No database schema, client, migration, cache, event producer/consumer, or external service connection exists.
-- No custom JSON error contract, request validation, CORS policy, or rate limiting is established in the entry points.
+- No shared JSON error contract, request validation, or token verification exists. CORS and rate limiting exist only at the gateway.
+- Gateway `trust proxy: 1` and raw `req.ip` rate keys remain in the current source: direct clients can spoof forwarded IPs, and IPv6 subnet grouping is bypassed.
+- No middleware sets `req.user`, so the higher 1000-request branch is not an authenticated-user policy.
+- Rate counters are process-local; no shared limiter store or proxy retry/timeout policy is configured.
+- Static asset serving was removed from the gateway; `/assets` now falls through to auth.
 - No gateway container, full local infrastructure stack, deployment workflow, or production environment is configured.
 - Unit-test configuration does not yet provide auth behavior coverage; the gateway has no unit-test suite.
 
@@ -34,7 +40,7 @@ This is a source-inspected snapshot of the current working tree. "Configured" me
 
 The [root README stack table](../README.md#technology-stack) records the supplied project direction: Next.js, MongoDB, Redis, Prisma, Kafka, TensorFlow.js, Socket.IO, Firebase, Swagger/OpenAPI, ImageKit (logo interpretation), AWS, and Cloudflare.
 
-Their adoption details and service contracts are not implemented. This list is not a delivery schedule or evidence of working integrations.
+Swagger's UI dependency is installed, but its contract and route are not implemented. The other integrations' adoption details and service contracts are not implemented. This list is not a delivery schedule or evidence of working integrations.
 
 ## Suggested implementation sequence
 
@@ -42,12 +48,14 @@ This is a proposal, not an agreed milestone plan:
 
 1. Align gateway smoke tests with its real port, route, and response.
 2. Define authentication contracts, persistence ownership, and security requirements.
-3. Implement and test authentication behavior and gateway forwarding.
+3. Implement authentication behavior and test gateway forwarding, rate limits, trusted client identity, and upstream failures.
 4. Introduce the storefront and ecommerce service boundaries.
 5. Add events and other integrations as concrete features require them.
 6. Establish deployment, observability, and operational procedures.
 
 ## Verification boundary
+
+Earlier in this change, direct TypeScript checks passed for the gateway application and auth E2E project after the review fixes. Both E2E Nx typecheck targets and their application dependencies also passed when fixing the E2E ambient types. These checks do not establish runtime or security behavior, and gateway limiter settings have since been edited again.
 
 For this documentation update, source/configuration and documentation links were inspected and Git whitespace checks were performed. Installation, startup, lint, builds, type checks, automated tests, Docker, CI, databases, and cloud services were not run or verified.
 

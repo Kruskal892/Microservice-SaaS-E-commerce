@@ -10,10 +10,10 @@ If npm reports that package.json and the lockfile disagree after an intentional 
 
 ## Port already in use
 
-The defaults are auth `3000` and gateway `3333`. Check existing listeners in PowerShell:
+The defaults are auth `6001` and gateway `8080`. Check existing listeners in PowerShell:
 
 ```powershell
-Get-NetTCPConnection -State Listen -LocalPort 3000,3333 -ErrorAction SilentlyContinue
+Get-NetTCPConnection -State Listen -LocalPort 6001,8080 -ErrorAction SilentlyContinue
 ```
 
 Stop the development process you own with Ctrl+C, or start the desired app on a different port in its own terminal. Do not terminate an unidentified process.
@@ -32,9 +32,21 @@ Remove-Item Env:PORT -ErrorAction SilentlyContinue
 
 ## Gateway returns 404
 
-Use `http://localhost:3333/api`. The gateway has no root `GET /` handler and no forwarding routes. A successful auth request at port 3000 does not demonstrate gateway behavior.
+Use `http://localhost:8080/api` for the local gateway response. `http://localhost:8080/` forwards to auth on port 6001. Other paths forward too, but auth only defines `GET /`, so an upstream 404 is expected for unimplemented routes.
 
-Static asset requests need a file in the gateway's assets directory; the source directory currently only has a placeholder.
+Static asset middleware was removed; `/assets` now forwards to auth instead of serving gateway files.
+
+## Gateway responds at /api but forwarding fails
+
+The `/api` route does not call auth. Confirm auth responds at `http://localhost:6001/`, then try `http://localhost:8080/`. Changing the auth `PORT` override does not change the hard-coded upstream. A host-run gateway can reach the auth container using `-p 6001:3000`; separate containers need a reachable service address instead of localhost.
+
+## Browser CORS errors
+
+Only `http://localhost:3000` is allowed as a credentialed browser origin. `http://127.0.0.1:3000` and other ports are different origins. Update the intended allowlist when adding a frontend; do not treat CORS as authentication.
+
+## Rate-limit warnings or unexpected client identities
+
+The current raw-IP key generator can trigger the limiter's IPv6 validation warning. The one-hop proxy trust setting also accepts forwarded identities on direct connections. These settings need correction before limits can be relied on. An HTTP 429 response uses a 15-minute window and a process-local counter; see [API middleware](api.md).
 
 ## Environment file appears ignored
 
@@ -61,7 +73,7 @@ See [compiler ownership](development.md) for the relevant configuration chain. D
 
 ## Gateway E2E waits, fails, or unexpectedly passes
 
-Its generated setup defaults to port 3000 and its spec checks the auth response at `/`. The gateway uses port 3333 and `/api`. Read [the mismatch details](testing.md) before running it. Its teardown can terminate a process on the test port.
+Its generated setup defaults to port 3000 and its spec checks the auth response at `/`. The gateway uses port 8080; `/api` is local, while `/` forwards to auth on 6001. Read [the mismatch details](testing.md) before running it. Its teardown can terminate a process on the test port.
 
 ## Debugger port conflicts or unbound breakpoints
 

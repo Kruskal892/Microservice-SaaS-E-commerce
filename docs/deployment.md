@@ -38,9 +38,15 @@ The container:
 4. Installs production dependencies with `npm --omit=dev -f install`.
 5. Starts `node main.js`.
 
-Once running and published, the auth endpoint is http://localhost:3000/. It is a scaffold endpoint, not a database-aware readiness probe.
+Once running and published with `-p 3000:3000`, the auth endpoint is http://localhost:3000/. The Dockerfile's port remains 3000 even though the source's local default is now 6001. To connect the current host-run gateway to this container, publish `-p 6001:3000`; its upstream is hard-coded to localhost:6001. It is a scaffold endpoint, not a database-aware readiness probe.
 
 The image follows a moving LTS tag, while CI selects Node 24. The Dockerfile has no explicit health check or non-root `USER` instruction. Packaging configuration is not proof of production readiness.
+
+## Gateway deployment constraints
+
+The gateway listens on port 8080 by default and proxies to `http://localhost:6001`. In separate containers, `localhost` refers to the gateway container, so this target must be changed to the actual upstream service address before that topology can work. There is no upstream environment variable yet.
+
+CORS is fixed to `http://localhost:3000`. Proxy trust is currently one hop, and rate limiting uses a raw-IP key with process-local counters. Define the trusted proxy topology and correct IPv6 key handling before relying on limits; multiple replicas do not share counters. Auth itself has no rate limiter or authentication middleware.
 
 ## GitHub Actions
 

@@ -29,17 +29,17 @@ The script runs `npx nx run-many --target=serve --all`. Each serve target builds
 
 | Application | Default address | Expected JSON |
 | --- | --- | --- |
-| Auth service | http://localhost:3000/ | `{ "message": "Hello API" }` |
-| API gateway | http://localhost:3333/api | `{ "message": "Welcome to api-gateway!" }` |
+| Auth service | http://localhost:6001/ | `{ "message": "Hello API" }` |
+| API gateway | http://localhost:8080/api | `{ "message": "Welcome to api-gateway!" }` |
 
 In a second PowerShell terminal, check the responses:
 
 ```powershell
-Invoke-RestMethod http://localhost:3000/
-Invoke-RestMethod http://localhost:3333/api
+Invoke-RestMethod http://localhost:6001/
+Invoke-RestMethod http://localhost:8080/api
 ```
 
-These responses only demonstrate that the scaffolds respond to HTTP. They do not verify authentication, gateway forwarding, or ecommerce functionality. Stop the development command with **Ctrl+C**.
+To exercise forwarding with both apps running, also request `http://localhost:8080/`; it should return the auth message. `/api` is handled locally and does not check auth availability. These checks do not verify authentication or ecommerce functionality. Stop the development command with **Ctrl+C**.
 
 ## Run one application
 
@@ -58,10 +58,10 @@ npx nx serve @microservice-eshop/api-gateway
 | Variable | Consumer | Default | Behavior |
 | --- | --- | --- | --- |
 | `HOST` | Auth service | `localhost` | Bind address |
-| `PORT` | Auth service | `3000` | Converted to a number before listening |
-| `PORT` | API gateway | `3333` | Passed directly to Express/Node when set |
+| `PORT` | Auth service | `6001` | Converted to a number before listening |
+| `PORT` | API gateway | `8080` | Passed directly to Express/Node when set |
 
-The gateway does not read `HOST`; its listen call does not specify a bind address. Both applications read the process environment. Neither entry point explicitly loads a `.env` file, and no `.env.example` is provided.
+The gateway's upstream is hard-coded to `http://localhost:6001`. Changing the auth port or host does not change the proxy destination. The gateway does not read `HOST`; its listen call does not specify a bind address. Both applications read the process environment. Neither entry point explicitly loads a `.env` file, and no `.env.example` is provided.
 
 To override the auth service's port in PowerShell:
 
@@ -71,7 +71,7 @@ $env:PORT = '3001'
 npx nx serve @microservice-eshop/auth-service
 ```
 
-Open http://localhost:3001/ for that session. After stopping it, clear the overrides before running both apps:
+Open http://localhost:3001/ for that standalone auth session. Gateway forwarding still targets port 6001 and will not reach this overridden port. After stopping it, clear the overrides before running both apps:
 
 ```powershell
 Remove-Item Env:HOST, Env:PORT -ErrorAction SilentlyContinue
@@ -79,6 +79,10 @@ npm run dev
 ```
 
 A shared `PORT` override is inherited by both apps and makes them compete for one port. Use separate terminals and distinct ports if you need custom values. Port values are not validated by the application code.
+
+## Browser requests
+
+The gateway allows credentialed CORS requests from `http://localhost:3000`, with `Authorization` and `Content-Type` request headers. That address is an allowed frontend origin, not the auth port; no frontend is implemented yet. CORS does not authenticate clients or restrict non-browser callers.
 
 ## First-day checklist
 

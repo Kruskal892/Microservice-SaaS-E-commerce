@@ -1,6 +1,6 @@
 # Developer documentation
 
-Start here if you are new to Microservice Eshop. This is an Nx/npm workspace for an ecommerce platform; the current code consists of two independent Express applications and their generated E2E projects.
+Start here if you are new to Microservice Eshop. This is an Nx/npm workspace for an ecommerce platform; the current code consists of an Express gateway forwarding to an Express auth service and their generated E2E projects.
 
 ## Reading order
 
