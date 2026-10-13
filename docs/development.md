@@ -15,29 +15,29 @@ npx nx graph
 
 These inspection commands help resolve which executor and options a task uses. A target need not appear explicitly in the package file to exist.
 
-| Plugin | Role configured in this workspace |
-| --- | --- |
-| `@nx/js/typescript` | Type checking and TypeScript build-related tasks |
-| `@nx/eslint/plugin` | Lint targets |
-| `@nx/jest/plugin` | Test targets; both E2E directories are excluded from inference |
-| `@nx/docker` | Docker build/run targets |
-| `@nx/webpack/plugin` | Gateway build and related targets |
+| Plugin               | Role configured in this workspace                              |
+| -------------------- | -------------------------------------------------------------- |
+| `@nx/js/typescript`  | Type checking and TypeScript build-related tasks               |
+| `@nx/eslint/plugin`  | Lint targets                                                   |
+| `@nx/jest/plugin`    | Test targets; both E2E directories are excluded from inference |
+| `@nx/docker`         | Docker build/run targets                                       |
+| `@nx/webpack/plugin` | Gateway build and related targets                              |
 
 Both E2E projects define their own `e2e` executor and dependencies. Nx's default comparison base is `master`.
 
 ## Common tasks
 
-| Goal | Command |
-| --- | --- |
-| Serve all applications | `npm run dev` |
-| Serve auth | `npx nx serve @microservice-eshop/auth-service` |
-| Serve gateway | `npx nx serve @microservice-eshop/api-gateway` |
-| Build auth | `npx nx build @microservice-eshop/auth-service` |
-| Build gateway | `npx nx build @microservice-eshop/api-gateway` |
-| Check auth types | `npx nx typecheck @microservice-eshop/auth-service` |
-| Check gateway types | `npx nx typecheck @microservice-eshop/api-gateway` |
-| Lint auth | `npx nx lint @microservice-eshop/auth-service` |
-| Lint gateway | `npx nx lint @microservice-eshop/api-gateway` |
+| Goal                   | Command                                             |
+| ---------------------- | --------------------------------------------------- |
+| Serve all applications | `npm run dev`                                       |
+| Serve auth             | `npx nx serve @microservice-eshop/auth-service`     |
+| Serve gateway          | `npx nx serve @microservice-eshop/api-gateway`      |
+| Build auth             | `npx nx build @microservice-eshop/auth-service`     |
+| Build gateway          | `npx nx build @microservice-eshop/api-gateway`      |
+| Check auth types       | `npx nx typecheck @microservice-eshop/auth-service` |
+| Check gateway types    | `npx nx typecheck @microservice-eshop/api-gateway`  |
+| Lint auth              | `npx nx lint @microservice-eshop/auth-service`      |
+| Lint gateway           | `npx nx lint @microservice-eshop/api-gateway`       |
 
 Builds, lint, and tests are explicit developer actions. For automated assistants working under the supplied project instructions, run them only when the user requests them.
 
@@ -61,7 +61,7 @@ The shared base enables `emitDeclarationOnly`. Do not assume a standalone `tsc` 
 
 Middleware, CORS, rate-limit options, the upstream URL, and the HTTP listener are all configured in `apps/api-gateway/src/main.ts`. Local defaults are gateway 8080 and auth 6001. The upstream is hard-coded to localhost:6001, so an auth `PORT` override does not automatically change forwarding.
 
-Auth E2E global setup, Axios setup, and teardown default to 6001. Keep these three consumers aligned when changing the auth default again. Gateway E2E configuration remains separate and still needs alignment; see [testing](testing.md).
+Both apps read uppercase `PORT` and ignore `HOST`; auth E2E reads `HOST` as the request destination and uses the same `PORT` override. Auth E2E global setup, Axios setup, and teardown default to 6001. Keep these three consumers aligned when changing the auth default again. Gateway E2E configuration remains separate and still needs alignment; see [testing](testing.md).
 
 ## Debugging
 

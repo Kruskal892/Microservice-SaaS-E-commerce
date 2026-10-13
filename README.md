@@ -10,27 +10,27 @@ Start with the [developer documentation](docs/README.md) for onboarding, archite
 
 ## Technology stack
 
-| Area | Technology | Status |
-| --- | --- | --- |
-| Architecture | Microservices | API gateway and authentication service scaffolds exist |
-| Monorepo | Nx | Configured with npm workspaces |
-| Language | TypeScript | Configured with strict compiler settings |
-| Backend | Node.js, Express | Auth service with `GET /`; gateway with `GET /api` |
-| Frontend | Next.js | Planned |
-| Primary database | MongoDB | Planned |
-| Secondary data store | Redis | Planned |
-| Database ORM | Prisma | Planned |
-| Message broker | Apache Kafka | Planned |
-| Machine learning | TensorFlow.js | Planned |
-| WebSocket communication | Socket.IO | Planned |
-| Web push notifications | Firebase | Planned |
-| Testing | Jest, Axios | Auth smoke test configured; gateway test needs alignment |
-| API documentation | Swagger / OpenAPI | Swagger UI dependency installed; no specification or documentation route yet |
-| Cloud assets | ImageKit | Planned; inferred from the blue "i" logo in the overview |
-| Containerization | Docker | Auth-service Dockerfile and Nx Docker targets configured |
-| CI/CD | Git, GitHub Actions | CI workflow present; deployment not configured |
-| Deployment | AWS | Planned |
-| Domain management | Cloudflare | Planned |
+| Area                    | Technology          | Status                                                                       |
+| ----------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| Architecture            | Microservices       | API gateway and authentication service scaffolds exist                       |
+| Monorepo                | Nx                  | Configured with npm workspaces                                               |
+| Language                | TypeScript          | Configured with strict compiler settings                                     |
+| Backend                 | Node.js, Express    | Auth service with `GET /`; gateway with `GET /gateway-health`                |
+| Frontend                | Next.js             | Planned                                                                      |
+| Primary database        | MongoDB             | Planned                                                                      |
+| Secondary data store    | Redis               | Planned                                                                      |
+| Database ORM            | Prisma              | Planned                                                                      |
+| Message broker          | Apache Kafka        | Planned                                                                      |
+| Machine learning        | TensorFlow.js       | Planned                                                                      |
+| WebSocket communication | Socket.IO           | Planned                                                                      |
+| Web push notifications  | Firebase            | Planned                                                                      |
+| Testing                 | Jest, Axios         | Auth smoke test configured; gateway test needs alignment                     |
+| API documentation       | Swagger / OpenAPI   | Swagger UI dependency installed; no specification or documentation route yet |
+| Cloud assets            | ImageKit            | Planned; inferred from the blue "i" logo in the overview                     |
+| Containerization        | Docker              | Auth-service Dockerfile and Nx Docker targets configured                     |
+| CI/CD                   | Git, GitHub Actions | CI workflow present; deployment not configured                               |
+| Deployment              | AWS                 | Planned                                                                      |
+| Domain management       | Cloudflare          | Planned                                                                      |
 
 Dependency versions are recorded in [package.json](package.json) and [package-lock.json](package-lock.json). No database, message broker, frontend, or cloud integration is currently included.
 
@@ -42,19 +42,19 @@ The intended architecture uses a Next.js frontend to consume Express service API
 
 ### Current applications
 
-| Application | Nx project name | Purpose |
-| --- | --- | --- |
-| `api-gateway` | `@microservice-eshop/api-gateway` | Express gateway with middleware, local `/api`, and auth-service forwarding |
-| `auth-service` | `@microservice-eshop/auth-service` | Express scaffold; authentication endpoints are not implemented yet |
-| `auth-service-e2e` | `@microservice-eshop/auth-service-e2e` | Jest/Axios smoke test against the backend |
-| `api-gateway-e2e` | `@microservice-eshop/api-gateway-e2e` | Generated smoke test; currently mismatched with the gateway |
+| Application        | Nx project name                        | Purpose                                                                               |
+| ------------------ | -------------------------------------- | ------------------------------------------------------------------------------------- |
+| `api-gateway`      | `@microservice-eshop/api-gateway`      | Express gateway with middleware, local `/gateway-health`, and auth-service forwarding |
+| `auth-service`     | `@microservice-eshop/auth-service`     | Express scaffold; authentication endpoints are not implemented yet                    |
+| `auth-service-e2e` | `@microservice-eshop/auth-service-e2e` | Jest/Axios smoke test against the backend                                             |
+| `api-gateway-e2e`  | `@microservice-eshop/api-gateway-e2e`  | Generated smoke test; currently mismatched with the gateway                           |
 
-The gateway handles `GET /api` locally and forwards other requests to the hard-coded upstream `http://localhost:6001`. Clients can also call the auth service directly. No database or message broker participates in these requests.
+The gateway handles `GET /gateway-health` locally and forwards other requests to the hard-coded upstream `http://localhost:6001`. Clients can also call the auth service directly. No database or message broker participates in these requests.
 
-| Application | Default URL | Response |
-| --- | --- | --- |
-| Auth service | `http://localhost:6001/` | `{ "message": "Hello API" }` |
-| API gateway | `http://localhost:8080/api` | `{ "message": "Welcome to api-gateway!" }` |
+| Application  | Default URL                            | Response                                   |
+| ------------ | -------------------------------------- | ------------------------------------------ |
+| Auth service | `http://localhost:6001/`               | `{ "message": "Hello API" }`               |
+| API gateway  | `http://localhost:8080/gateway-health` | `{ "message": "Welcome to api-gateway!" }` |
 
 The gateway applies CORS, request logging, body parsing, cookie parsing, and IP rate limiting before route handling. Static asset serving has been removed. See the [API reference](docs/api.md) for middleware behavior and limitations.
 
@@ -133,22 +133,20 @@ To start only the gateway:
 npx nx serve @microservice-eshop/api-gateway
 ```
 
-Open `http://localhost:8080/api` for the gateway response. With auth running, `http://localhost:8080/` forwards to auth and returns `{ "message": "Hello API" }`. Stop a development process with **Ctrl+C**.
+Open `http://localhost:8080/gateway-health` for the gateway response. With auth running, `http://localhost:8080/` forwards to auth and returns `{ "message": "Hello API" }`. Stop a development process with **Ctrl+C**.
 
 ### Environment configuration
 
-| Variable | Application | Local default | Purpose |
-| --- | --- | --- | --- |
-| `HOST` | Auth service | `localhost` | Interface on which the service listens |
-| `PORT` | Auth service | `6001` | HTTP port |
-| `PORT` | API gateway | `8080` | HTTP port |
+| Variable | Application  | Local default | Purpose                                |
+| -------- | ------------ | ------------- | -------------------------------------- |
+| `PORT`   | Auth service | `6001`        | Converted to a number before listening |
+| `PORT`   | API gateway  | `8080`        | HTTP port                              |
 
-Both applications read `PORT` from the process environment. The gateway does not read `HOST`. Its upstream is fixed at `http://localhost:6001`, so overriding the auth port does not update gateway forwarding. No explicit `.env` loader or `.env.example` is configured in the application source.
+Both applications read uppercase `PORT`. Neither reads `HOST`, and both listen without an explicit bind address. The gateway upstream is fixed at `http://localhost:6001`, so overriding the auth port does not update gateway forwarding. No explicit `.env` loader or `.env.example` is configured in the application source.
 
 For example, in PowerShell:
 
 ```powershell
-$env:HOST = 'localhost'
 $env:PORT = '3001'
 npx nx serve @microservice-eshop/auth-service
 ```
@@ -156,7 +154,7 @@ npx nx serve @microservice-eshop/auth-service
 After this example, remove the overrides before starting both applications in the same terminal:
 
 ```powershell
-Remove-Item Env:HOST, Env:PORT -ErrorAction SilentlyContinue
+Remove-Item Env:PORT -ErrorAction SilentlyContinue
 npm run dev
 ```
 
@@ -164,26 +162,26 @@ npm run dev
 
 Run these from the repository root. The root `dev` script starts all serve targets; use Nx directly to select an application or task.
 
-| Task | Command |
-| --- | --- |
-| Start both applications | `npm run dev` |
-| List projects | `npx nx show projects` |
-| Inspect service targets | `npx nx show project @microservice-eshop/auth-service` |
-| View dependency graph | `npx nx graph` |
-| Start development server | `npx nx serve @microservice-eshop/auth-service` |
-| Start gateway | `npx nx serve @microservice-eshop/api-gateway` |
-| Build service | `npx nx build @microservice-eshop/auth-service` |
-| Build gateway | `npx nx build @microservice-eshop/api-gateway` |
-| Run service unit tests | `npx nx test @microservice-eshop/auth-service` |
-| Run API smoke test | `npx nx e2e @microservice-eshop/auth-service-e2e` |
-| Check service types | `npx nx typecheck @microservice-eshop/auth-service` |
-| Lint service | `npx nx lint @microservice-eshop/auth-service` |
+| Task                     | Command                                                |
+| ------------------------ | ------------------------------------------------------ |
+| Start both applications  | `npm run dev`                                          |
+| List projects            | `npx nx show projects`                                 |
+| Inspect service targets  | `npx nx show project @microservice-eshop/auth-service` |
+| View dependency graph    | `npx nx graph`                                         |
+| Start development server | `npx nx serve @microservice-eshop/auth-service`        |
+| Start gateway            | `npx nx serve @microservice-eshop/api-gateway`         |
+| Build service            | `npx nx build @microservice-eshop/auth-service`        |
+| Build gateway            | `npx nx build @microservice-eshop/api-gateway`         |
+| Run service unit tests   | `npx nx test @microservice-eshop/auth-service`         |
+| Run API smoke test       | `npx nx e2e @microservice-eshop/auth-service-e2e`      |
+| Check service types      | `npx nx typecheck @microservice-eshop/auth-service`    |
+| Lint service             | `npx nx lint @microservice-eshop/auth-service`         |
 
 The auth-service build defaults to production, uses esbuild, and writes to `apps/auth-service/dist`. The gateway uses Webpack and writes to `apps/api-gateway/dist`. Auth-service unit test configuration exists, but no service unit test files are present yet.
 
 The auth-service E2E target depends on the backend build and serve targets. It waits for the configured port and checks that `GET /` returns HTTP 200 and the expected JSON. Teardown kills the process on that port, so use a free port dedicated to the test run. Auth test setup, Axios, and teardown now default to port `6001`. The test does not cover authentication or ecommerce behavior.
 
-The gateway's generated E2E target is `npx nx e2e @microservice-eshop/api-gateway-e2e`, but its setup still defaults to port `3000` and its assertion expects `GET /` with `Hello API`. The gateway defaults to port `8080`; its root forwards to auth while `/api` returns the gateway's own message. Align the test with the intended gateway contract before relying on it; an unrelated port-3000 listener could otherwise satisfy the wrong check.
+The gateway's generated E2E target is `npx nx e2e @microservice-eshop/api-gateway-e2e`, but its setup still defaults to port `3000` and its assertion expects `GET /` with `Hello API`. The gateway defaults to port `8080`; its root forwards to auth while `/gateway-health` returns the gateway's own message. Align the test with the intended gateway contract before relying on it; an unrelated port-3000 listener could otherwise satisfy the wrong check.
 
 ## Docker
 
@@ -198,10 +196,10 @@ The target depends on build and pruning tasks that prepare the distribution dire
 Run the container with the HTTP port published:
 
 ```sh
-npx nx docker:run @microservice-eshop/auth-service -p 3000:3000
+npx nx docker:run @microservice-eshop/auth-service -p 6001:3000
 ```
 
-The container still uses port `3000`, unlike the local auth default `6001`. To reach this container through the current gateway, publish it with `-p 6001:3000` instead. The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. It sets `HOST=0.0.0.0` and `PORT=3000` inside the container. The base image follows the Node LTS tag rather than a pinned release. No Docker Compose configuration is included.
+The Dockerfile sets `HOST=0.0.0.0` and `PORT=3000`. Auth reads `PORT` and listens on 3000 inside the container, without an explicit bind address. Publish `-p 6001:3000` to match the gateway upstream, or `-p 3000:3000` for standalone use. The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. Auth imports `cors`, but its application package declares only `express`; align runtime dependencies before relying on a pruned container build. Docker was not verified. No Docker Compose configuration is included.
 
 ## Continuous integration
 

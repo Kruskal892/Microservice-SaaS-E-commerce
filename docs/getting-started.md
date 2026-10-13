@@ -13,7 +13,7 @@ No MongoDB, Redis, Kafka, Firebase, AWS, or ImageKit account is needed for the c
 Open a terminal in the repository root. In this workspace:
 
 ```powershell
-Set-Location 'D:\Microservice Eshop'
+Set-Location 'G:\Projects\Microservice-SaaS-E-commerce'
 npm ci
 ```
 
@@ -27,19 +27,19 @@ npm run dev
 
 The script runs `npx nx run-many --target=serve --all`. Each serve target builds its application before starting Node.
 
-| Application | Default address | Expected JSON |
-| --- | --- | --- |
-| Auth service | http://localhost:6001/ | `{ "message": "Hello API" }` |
-| API gateway | http://localhost:8080/api | `{ "message": "Welcome to api-gateway!" }` |
+| Application  | Default address                      | Expected JSON                              |
+| ------------ | ------------------------------------ | ------------------------------------------ |
+| Auth service | http://localhost:6001/               | `{ "message": "Hello API" }`               |
+| API gateway  | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }` |
 
 In a second PowerShell terminal, check the responses:
 
 ```powershell
 Invoke-RestMethod http://localhost:6001/
-Invoke-RestMethod http://localhost:8080/api
+Invoke-RestMethod http://localhost:8080/gateway-health
 ```
 
-To exercise forwarding with both apps running, also request `http://localhost:8080/`; it should return the auth message. `/api` is handled locally and does not check auth availability. These checks do not verify authentication or ecommerce functionality. Stop the development command with **Ctrl+C**.
+To exercise forwarding with both apps running, also request `http://localhost:8080/`; it should return the auth message. `/gateway-health` is handled locally and does not check auth availability. These checks do not verify authentication or ecommerce functionality. Stop the development command with **Ctrl+C**.
 
 ## Run one application
 
@@ -55,18 +55,16 @@ npx nx serve @microservice-eshop/api-gateway
 
 ## Environment variables
 
-| Variable | Consumer | Default | Behavior |
-| --- | --- | --- | --- |
-| `HOST` | Auth service | `localhost` | Bind address |
-| `PORT` | Auth service | `6001` | Converted to a number before listening |
-| `PORT` | API gateway | `8080` | Passed directly to Express/Node when set |
+| Variable | Consumer     | Default | Behavior                                 |
+| -------- | ------------ | ------- | ---------------------------------------- |
+| `PORT`   | Auth service | `6001`  | Converted to a number before listening   |
+| `PORT`   | API gateway  | `8080`  | Passed directly to Express/Node when set |
 
-The gateway's upstream is hard-coded to `http://localhost:6001`. Changing the auth port or host does not change the proxy destination. The gateway does not read `HOST`; its listen call does not specify a bind address. Both applications read the process environment. Neither entry point explicitly loads a `.env` file, and no `.env.example` is provided.
+The gateway's upstream is hard-coded to `http://localhost:6001`. Changing the auth port does not change the proxy destination. Neither app reads `HOST`; both listen without an explicit bind address. Both applications read uppercase `PORT`. Neither entry point explicitly loads a `.env` file, and no `.env.example` is provided.
 
 To override the auth service's port in PowerShell:
 
 ```powershell
-$env:HOST = 'localhost'
 $env:PORT = '3001'
 npx nx serve @microservice-eshop/auth-service
 ```
@@ -74,15 +72,15 @@ npx nx serve @microservice-eshop/auth-service
 Open http://localhost:3001/ for that standalone auth session. Gateway forwarding still targets port 6001 and will not reach this overridden port. After stopping it, clear the overrides before running both apps:
 
 ```powershell
-Remove-Item Env:HOST, Env:PORT -ErrorAction SilentlyContinue
+Remove-Item Env:PORT -ErrorAction SilentlyContinue
 npm run dev
 ```
 
-A shared `PORT` override is inherited by both apps and makes them compete for one port. Use separate terminals and distinct ports if you need custom values. Port values are not validated by the application code.
+A shared `PORT` override makes both apps compete for one port. Use separate terminals and distinct ports if you need custom values. Port values are not validated by the application code.
 
 ## Browser requests
 
-The gateway allows credentialed CORS requests from `http://localhost:3000`, with `Authorization` and `Content-Type` request headers. That address is an allowed frontend origin, not the auth port; no frontend is implemented yet. CORS does not authenticate clients or restrict non-browser callers.
+Both applications allow credentialed CORS requests from `http://localhost:3000`, with `Authorization` and `Content-Type` request headers. That address is an allowed frontend origin, not the auth port; no frontend is implemented yet. CORS does not authenticate clients or restrict non-browser callers.
 
 ## First-day checklist
 

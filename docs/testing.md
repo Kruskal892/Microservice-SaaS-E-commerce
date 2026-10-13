@@ -4,12 +4,12 @@
 
 ## Existing coverage
 
-| Project | Current check | Limitation |
-| --- | --- | --- |
-| Auth service | Jest configuration with `passWithNoTests` | No unit test files |
-| Auth E2E | HTTP 200 and exact JSON at `GET /` | Scaffold response only |
-| Gateway E2E | Generated auth-style assertion | Wrong default port, route, and message for the gateway |
-| API gateway | No unit-test configuration or unit tests currently present | No isolated behavior coverage |
+| Project      | Current check                                              | Limitation                                             |
+| ------------ | ---------------------------------------------------------- | ------------------------------------------------------ |
+| Auth service | Jest configuration with `passWithNoTests`                  | No unit test files                                     |
+| Auth E2E     | HTTP 200 and exact JSON at `GET /`                         | Scaffold response only                                 |
+| Gateway E2E  | Generated auth-style assertion                             | Wrong default port, route, and message for the gateway |
+| API gateway  | No unit-test configuration or unit tests currently present | No isolated behavior coverage                          |
 
 A passing target with no tests does not establish behavior coverage. No tests were run during the documentation update.
 
@@ -29,6 +29,8 @@ The configured lifecycle is:
 4. The spec sends `GET /` and asserts HTTP 200 and `{ "message": "Hello API" }`.
 5. Global teardown calls `killPort` for the selected port.
 
+Auth and its E2E setup both read uppercase `PORT`. Auth ignores `HOST` and listens without an explicit bind address; E2E uses `HOST` as the request destination.
+
 Use a dedicated free port if overriding defaults. Teardown terminates the process on that port; an existing listener can also make the readiness check succeed for the wrong application.
 
 The [project configuration](../apps/auth-service-e2e/package.json), [spec](../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts), and [Jest configuration](../apps/auth-service-e2e/jest.config.cts) define this behavior.
@@ -43,19 +45,19 @@ npx nx e2e @microservice-eshop/api-gateway-e2e
 
 It is not a reliable gateway check in its current form:
 
-| Setting | Test currently uses | Gateway implements |
-| --- | --- | --- |
-| Default port | `3000` | `8080` |
-| Route | `GET /` | Local `GET /api`; root proxies to auth |
-| JSON message | `Hello API` | `Welcome to api-gateway!` locally; `Hello API` via root proxy |
+| Setting      | Test currently uses | Gateway implements                                            |
+| ------------ | ------------------- | ------------------------------------------------------------- |
+| Default port | `3000`              | `8080`                                                        |
+| Route        | `GET /`             | Local `GET /gateway-health`; root proxies to auth             |
+| JSON message | `Hello API`         | `Welcome to api-gateway!` locally; `Hello API` via root proxy |
 
-With no port-3000 listener, setup may wait or fail. An unrelated listener can be tested or terminated instead. Setting `PORT=8080` does not create a complete gateway test: root forwarding requires auth running separately on 6001, but the gateway E2E target only starts the gateway. The current root assertion also does not verify the gateway's local `/api` contract.
+With no port-3000 listener, setup may wait or fail. An unrelated listener can be tested or terminated instead. Setting `PORT=8080` does not create a complete gateway test: root forwarding requires auth running separately on 6001, but the gateway E2E target only starts the gateway. The current root assertion also does not verify the gateway's local `/gateway-health` contract.
 
 A future fix must choose the intended contract, align global setup, Axios setup, teardown, and the spec, and start auth when testing forwarding. This documentation change does not modify those files.
 
 ## Gateway behavior to cover
 
-No dedicated tests currently cover CORS, HTTP 429 responses, proxy failure behavior, or client-IP handling. Future checks should distinguish local `/api` behavior from root forwarding, exercise the limiter, and verify the chosen proxy-trust policy. Do not treat the generated root assertion as coverage of these features.
+No dedicated tests currently cover CORS, HTTP 429 responses, proxy failure behavior, or client-IP handling. Future checks should distinguish local `/gateway-health` behavior from root forwarding, exercise the limiter, and verify the chosen proxy-trust policy. Do not treat the generated root assertion as coverage of these features.
 
 ## Unit tests and type checks
 
