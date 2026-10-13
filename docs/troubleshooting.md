@@ -18,7 +18,7 @@ Get-NetTCPConnection -State Listen -LocalPort 6001,8080 -ErrorAction SilentlyCon
 
 Stop the development process you own with Ctrl+C, or start the desired app on a different port in its own terminal. Do not terminate an unidentified process.
 
-If `npm run dev` causes both apps to use the same port, check whether `PORT` is set in the terminal environment:
+On Windows, `PORT` and `port` resolve to the same environment key, so an override can make both apps use the same port. On Linux auth reads lowercase `port` and the gateway reads uppercase `PORT`. Check the terminal environment:
 
 ```powershell
 Get-Item Env:PORT -ErrorAction SilentlyContinue
@@ -32,13 +32,13 @@ Remove-Item Env:PORT -ErrorAction SilentlyContinue
 
 ## Gateway returns 404
 
-Use `http://localhost:8080/api` for the local gateway response. `http://localhost:8080/` forwards to auth on port 6001. Other paths forward too, but auth only defines `GET /`, so an upstream 404 is expected for unimplemented routes.
+Use `http://localhost:8080/gateway-health` for the local gateway response. `http://localhost:8080/` forwards to auth on port 6001. Other paths forward too, but auth only defines `GET /`, so an upstream 404 is expected for unimplemented routes.
 
 Static asset middleware was removed; `/assets` now forwards to auth instead of serving gateway files.
 
-## Gateway responds at /api but forwarding fails
+## Gateway responds at /gateway-health but forwarding fails
 
-The `/api` route does not call auth. Confirm auth responds at `http://localhost:6001/`, then try `http://localhost:8080/`. Changing the auth `PORT` override does not change the hard-coded upstream. A host-run gateway can reach the auth container using `-p 6001:3000`; separate containers need a reachable service address instead of localhost.
+The `/gateway-health` route does not call auth. Confirm auth responds at `http://localhost:6001/`, then try `http://localhost:8080/`. Changing the auth `PORT` override does not change the hard-coded upstream. A host-run gateway can reach the auth container using `-p 6001:6001`; separate containers need a reachable service address instead of localhost.
 
 ## Browser CORS errors
 
@@ -73,7 +73,7 @@ See [compiler ownership](development.md) for the relevant configuration chain. D
 
 ## Gateway E2E waits, fails, or unexpectedly passes
 
-Its generated setup defaults to port 3000 and its spec checks the auth response at `/`. The gateway uses port 8080; `/api` is local, while `/` forwards to auth on 6001. Read [the mismatch details](testing.md) before running it. Its teardown can terminate a process on the test port.
+Its generated setup defaults to port 3000 and its spec checks the auth response at `/`. The gateway uses port 8080; `/gateway-health` is local, while `/` forwards to auth on 6001. Read [the mismatch details](testing.md) before running it. Its teardown can terminate a process on the test port.
 
 ## Debugger port conflicts or unbound breakpoints
 

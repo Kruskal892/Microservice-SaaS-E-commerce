@@ -15,16 +15,16 @@ Start here if you are new to Microservice Eshop. This is an Nx/npm workspace for
 
 ## Where to update documentation
 
-| Change | Update |
-| --- | --- |
-| Installation, scripts, or environment variables | Getting started and the root README |
-| Application ownership or service communication | Architecture |
-| Routes or response contracts | API reference and related tests |
-| Task configuration, compiler settings, or debugging | Development |
-| Test setup, assertions, or coverage | Testing |
-| Packaging, CI, or deployment | Deployment and CI |
-| A planned capability becomes implemented | Implementation status and the root stack table |
+| Change                                              | Update                                         |
+| --------------------------------------------------- | ---------------------------------------------- |
+| Installation, scripts, or environment variables     | Getting started and the root README            |
+| Application ownership or service communication      | Architecture                                   |
+| Routes or response contracts                        | API reference and related tests                |
+| Task configuration, compiler settings, or debugging | Development                                    |
+| Test setup, assertions, or coverage                 | Testing                                        |
+| Packaging, CI, or deployment                        | Deployment and CI                              |
+| A planned capability becomes implemented            | Implementation status and the root stack table |
 
 The [root README](../README.md) introduces the project. These documents explain how to work in it. Source files linked throughout the guides are the authority when implementation and documentation diverge.
 
-The documentation describes the working tree inspected during this update, including the newly added gateway. Commands are documented from configuration; application startup, builds, lint, tests, Docker, and CI were not executed as part of this documentation work.
+The documentation describes the working tree inspected during this update, including the gateway health route and auth CORS/listener changes. Direct TypeScript project builds passed for both runtime apps. Application startup, Nx builds, lint, tests, Docker, and CI were not executed as part of this documentation work.

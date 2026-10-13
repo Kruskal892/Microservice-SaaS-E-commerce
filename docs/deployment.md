@@ -10,10 +10,10 @@ The following commands describe configured tasks. They were not executed during 
 
 ## Build outputs
 
-| Application | Build | Output |
-| --- | --- | --- |
-| Auth | `npx nx build @microservice-eshop/auth-service` | `apps/auth-service/dist` |
-| Gateway | `npx nx build @microservice-eshop/api-gateway` | `apps/api-gateway/dist` |
+| Application | Build                                           | Output                   |
+| ----------- | ----------------------------------------------- | ------------------------ |
+| Auth        | `npx nx build @microservice-eshop/auth-service` | `apps/auth-service/dist` |
+| Gateway     | `npx nx build @microservice-eshop/api-gateway`  | `apps/api-gateway/dist`  |
 
 Both apps also define `prune-lockfile`, `copy-workspace-modules`, and `prune` targets. The pruning tasks depend on the application build and are intended to prepare runtime dependency metadata and workspace modules.
 
@@ -25,7 +25,7 @@ Source: [Dockerfile](../apps/auth-service/Dockerfile).
 
 ```sh
 npx nx docker:build @microservice-eshop/auth-service
-npx nx docker:run @microservice-eshop/auth-service -p 3000:3000
+npx nx docker:run @microservice-eshop/auth-service -p 6001:6001
 ```
 
 The Docker build target depends on `build` and `prune`. The Dockerfile expects a prepared `dist` directory in its build context.
@@ -38,7 +38,9 @@ The container:
 4. Installs production dependencies with `npm --omit=dev -f install`.
 5. Starts `node main.js`.
 
-Once running and published with `-p 3000:3000`, the auth endpoint is http://localhost:3000/. The Dockerfile's port remains 3000 even though the source's local default is now 6001. To connect the current host-run gateway to this container, publish `-p 6001:3000`; its upstream is hard-coded to localhost:6001. It is a scaffold endpoint, not a database-aware readiness probe.
+Auth now reads lowercase `port` and ignores `HOST`. On Linux, the Dockerfile's uppercase `PORT=3000` is ignored, so the service defaults to 6001 and binds without an explicit host. Publish `-p 6001:6001` to reach http://localhost:6001/ and match the host-run gateway upstream. Previous mappings `-p 3000:3000` and `-p 6001:3000` target a port on which the current service does not listen. Align the source and Docker environment keys before using custom ports.
+
+Auth imports `cors`, but [its package](../apps/auth-service/package.json) declares only `express`; `cors` is declared at the workspace root. Declare this runtime dependency at the service level and verify pruning/image startup before relying on container packaging.
 
 The image follows a moving LTS tag, while CI selects Node 24. The Dockerfile has no explicit health check or non-root `USER` instruction. Packaging configuration is not proof of production readiness.
 
