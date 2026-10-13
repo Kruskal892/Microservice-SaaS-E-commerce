@@ -113,7 +113,7 @@ Start both applications:
 npm run dev
 ```
 
-This script runs the `serve` targets across the workspace. Use the default ports below when starting both apps; on Windows, a shared `PORT`/`port` override would make them compete for the same port.
+This script runs the `serve` targets across the workspace. Use the default ports below when starting both apps; a shared `PORT` override would make them compete for the same port.
 
 To start only the auth service:
 
@@ -137,24 +137,24 @@ Open `http://localhost:8080/gateway-health` for the gateway response. With auth 
 
 ### Environment configuration
 
-| Variable | Application  | Local default | Purpose                  |
-| -------- | ------------ | ------------- | ------------------------ |
-| `port`   | Auth service | `6001`        | HTTP port; lowercase key |
-| `PORT`   | API gateway  | `8080`        | HTTP port                |
+| Variable | Application  | Local default | Purpose                                |
+| -------- | ------------ | ------------- | -------------------------------------- |
+| `PORT`   | Auth service | `6001`        | Converted to a number before listening |
+| `PORT`   | API gateway  | `8080`        | HTTP port                              |
 
-Auth reads lowercase `port`; the gateway reads uppercase `PORT`. Neither reads `HOST`, and both listen without an explicit bind address. Environment lookup is case-sensitive on Linux and case-insensitive on Windows. Its upstream is fixed at `http://localhost:6001`, so overriding the auth port does not update gateway forwarding. No explicit `.env` loader or `.env.example` is configured in the application source.
+Both applications read uppercase `PORT`. Neither reads `HOST`, and both listen without an explicit bind address. The gateway upstream is fixed at `http://localhost:6001`, so overriding the auth port does not update gateway forwarding. No explicit `.env` loader or `.env.example` is configured in the application source.
 
 For example, in PowerShell:
 
 ```powershell
-$env:port = '3001'
+$env:PORT = '3001'
 npx nx serve @microservice-eshop/auth-service
 ```
 
 After this example, remove the overrides before starting both applications in the same terminal:
 
 ```powershell
-Remove-Item Env:port, Env:PORT -ErrorAction SilentlyContinue
+Remove-Item Env:PORT -ErrorAction SilentlyContinue
 npm run dev
 ```
 
@@ -196,10 +196,10 @@ The target depends on build and pruning tasks that prepare the distribution dire
 Run the container with the HTTP port published:
 
 ```sh
-npx nx docker:run @microservice-eshop/auth-service -p 6001:6001
+npx nx docker:run @microservice-eshop/auth-service -p 6001:3000
 ```
 
-The Dockerfile sets `HOST=0.0.0.0` and `PORT=3000`, but auth ignores both on Linux and defaults to 6001. Publish `-p 6001:6001` for the current source and gateway upstream. The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. Auth imports `cors`, but its application package declares only `express`; align runtime dependencies before relying on a pruned container build. Docker was not verified. No Docker Compose configuration is included.
+The Dockerfile sets `HOST=0.0.0.0` and `PORT=3000`. Auth reads `PORT` and listens on 3000 inside the container, without an explicit bind address. Publish `-p 6001:3000` to match the gateway upstream, or `-p 3000:3000` for standalone use. The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. Auth imports `cors`, but its application package declares only `express`; align runtime dependencies before relying on a pruned container build. Docker was not verified. No Docker Compose configuration is included.
 
 ## Continuous integration
 

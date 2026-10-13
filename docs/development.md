@@ -59,9 +59,9 @@ The shared base enables `emitDeclarationOnly`. Do not assume a standalone `tsc` 
 
 ## Gateway configuration ownership
 
-Middleware, CORS, rate-limit options, the upstream URL, and the HTTP listener are all configured in `apps/api-gateway/src/main.ts`. Local defaults are gateway 8080 and auth 6001. The upstream is hard-coded to localhost:6001, so an auth lowercase `port` override does not automatically change forwarding.
+Middleware, CORS, rate-limit options, the upstream URL, and the HTTP listener are all configured in `apps/api-gateway/src/main.ts`. Local defaults are gateway 8080 and auth 6001. The upstream is hard-coded to localhost:6001, so an auth `PORT` override does not automatically change forwarding.
 
-Auth reads lowercase `port` and ignores `HOST`; the gateway reads uppercase `PORT`. Auth E2E still reads `HOST`/`PORT`, so custom Linux ports need alignment with the service. Auth E2E global setup, Axios setup, and teardown default to 6001. Keep these three consumers aligned when changing the auth default again. Gateway E2E configuration remains separate and still needs alignment; see [testing](testing.md).
+Both apps read uppercase `PORT` and ignore `HOST`; auth E2E reads `HOST` as the request destination and uses the same `PORT` override. Auth E2E global setup, Axios setup, and teardown default to 6001. Keep these three consumers aligned when changing the auth default again. Gateway E2E configuration remains separate and still needs alignment; see [testing](testing.md).
 
 ## Debugging
 

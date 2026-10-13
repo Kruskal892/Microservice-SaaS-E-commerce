@@ -55,28 +55,28 @@ npx nx serve @microservice-eshop/api-gateway
 
 ## Environment variables
 
-| Variable | Consumer     | Default | Behavior                                                |
-| -------- | ------------ | ------- | ------------------------------------------------------- |
-| `port`   | Auth service | `6001`  | Lowercase key; passed directly to Express/Node when set |
-| `PORT`   | API gateway  | `8080`  | Passed directly to Express/Node when set                |
+| Variable | Consumer     | Default | Behavior                                 |
+| -------- | ------------ | ------- | ---------------------------------------- |
+| `PORT`   | Auth service | `6001`  | Converted to a number before listening   |
+| `PORT`   | API gateway  | `8080`  | Passed directly to Express/Node when set |
 
-The gateway's upstream is hard-coded to `http://localhost:6001`. Changing the auth port does not change the proxy destination. Neither app reads `HOST`; both listen without an explicit bind address. Auth reads lowercase `port`, while the gateway reads uppercase `PORT`. Environment lookup is case-sensitive on Linux and case-insensitive on Windows. Neither entry point explicitly loads a `.env` file, and no `.env.example` is provided.
+The gateway's upstream is hard-coded to `http://localhost:6001`. Changing the auth port does not change the proxy destination. Neither app reads `HOST`; both listen without an explicit bind address. Both applications read uppercase `PORT`. Neither entry point explicitly loads a `.env` file, and no `.env.example` is provided.
 
 To override the auth service's port in PowerShell:
 
 ```powershell
-$env:port = '3001'
+$env:PORT = '3001'
 npx nx serve @microservice-eshop/auth-service
 ```
 
 Open http://localhost:3001/ for that standalone auth session. Gateway forwarding still targets port 6001 and will not reach this overridden port. After stopping it, clear the overrides before running both apps:
 
 ```powershell
-Remove-Item Env:port, Env:PORT -ErrorAction SilentlyContinue
+Remove-Item Env:PORT -ErrorAction SilentlyContinue
 npm run dev
 ```
 
-On Windows, a shared `PORT`/`port` override makes both apps compete for one port. On Linux the keys differ; Docker and auth E2E still use uppercase `PORT` and need alignment. Use separate terminals and distinct ports if you need custom values. Port values are not validated by the application code.
+A shared `PORT` override makes both apps compete for one port. Use separate terminals and distinct ports if you need custom values. Port values are not validated by the application code.
 
 ## Browser requests
 

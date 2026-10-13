@@ -18,7 +18,7 @@ Get-NetTCPConnection -State Listen -LocalPort 6001,8080 -ErrorAction SilentlyCon
 
 Stop the development process you own with Ctrl+C, or start the desired app on a different port in its own terminal. Do not terminate an unidentified process.
 
-On Windows, `PORT` and `port` resolve to the same environment key, so an override can make both apps use the same port. On Linux auth reads lowercase `port` and the gateway reads uppercase `PORT`. Check the terminal environment:
+Both applications read `PORT`, so a shared override can make both apps use the same port. Check the terminal environment:
 
 ```powershell
 Get-Item Env:PORT -ErrorAction SilentlyContinue
@@ -38,7 +38,7 @@ Static asset middleware was removed; `/assets` now forwards to auth instead of s
 
 ## Gateway responds at /gateway-health but forwarding fails
 
-The `/gateway-health` route does not call auth. Confirm auth responds at `http://localhost:6001/`, then try `http://localhost:8080/`. Changing the auth `PORT` override does not change the hard-coded upstream. A host-run gateway can reach the auth container using `-p 6001:6001`; separate containers need a reachable service address instead of localhost.
+The `/gateway-health` route does not call auth. Confirm auth responds at `http://localhost:6001/`, then try `http://localhost:8080/`. Changing the auth `PORT` override does not change the hard-coded upstream. A host-run gateway can reach the auth container using `-p 6001:3000`; separate containers need a reachable service address instead of localhost.
 
 ## Browser CORS errors
 

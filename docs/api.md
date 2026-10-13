@@ -22,7 +22,7 @@ Invoke-RestMethod http://localhost:6001/
 
 No authentication, query parameters, or request body are required. This is a scaffold response, not a login endpoint or dependency-aware health check.
 
-Auth applies CORS before its route: origin `http://localhost:3000`, credentials allowed, and `Authorization` and `Content-Type` request headers allowed. It has no body parser or rate limiter.
+Auth applies CORS before its route: origin `http://localhost:3000`, credentials allowed, and `Authorization` and `Content-Type` request headers allowed. It has no body parser or rate limiter. Listener errors are logged to stderr and set a nonzero process exit status.
 
 ## API gateway
 

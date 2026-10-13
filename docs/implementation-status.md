@@ -23,7 +23,7 @@ This is a source-inspected snapshot of the current working tree. "Configured" me
 
 ## Known gaps
 
-- Auth reads lowercase `port` and ignores `HOST`; Docker and auth E2E still use uppercase `PORT`. Custom Linux ports need alignment. Both apps bind without an explicit host.
+- Both apps ignore `HOST` and bind without an explicit host; auth E2E still uses `HOST` as its request destination.
 - Auth imports `cors` without declaring it in its own package; align runtime dependencies before validating pruned Docker output.
 - The gateway startup log still advertises `/api` instead of `/gateway-health`.
 

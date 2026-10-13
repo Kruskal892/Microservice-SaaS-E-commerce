@@ -29,7 +29,7 @@ The configured lifecycle is:
 4. The spec sends `GET /` and asserts HTTP 200 and `{ "message": "Hello API" }`.
 5. Global teardown calls `killPort` for the selected port.
 
-Auth now reads lowercase `port` and ignores `HOST`, while E2E setup still reads uppercase `PORT` and `HOST`. Defaults remain aligned, but on Linux a `PORT` override changes the test destination without changing the service port. Align these consumers before using custom ports. Windows environment lookup is case-insensitive.
+Auth and its E2E setup both read uppercase `PORT`. Auth ignores `HOST` and listens without an explicit bind address; E2E uses `HOST` as the request destination.
 
 Use a dedicated free port if overriding defaults. Teardown terminates the process on that port; an existing listener can also make the readiness check succeed for the wrong application.
 

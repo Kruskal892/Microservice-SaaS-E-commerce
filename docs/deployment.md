@@ -25,7 +25,7 @@ Source: [Dockerfile](../apps/auth-service/Dockerfile).
 
 ```sh
 npx nx docker:build @microservice-eshop/auth-service
-npx nx docker:run @microservice-eshop/auth-service -p 6001:6001
+npx nx docker:run @microservice-eshop/auth-service -p 6001:3000
 ```
 
 The Docker build target depends on `build` and `prune`. The Dockerfile expects a prepared `dist` directory in its build context.
@@ -38,7 +38,7 @@ The container:
 4. Installs production dependencies with `npm --omit=dev -f install`.
 5. Starts `node main.js`.
 
-Auth now reads lowercase `port` and ignores `HOST`. On Linux, the Dockerfile's uppercase `PORT=3000` is ignored, so the service defaults to 6001 and binds without an explicit host. Publish `-p 6001:6001` to reach http://localhost:6001/ and match the host-run gateway upstream. Previous mappings `-p 3000:3000` and `-p 6001:3000` target a port on which the current service does not listen. Align the source and Docker environment keys before using custom ports.
+Auth reads uppercase `PORT`, so the Dockerfile configures port 3000 inside the container. Auth ignores `HOST` and listens without an explicit bind address. Publish `-p 6001:3000` to reach http://localhost:6001/ and match the host-run gateway upstream, or `-p 3000:3000` for standalone use.
 
 Auth imports `cors`, but [its package](../apps/auth-service/package.json) declares only `express`; `cors` is declared at the workspace root. Declare this runtime dependency at the service level and verify pruning/image startup before relying on container packaging.
 
