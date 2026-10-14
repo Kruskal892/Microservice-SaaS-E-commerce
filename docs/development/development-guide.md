@@ -48,6 +48,13 @@ into CommonJS, leaves third-party dependencies external, and writes to
 `apps/auth-service/dist`. Production is the default build configuration; its
 serve target selects the development build configuration by default.
 
+Auth's esbuild target sets `declaration: false`; its application TypeScript
+config disables `declarationMap` and `emitDeclarationOnly`. The executable
+service does not need declaration output from esbuild. This keeps the executor
+in no-emit typecheck mode rather than checking bundled shared source as part of
+auth's composite declaration project. Shared-library declaration output remains
+enabled, and the separate Nx typecheck target still uses project references.
+
 The gateway uses the Nx Webpack plugin, with `compiler: 'tsc'`, a Node target, asset copying, and output in `apps/api-gateway/dist`.
 
 TypeScript configuration is split across:

@@ -91,6 +91,14 @@ and Jest need their own resolution setup. See
 
 ### Compiler ownership
 
+If auth's build reports `TS6307` for files under `packages/` while its separate
+typecheck passes, inspect esbuild's declaration setting. The executor's
+declaration checker can read shared source without the project references used
+by the standalone typecheck. Auth sets `declaration: false` in its build target
+and disables `declarationMap` and `emitDeclarationOnly` in its app config so
+esbuild uses no-emit typechecking. Keep shared-library declarations enabled;
+do not widen auth's source inclusion just to hide this build error.
+
 Read the exact task error before editing compiler settings. The auth service uses esbuild; the gateway uses Webpack with TypeScript compilation. Shared settings include `emitDeclarationOnly` and project references, so a raw `tsc` command is not interchangeable with an application build.
 
 See [compiler ownership](development-guide.md) for the relevant configuration chain. Do not disable strictness or change shared emission settings solely to hide an application-specific error.

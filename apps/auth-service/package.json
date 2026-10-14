@@ -17,6 +17,7 @@
             "cjs"
           ],
           "bundle": true,
+          "declaration": false,
           "main": "apps/auth-service/src/main.ts",
           "tsConfig": "apps/auth-service/tsconfig.app.json",
           "assets": [
