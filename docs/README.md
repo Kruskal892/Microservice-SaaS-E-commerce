@@ -1,30 +1,71 @@
-# Developer documentation
+# Project documentation
 
-Start here if you are new to Microservice Eshop. This is an Nx/npm workspace for an ecommerce platform; the current code consists of an Express gateway forwarding to an Express auth service and their generated E2E projects.
+Microservice Eshop is an Nx/npm TypeScript workspace. Current code is an Express
+gateway and auth scaffold, with generated E2E projects. Start with
+[getting started](development/getting-started.md) to run it, or
+[architecture](architecture/architecture.md) for the system overview, tech stack,
+project structure, data flow, and future considerations.
 
-## Reading order
+For the shared `packages/` library, start with
+[adding modules and folder imports](development/development-guide.md#adding-shared-modules).
+[Technical design](architecture/technical-design.md#shared-error-handler-current-source)
+describes the error classes; the
+[API specification](api/api-specification.md#shared-error-handler-auth-service)
+owns their response formats. Auth registers the handler; the gateway does not.
 
-1. [Getting started](getting-started.md) — prerequisites, installation, running apps, environment variables, and first requests.
-2. [Architecture](architecture.md) — application responsibilities, request paths, repository layout, and planned technologies.
-3. [Development](development.md) — Nx tasks, TypeScript configuration, debugging, and how to make changes.
-4. [API reference](api.md) — endpoints that actually exist.
-5. [Testing](testing.md) — test lifecycle, coverage boundaries, and the gateway test mismatch.
-6. [Deployment and CI](deployment.md) — build outputs, Docker packaging, CI, and production gaps.
-7. [Troubleshooting](troubleshooting.md) — common setup, port, task, and debugger issues.
-8. [Implementation status](implementation-status.md) — implemented scaffolding versus unfinished product features.
+## Core documents
+
+| #   | Document                                                   | Main purpose                                                 | Priority |
+| --- | ---------------------------------------------------------- | ------------------------------------------------------------ | -------- |
+| 1   | [PRD](product/prd.md)                                      | Define what is being built and why                           | Critical |
+| 2   | [Feature specification](product/feature-specification.md)  | Define feature behavior                                      | Critical |
+| 3   | [System architecture](architecture/architecture.md)        | Explain frontend, backend, database, and service interaction | Critical |
+| 4   | [Database design (ERD)](architecture/database-design.md)   | Define collections, relationships, constraints, and indexes  | Critical |
+| 5   | [API specification](api/api-specification.md)              | Define frontend/backend communication                        | Critical |
+| 6   | [UI/UX specification](product/ui-ux-specification.md)      | Define screens, navigation, flows, and states                | High     |
+| 7   | [Technical design (TDD)](architecture/technical-design.md) | Define patterns and technical decisions                      | High     |
+| 8   | [Implementation plan](delivery/implementation-plan.md)     | Turn the design into development tasks                       | Critical |
+
+## Supporting guides
+
+| Area        | Guides                                                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Development | [Setup](development/getting-started.md), [workflow and formatting](development/development-guide.md), [testing](development/testing.md), [troubleshooting](development/troubleshooting.md) |
+| Delivery    | [Implementation status](delivery/implementation-status.md), [deployment and CI](delivery/deployment.md)                                                                                    |
+
+## Organization and status conventions
+
+```text
+docs/
+|-- product/          # Why, feature behavior, customer interface
+|-- architecture/     # System, data model, implementation decisions
+|-- api/              # HTTP contracts
+|-- delivery/         # Tasks, status, packaging and operations
+|-- development/      # Contributor setup and workflow
+`-- README.md         # This index
+```
+
+**Current / implemented** means inspected source contains the behavior.
+**Configured** means tooling exists without implying a successful run.
+**Proposed / draft** means suggested design, not an approved requirement or available
+feature. **Undecided** marks input needed before dependent implementation.
+Future product requirements are drafts because no approved product brief exists here.
+
+Aligned to source on **2026-10-14**. Runtime, tests, lint, builds, Docker, and CI
+were not executed for this update. Source links support current behavior claims.
 
 ## Where to update documentation
 
-| Change                                              | Update                                         |
-| --------------------------------------------------- | ---------------------------------------------- |
-| Installation, scripts, or environment variables     | Getting started and the root README            |
-| Application ownership or service communication      | Architecture                                   |
-| Routes or response contracts                        | API reference and related tests                |
-| Task configuration, compiler settings, or debugging | Development                                    |
-| Test setup, assertions, or coverage                 | Testing                                        |
-| Packaging, CI, or deployment                        | Deployment and CI                              |
-| A planned capability becomes implemented            | Implementation status and the root stack table |
+| Change                         | Update                                     |
+| ------------------------------ | ------------------------------------------ |
+| Product goals or scope         | PRD, features, plan                        |
+| Screens or interface states    | UI/UX and related feature                  |
+| Service boundaries             | System architecture and TDD                |
+| Persistence or constraints     | Database design and API effects            |
+| HTTP behavior                  | API specification, features, related tests |
+| Setup, Nx, formatting, tests   | Relevant development guide and root README |
+| Packaging or infrastructure    | Deployment and system architecture         |
+| Capability becomes implemented | Implementation status and root stack table |
 
-The [root README](../README.md) introduces the project. These documents explain how to work in it. Source files linked throughout the guides are the authority when implementation and documentation diverge.
-
-The documentation describes the working tree inspected during this update, including the gateway health route and auth CORS/listener changes. Direct TypeScript project builds passed for both runtime apps. Application startup, Nx builds, lint, tests, Docker, and CI were not executed as part of this documentation work.
+The [root README](../README.md) remains the introduction. Keep contracts in their
+owning documents and link to them rather than maintaining duplicate snapshots.

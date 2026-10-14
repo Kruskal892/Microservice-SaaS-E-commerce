@@ -1,4 +1,4 @@
-﻿# Microservice Eshop
+# Microservice Eshop
 
 A microservice ecommerce project built with an **Nx monorepo** and **TypeScript**. The intended platform combines a Next.js storefront, Express backend services, persistent storage, event messaging, real-time communication, and machine learning.
 
@@ -6,7 +6,12 @@ The repository is currently at the foundation stage: Express scaffolds for an AP
 
 ## Developer documentation
 
-Start with the [developer documentation](docs/README.md) for onboarding, architecture, API behavior, Nx development, testing, deployment, troubleshooting, and implementation status.
+Start with the [documentation index](docs/README.md) for the PRD, feature and UI/UX
+specifications, system architecture, database ERD, API specification, technical
+design, and implementation plan. Existing onboarding, development, testing,
+deployment, troubleshooting, and implementation-status guides are grouped there
+as well. Product and database designs are labeled as proposals; they do not imply
+implemented ecommerce features.
 
 ## Technology stack
 
@@ -56,7 +61,14 @@ The gateway handles `GET /gateway-health` locally and forwards other requests to
 | Auth service | `http://localhost:6001/`               | `{ "message": "Hello API" }`               |
 | API gateway  | `http://localhost:8080/gateway-health` | `{ "message": "Welcome to api-gateway!" }` |
 
-The gateway applies CORS, request logging, body parsing, cookie parsing, and IP rate limiting before route handling. Static asset serving has been removed. See the [API reference](docs/api.md) for middleware behavior and limitations.
+The gateway applies CORS, request logging, body parsing, cookie parsing, and IP rate limiting before route handling. Static asset serving has been removed. See the [API reference](docs/api/api-specification.md) for middleware behavior and limitations.
+
+Shared error classes and a JSON response handler exist under
+`packages/error-handler`. Auth imports `@microservice-eshop/error-handler` and
+registers its four-parameter middleware after routes; the gateway does not use it.
+Folder imports use a shared TypeScript alias, and auth bundles the shared source.
+See [error-handler design](docs/architecture/technical-design.md#shared-error-handler-current-source)
+and [response formats](docs/api/api-specification.md#shared-error-handler-auth-service).
 
 ## Repository structure
 
@@ -81,6 +93,12 @@ The gateway applies CORS, request logging, body parsing, cookie parsing, and IP 
 |       |-- package.json         # E2E target and service dependencies
 |       `-- jest.config.cts
 |-- .github/workflows/ci.yml     # GitHub Actions checks
+|-- packages/                   # One workspace package for shared modules
+|   |-- package.json            # Nx/npm grouping; no per-folder manifests
+|   |-- tsconfig.json           # References the shared library config
+|   |-- tsconfig.lib.json       # Includes all TypeScript modules
+|   |-- index.ts                # Optional aggregate exports
+|   `-- error-handler/          # Error classes and response handler
 |-- nx.json                     # Nx plugins and target defaults
 |-- package.json                # Root dependencies and workspaces
 |-- package-lock.json           # Locked dependency tree
@@ -160,6 +178,14 @@ npm run dev
 
 ## Development commands
 
+Shared modules use `@microservice-eshop/<folder>` imports. For example,
+`@microservice-eshop/error-handler` resolves to `packages/error-handler/index.ts`.
+Add an `index.ts` exporting the public API in each new module folder; no
+per-folder package or TypeScript configs are required. Auth already references
+the shared library and bundles this source. Other apps and test runners need
+their own project-reference and alias-resolution setup. See
+[adding shared modules](docs/development/development-guide.md#adding-shared-modules).
+
 Run these from the repository root. The root `dev` script starts all serve targets; use Nx directly to select an application or task.
 
 | Task                     | Command                                                |
@@ -199,7 +225,7 @@ Run the container with the HTTP port published:
 npx nx docker:run @microservice-eshop/auth-service -p 6001:3000
 ```
 
-The Dockerfile sets `HOST=0.0.0.0` and `PORT=3000`. Auth reads `PORT` and listens on 3000 inside the container, without an explicit bind address. Publish `-p 6001:3000` to match the gateway upstream, or `-p 3000:3000` for standalone use. The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. Auth imports `cors`, but its application package declares only `express`; align runtime dependencies before relying on a pruned container build. Docker was not verified. No Docker Compose configuration is included.
+The Dockerfile sets `HOST=0.0.0.0` and `PORT=3000`. Auth reads `PORT` and listens on 3000 inside the container, without an explicit bind address. Publish `-p 6001:3000` to match the gateway upstream, or `-p 3000:3000` for standalone use. The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. Auth imports `cors`, but its application package declares Express and the shared workspace dependency without declaring `cors`; align runtime dependencies before relying on a pruned container build. Docker was not verified. No Docker Compose configuration is included.
 
 ## Continuous integration
 

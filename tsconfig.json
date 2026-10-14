@@ -4,6 +4,9 @@
   "files": [],
   "references": [
     {
+      "path": "./packages"
+    },
+    {
       "path": "./apps/auth-service-e2e"
     },
     {

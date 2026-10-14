@@ -16,7 +16,8 @@
           "format": [
             "cjs"
           ],
-          "bundle": false,
+          "bundle": true,
+          "declaration": false,
           "main": "apps/auth-service/src/main.ts",
           "tsConfig": "apps/auth-service/tsconfig.app.json",
           "assets": [
@@ -85,7 +86,7 @@
         ],
         "options": {
           "buildTarget": "@microservice-eshop/auth-service:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": true
         },
         "configurations": {
           "development": {
@@ -110,6 +111,7 @@
     }
   },
   "dependencies": {
+    "@microservice-eshop/shared": "*",
     "express": "^5.1.0"
   }
 }

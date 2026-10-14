@@ -1,12 +1,19 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
     "outDir": "dist",
     "types": ["node"],
     "rootDir": "src",
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../packages/tsconfig.lib.json"
+    }
+  ],
   "exclude": [
     "out-tsc",
     "dist",

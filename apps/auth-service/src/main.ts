@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { errorMiddleware } from '@microservice-eshop/error-handler';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.get('/', (req, res) => {
   res.send({ message: 'Hello API' });
 });
 
+app.use(errorMiddleware);
 const port = process.env.PORT ? Number(process.env.PORT) : 6001;
 const server = app.listen(port, () => {
   console.log(`Auth service is running at http://localhost:${port}`);

@@ -1,6 +1,6 @@
 # Testing
 
-[Documentation index](README.md)
+[Documentation index](../README.md)
 
 ## Existing coverage
 
@@ -33,7 +33,7 @@ Auth and its E2E setup both read uppercase `PORT`. Auth ignores `HOST` and liste
 
 Use a dedicated free port if overriding defaults. Teardown terminates the process on that port; an existing listener can also make the readiness check succeed for the wrong application.
 
-The [project configuration](../apps/auth-service-e2e/package.json), [spec](../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts), and [Jest configuration](../apps/auth-service-e2e/jest.config.cts) define this behavior.
+The [project configuration](../../apps/auth-service-e2e/package.json), [spec](../../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts), and [Jest configuration](../../apps/auth-service-e2e/jest.config.cts) define this behavior.
 
 ## Gateway E2E mismatch
 
@@ -68,6 +68,25 @@ npx nx typecheck @microservice-eshop/api-gateway
 ```
 
 Jest uses the workspace preset and SWC transforms. E2E coverage output is configured under each E2E project's `test-output/jest/coverage`; a configured path is not evidence that coverage was generated.
+
+## Shared-module and error-handler coverage
+
+Auth registers the error handler, but its existing E2E assertion covers only
+the successful `GET /` response. There are no permanent shared-module tests or
+checks of custom error status codes, optional details, generic 500 responses,
+or errors after headers have been sent.
+
+`@microservice-eshop/<folder>` is a TypeScript source alias. Auth's esbuild
+target bundles it; that does not configure Jest's resolver. The existing
+Jest/SWC configuration has no explicit mapping for these folder aliases.
+Before adding unit tests that import them, configure the test resolver for
+`packages/<folder>/index.ts` and check its behavior. Test compilation may also
+need the shared-library project reference. See
+[compiler ownership](development-guide.md#build-and-compiler-ownership).
+
+Build output, runtime alias resolution, Docker, and Nx target inference remain
+unverified. The earlier direct, no-emit TypeScript diagnostic inspection found
+no errors in `packages/tsconfig.lib.json`; it was not a test or application build.
 
 ## CI coverage boundary
 
