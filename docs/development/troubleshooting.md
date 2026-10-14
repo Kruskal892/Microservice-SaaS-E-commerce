@@ -1,6 +1,6 @@
 # Troubleshooting
 
-[Documentation index](README.md)
+[Documentation index](../README.md)
 
 ## Dependency installation fails
 
@@ -46,7 +46,7 @@ Only `http://localhost:3000` is allowed as a credentialed browser origin. `http:
 
 ## Rate-limit warnings or unexpected client identities
 
-The current raw-IP key generator can trigger the limiter's IPv6 validation warning. The one-hop proxy trust setting also accepts forwarded identities on direct connections. These settings need correction before limits can be relied on. An HTTP 429 response uses a 15-minute window and a process-local counter; see [API middleware](api.md).
+The current raw-IP key generator can trigger the limiter's IPv6 validation warning. The one-hop proxy trust setting also accepts forwarded identities on direct connections. These settings need correction before limits can be relied on. An HTTP 429 response uses a 15-minute window and a process-local counter; see [API middleware](../api/api-specification.md).
 
 ## Environment file appears ignored
 
@@ -67,9 +67,33 @@ If Nx reports stale workspace state after configuration changes, stop running Nx
 
 ## Compiler errors or missing emitted JavaScript
 
+### Folder imports and literal wildcard diagnostics
+
+`@microservice-eshop/error-handler` maps to
+`packages/error-handler/index.ts`; another folder such as `middleware` must
+have its own `index.ts` before it can be imported. The wildcard belongs in
+`compilerOptions.paths`, not a literal source filename in `files`.
+
+If the IDE reports that `packages/*/index.ts` is missing, inspect the effective
+config and real included files first. The direct no-emit diagnostic inspection
+in this session expanded `packages/tsconfig.lib.json` to the three actual source
+files and reported no compiler errors. That did not reproduce the IDE error or
+establish its cause. If compiler diagnostics are clean while the IDE still
+reports the error, select **TypeScript: Select TypeScript Version > Use Workspace
+Version**, then **TypeScript: Restart TS Server**; reload the editor window if
+needed. Do not replace the wildcard with per-folder configs solely to clear
+an unconfirmed editor diagnostic.
+
+For runtime `Cannot find module` errors, remember that TypeScript paths do not
+create Node packages. Auth bundles the alias targets with esbuild; other apps
+and Jest need their own resolution setup. See
+[shared module setup](development-guide.md#adding-shared-modules).
+
+### Compiler ownership
+
 Read the exact task error before editing compiler settings. The auth service uses esbuild; the gateway uses Webpack with TypeScript compilation. Shared settings include `emitDeclarationOnly` and project references, so a raw `tsc` command is not interchangeable with an application build.
 
-See [compiler ownership](development.md) for the relevant configuration chain. Do not disable strictness or change shared emission settings solely to hide an application-specific error.
+See [compiler ownership](development-guide.md) for the relevant configuration chain. Do not disable strictness or change shared emission settings solely to hide an application-specific error.
 
 ## Gateway E2E waits, fails, or unexpectedly passes
 

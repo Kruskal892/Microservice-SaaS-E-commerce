@@ -1,10 +1,10 @@
 # Getting started
 
-[Documentation index](README.md)
+[Documentation index](../README.md)
 
 ## Requirements
 
-Use Node.js 24, matching [CI](../.github/workflows/ci.yml), and npm. Git is needed to clone the repository. Docker is optional.
+Use Node.js 24, matching [CI](../../.github/workflows/ci.yml), and npm. Git is needed to clone the repository. Docker is optional.
 
 No MongoDB, Redis, Kafka, Firebase, AWS, or ImageKit account is needed for the current applications. There is no frontend to start yet.
 
@@ -13,11 +13,18 @@ No MongoDB, Redis, Kafka, Firebase, AWS, or ImageKit account is needed for the c
 Open a terminal in the repository root. In this workspace:
 
 ```powershell
-Set-Location 'G:\Projects\Microservice-SaaS-E-commerce'
+Set-Location 'D:\Microservice Eshop'
 npm ci
 ```
 
-The committed lockfile is the installation reference. Run installation at the root because [package.json](../package.json) defines npm workspaces under `apps/*`.
+The committed lockfile is the installation reference. Run installation at the
+root because [package.json](../../package.json) defines npm workspaces for
+`apps/*` and the `packages` folder itself. One package manifest and TypeScript
+configuration cover all shared module folders; each folder exposes an `index.ts`.
+Auth uses `@microservice-eshop/error-handler` through the shared TypeScript
+wildcard alias and bundles that source. See
+[shared modules](development-guide.md#adding-shared-modules) before adding a
+consumer in another application.
 
 ## Run both applications
 
@@ -86,6 +93,6 @@ Both applications allow credentialed CORS requests from `http://localhost:3000`,
 
 - Locate both entry points and read their route handlers.
 - Get the two default responses locally.
-- Read [architecture](architecture.md) and [API reference](api.md).
+- Read [architecture](../architecture/architecture.md) and [API reference](../api/api-specification.md).
 - Read [testing limitations](testing.md) before interpreting a green test run.
-- Check [implementation status](implementation-status.md) before assuming a feature exists.
+- Check [implementation status](../delivery/implementation-status.md) before assuming a feature exists.

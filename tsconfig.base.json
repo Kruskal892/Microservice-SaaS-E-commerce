@@ -16,6 +16,9 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
+    "paths": {
+      "@microservice-eshop/*": ["./packages/*/index.ts"]
+    },
     "customConditions": ["@microservice-eshop/source"]
   }
 }

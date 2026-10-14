@@ -1,6 +1,6 @@
 # Deployment and CI
 
-[Documentation index](README.md)
+[Documentation index](../README.md)
 
 ## Current scope
 
@@ -17,11 +17,20 @@ The following commands describe configured tasks. They were not executed during 
 
 Both apps also define `prune-lockfile`, `copy-workspace-modules`, and `prune` targets. The pruning tasks depend on the application build and are intended to prepare runtime dependency metadata and workspace modules.
 
+Auth sets `bundle: true` and emits CommonJS containing application and aliased
+shared source; third-party dependencies remain external. The
+`@microservice-eshop/<folder>` names are source aliases, not separately installed
+runtime packages. One workspace library under `packages/` emits its own
+JavaScript/declarations into `packages/dist`, and auth's serve target runs build
+dependencies. These settings were inspected, not validated through a build or
+container run. Verify generated dependency metadata and copied workspace modules
+before relying on the pruning targets.
+
 The gateway's Webpack configuration sets `generatePackageJson: false`. Do not assume its distribution directory is a self-contained deployable package; inspect the output and dependency packaging before designing its deployment.
 
 ## Auth Docker image
 
-Source: [Dockerfile](../apps/auth-service/Dockerfile).
+Source: [Dockerfile](../../apps/auth-service/Dockerfile).
 
 ```sh
 npx nx docker:build @microservice-eshop/auth-service
@@ -40,7 +49,10 @@ The container:
 
 Auth reads uppercase `PORT`, so the Dockerfile configures port 3000 inside the container. Auth ignores `HOST` and listens without an explicit bind address. Publish `-p 6001:3000` to reach http://localhost:6001/ and match the host-run gateway upstream, or `-p 3000:3000` for standalone use.
 
-Auth imports `cors`, but [its package](../apps/auth-service/package.json) declares only `express`; `cors` is declared at the workspace root. Declare this runtime dependency at the service level and verify pruning/image startup before relying on container packaging.
+Auth imports `cors`, but [its package](../../apps/auth-service/package.json)
+declares Express and the shared workspace dependency without declaring `cors`;
+`cors` is declared at the workspace root. Declare this runtime dependency at the
+service level and verify pruning/image startup before relying on container packaging.
 
 The image follows a moving LTS tag, while CI selects Node 24. The Dockerfile has no explicit health check or non-root `USER` instruction. Packaging configuration is not proof of production readiness.
 
@@ -52,7 +64,7 @@ CORS is fixed to `http://localhost:3000`. Proxy trust is currently one hop, and 
 
 ## GitHub Actions
 
-[ci.yml](../.github/workflows/ci.yml) runs on pushes to `master` and pull requests. It checks out the repository, sets up Node.js 24 with npm caching, installs with `npm ci`, and executes:
+[ci.yml](../../.github/workflows/ci.yml) runs on pushes to `master` and pull requests. It checks out the repository, sets up Node.js 24 with npm caching, installs with `npm ci`, and executes:
 
 ```sh
 npx nx run-many -t lint test build typecheck
