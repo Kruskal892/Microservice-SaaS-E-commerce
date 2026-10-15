@@ -67,7 +67,7 @@ TypeScript configuration is split across:
 - [Shared-package tsconfig.json](../../packages/tsconfig.json):
   references `tsconfig.lib.json`, which loads Node types and emits JavaScript
   and declarations into the package's `dist`. Root and auth project references
-  include this library.
+  include this library through the root grouping and auth application config, respectively.
 
 The root npm workspace list includes `apps/*` and `packages` itself. The shared
 TypeScript config maps `@microservice-eshop/*` to `./packages/*/index.ts`.
@@ -96,8 +96,8 @@ so adding a folder does not require editing the aggregate barrel or wildcard.
 An empty folder is not importable: `packages/middleware/index.ts` must exist
 and export real middleware before using `@microservice-eshop/middleware`.
 
-Auth already has references in `tsconfig.json` and `tsconfig.app.json` and
-`bundle: true` in its esbuild target. Gateway currently has no shared-library
+Auth's solution `tsconfig.json` references its app/spec configs; the shared-library
+reference remains in `tsconfig.app.json`. Auth also has `bundle: true` in its esbuild target. Gateway currently has no shared-library
 reference; add one and confirm its Webpack alias resolution before introducing
 shared imports there. Jest/SWC does not have an explicit alias mapping; see
 [testing](testing.md#shared-module-and-error-handler-coverage).
@@ -189,6 +189,15 @@ a real reference exists. No ticket is required when none applies.
 4. Record newly required environment variables and external services.
 5. Update the relevant guide and implementation status.
 6. Report exactly which checks ran and which did not.
+
+### Prisma tooling
+
+VS Code sets `prisma.pinToPrisma6: true` to match the Prisma 6.19 dependency line.
+Edit `prisma/schema.prisma` and use the explicit commands in
+[database setup](getting-started.md#prisma-and-mongodb). Prisma configuration is
+root-level CLI configuration, not service database wiring. Generated client output
+and `.env` are ignored by Git. After schema changes, future application consumers
+must regenerate the client; generation and database synchronization are separate steps.
 
 ### Formatting
 

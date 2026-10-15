@@ -9,6 +9,7 @@
   },
   "private": true,
   "dependencies": {
+    "@prisma/client": "^6.19.0",
     "axios": "^1.20.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -51,6 +52,7 @@
     "jest-util": "~30.3.0",
     "nx": "23.3.0",
     "prettier": "~3.6.2",
+    "prisma": "^6.19.0",
     "react-refresh": "^0.10.0",
     "ts-jest": "^29.4.7",
     "ts-node": "10.9.1",

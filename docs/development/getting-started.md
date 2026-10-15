@@ -6,7 +6,7 @@
 
 Use Node.js 24, matching [CI](../../.github/workflows/ci.yml), and npm. Git is needed to clone the repository. Docker is optional.
 
-No MongoDB, Redis, Kafka, Firebase, AWS, or ImageKit account is needed for the current applications. There is no frontend to start yet.
+No MongoDB, Redis, Kafka, Firebase, AWS, or ImageKit account is needed to serve the current HTTP scaffolds. Prisma database commands require a reachable MongoDB deployment and valid database-user credentials. There is no frontend to start yet.
 
 ## Install
 
@@ -84,6 +84,44 @@ npm run dev
 ```
 
 A shared `PORT` override makes both apps compete for one port. Use separate terminals and distinct ports if you need custom values. Port values are not validated by the application code.
+
+## Prisma and MongoDB
+
+The root dependencies add `prisma` and `@prisma/client` at `^6.19.0`; the lockfile
+resolves both to 6.19.0. `prisma.config.ts` explicitly imports `dotenv/config` and
+reads `DATABASE_URL`. Create a local root `.env` using your own connection details:
+
+```dotenv
+DATABASE_URL="mongodb+srv://USERNAME:ENCODED_PASSWORD@CLUSTER.mongodb.net/development?retryWrites=true&w=majority&authSource=admin"
+```
+
+Use a MongoDB database user, URL-encode credentials where needed, and keep `.env`
+local. Existing process variables take precedence over dotenv values.
+The application entry points do not instantiate Prisma or use this URL yet.
+
+When explicitly checking the schema and generating the configured client:
+
+```sh
+npx prisma validate
+npx prisma generate
+```
+
+The `prisma-client` generator outputs TypeScript to `generated/prisma`, which is
+Git-ignored. Future consumers must import that generated output and include it
+in their build; installing `@prisma/client` alone does not integrate persistence.
+`dotenv` is currently available transitively, not declared as a root dependency.
+
+To synchronize schema/index changes against your intended development database:
+
+```sh
+npx prisma db push
+```
+
+Review the target and schema first: this command changes the database. MongoDB
+uses `db push`, not Prisma Migrate; the configured migrations path is not an
+implemented migration workflow. Do not add data-loss flags to bypass warnings.
+The reported attempt failed with Atlas SCRAM authentication; success remains
+unconfirmed. See [troubleshooting](troubleshooting.md#mongodb-scram-authentication-failed).
 
 ## Browser requests
 

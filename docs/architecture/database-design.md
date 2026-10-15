@@ -2,9 +2,34 @@
 
 [Documentation index](../README.md)
 
-**Priority:** Critical. **Status:** Proposed logical model; no database connection,
-Prisma schema, migrations, constraints, or indexes are implemented.
-**Updated:** 2026-10-14. MongoDB and Prisma are the documented direction.
+**Priority:** Critical. **Status:** Initial Prisma/MongoDB schema configured;
+commerce ERD remains proposed. Database synchronization and runtime persistence
+are unverified. **Updated:** 2026-10-15.
+
+## Current Prisma schema
+
+Source: [schema.prisma](../../prisma/schema.prisma) and
+[Prisma CLI configuration](../../prisma.config.ts). The generator is `prisma-client`
+with output `generated/prisma`. No service imports or instantiates the client.
+
+| Model | Declared fields and constraints |
+| ----- | ------------------------------- |
+| `users` | ObjectId `id` mapped to `_id`, required `name`, unique `email`, optional `password`, optional `avatar`, string-array `following`, `createdAt` defaulting to now, auto-updated `updatedAt`, required ObjectId `imagesId` |
+| `images` | ObjectId `id` mapped to `_id`, required `file_id` and `url`, optional unique ObjectId `userId`, optional `users` relation |
+
+The avatar relation is owned by `images.userId` and references `users.id`, allowing
+at most one linked image per user through the declared unique field. `users.imagesId`
+is a separate required scalar, not the relation field; clarify or remove it before
+writing users. `following` contains strings without a declared user relation.
+The schema does not implement email normalization, password hashing, input
+validation, upload handling, or user authorization. `password` must not be treated
+as evidence of safe credential storage.
+
+Unique email/user-image constraints are schema declarations, not proof that indexes
+were applied. The reported Atlas `db push` attempt failed authentication. No migration
+or seed files are present. See [setup](../development/getting-started.md#prisma-and-mongodb).
+
+The following commerce model is a proposal, distinct from the current schema.
 
 ## 1. Ownership and modeling
 
@@ -103,8 +128,8 @@ storage is deliberately absent until the identity strategy is chosen.
 
 ## 5. Delivery and checks
 
-Introduce schema/client, reviewed index creation, repeatable seed data, and
-environment docs with persistence. Establish a connector-appropriate schema
+Build on the initial users/images schema with service integration, reviewed index
+creation, repeatable seed data, and verified environment setup. Establish a connector-appropriate schema
 deployment process; SQL migration behavior is not implied. Verify concurrent
 uniqueness, cart conflicts, order retries, stock consistency, and backup restore.
 See [TDD](technical-design.md) and [plan](../delivery/implementation-plan.md).

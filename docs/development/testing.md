@@ -88,6 +88,17 @@ Build output, runtime alias resolution, Docker, and Nx target inference remain
 unverified. The earlier direct, no-emit TypeScript diagnostic inspection found
 no errors in `packages/tsconfig.lib.json`; it was not a test or application build.
 
+## Prisma verification boundary
+
+The schema and CLI configuration are present; no database integration tests exist.
+Schema validation, client generation, database synchronization, and runtime CRUD
+were not run during this documentation update. The user-reported `db push` failed
+Atlas authentication, so it cannot establish index or relation behavior.
+[Database setup](getting-started.md#prisma-and-mongodb) lists explicit validation
+and generation commands for a requested check. Once persistence is integrated,
+cover unique email/image ownership, required fields, and password handling with
+permanent behavior tests rather than treating schema generation as runtime proof.
+
 ## CI coverage boundary
 
 CI runs `lint test build typecheck` across projects. The E2E directories are excluded from Jest target inference and use explicit `e2e` targets. CI does not explicitly run either E2E target.

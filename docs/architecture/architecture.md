@@ -6,8 +6,8 @@ project structure, and how requests move between components.
 [Documentation index](../README.md) · [Repository](https://github.com/Kruskal892/Microservice-SaaS-E-commerce)
 
 > **Project stage:** Backend foundation. The Express gateway and auth scaffold
-> exist; the storefront, authentication behavior, database, and commerce features
-> are planned. Updated **2026-10-14**.
+> exist alongside initial Prisma/MongoDB schema tooling. The storefront, authentication
+> behavior, runtime persistence, and commerce features remain planned. Updated **2026-10-15**.
 
 ## 01 · System Overview
 
@@ -29,7 +29,7 @@ flowchart LR
         Commerce["COMMERCE APIs<br/>Catalog · Cart · Orders<br/>Planned; owner undecided"]
     end
 
-    Database[("PERSISTENCE<br/>MongoDB + Prisma<br/>Planned")]
+    Database[("PERSISTENCE<br/>MongoDB + Prisma<br/>Schema configured; integration planned")]
 
     Client -.->|"User interaction"| Frontend
     Frontend -.->|"HTTP API requests"| Gateway
@@ -50,8 +50,8 @@ flowchart LR
 ```
 
 **Read the diagram:** Blue boxes contain current code. Dashed boxes and arrows
-show planned components or connections. The database represents intended
-persistence; physical databases and service data ownership are still undecided.
+show planned components or connections. The database has initial schema tooling, while request-path integration remains
+planned; physical databases and service data ownership are still undecided.
 Mermaid diagrams display on GitHub and in Mermaid-enabled Markdown previews.
 
 ### What runs today
@@ -77,7 +77,7 @@ flowchart LR
 | API gateway        | Middleware, local health, catch-all proxy to localhost:6001 | Public API entry point and explicit service routing                    |
 | Auth service       | CORS and fixed GET / JSON response                          | Account registration, login, sessions, identity ownership              |
 | Commerce APIs      | Not implemented                                             | Product, cart, order, and stock behavior; service boundaries undecided |
-| Persistent storage | No connection or schema                                     | Identity and commerce data using MongoDB/Prisma                        |
+| Persistent storage | Users/images schema; no service client integration                                     | Identity and commerce data using MongoDB/Prisma                        |
 
 Gateway health is local and does not prove auth is reachable. Auth has no product
 routes beyond `GET /`; other forwarded paths normally return its default 404.
@@ -103,13 +103,13 @@ Tools already present in the codebase and the documented direction for future wo
 | Containers        | Docker                                  | Auth-service packaging                          | Dockerfile and targets present; runtime not verified |
 | CI                | GitHub Actions                          | Install, lint, test, build, typecheck           | Workflow configured; no deployment job               |
 
-### Planned platform
+### Platform direction and persistence tooling
 
 | Layer             | Technology        | Intended use                             | Status                                              |
 | ----------------- | ----------------- | ---------------------------------------- | --------------------------------------------------- |
 | Frontend          | Next.js           | Customer storefront                      | Planned                                             |
-| Database          | MongoDB           | Persistent identity and commerce records | Planned                                             |
-| Data access       | Prisma            | Database schema/client                   | Planned; no schema/client configured                |
+| Database          | MongoDB           | Persistent identity and commerce records | Schema configured; live persistence unverified                                             |
+| Data access       | Prisma            | Database schema/client                   | Prisma 6.19 schema and client generation configured; no service consumer                |
 | Secondary store   | Redis             | Cache or shared transient state          | Planned; exact use case undecided                   |
 | Events            | Apache Kafka      | Cross-service messaging                  | Planned; no producer/consumer or event contracts    |
 | Real-time         | Socket.IO         | Live communication                       | Planned                                             |

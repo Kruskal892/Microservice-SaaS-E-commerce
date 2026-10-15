@@ -3,7 +3,7 @@
 [Documentation index](../README.md)
 
 **Priority:** High. **Status:** Current patterns and proposed first-slice decisions.
-**Updated:** 2026-10-14.
+**Updated:** 2026-10-15.
 
 ## 1. Implementation ownership
 
@@ -20,6 +20,25 @@
 Keep behavior/configuration with its app. Reuse Express/Nx patterns and introduce
 shared modules only for real consumers. No service-layer framework exists. The
 [development guide](../development/development-guide.md) owns detailed task/editor setup.
+
+## Prisma persistence tooling (current source)
+
+[prisma.config.ts](../../prisma.config.ts) loads dotenv and configures the schema,
+classic engine, `DATABASE_URL`, and a migrations directory path. The
+[MongoDB schema](../../prisma/schema.prisma) declares users/images and a
+`prisma-client` generator with custom TypeScript output under `generated/prisma`.
+Prisma and its client are locked to 6.19.0. Neither service consumes the client;
+HTTP request behavior is unchanged. The root CLI config is not included in the
+root TypeScript project's empty `files` list.
+
+Auth's solution config no longer directly references `../../packages`; its
+application config retains `../../packages/tsconfig.lib.json`. Runtime bundling
+configuration is unchanged. Build/typecheck success was not checked here.
+
+See [database design](database-design.md#current-prisma-schema) for schema
+constraints and unresolved fields, and [setup](../development/getting-started.md#prisma-and-mongodb)
+for explicit commands. A configured migrations path does not establish MongoDB
+migration support or a deployment history.
 
 ## 2. Proposed request pattern
 

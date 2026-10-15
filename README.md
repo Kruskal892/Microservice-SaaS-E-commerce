@@ -2,7 +2,7 @@
 
 A microservice ecommerce project built with an **Nx monorepo** and **TypeScript**. The intended platform combines a Next.js storefront, Express backend services, persistent storage, event messaging, real-time communication, and machine learning.
 
-The repository is currently at the foundation stage: Express scaffolds for an API gateway and authentication service, generated API smoke tests, authentication-service Docker packaging, and a GitHub Actions workflow are present. The stack below includes the project direction from the supplied technology overview; planned integrations are not yet implemented.
+The repository is currently at the foundation stage: Express scaffolds for an API gateway and authentication service, initial Prisma/MongoDB schema and CLI configuration, generated API smoke tests, authentication-service Docker packaging, and a GitHub Actions workflow are present. The stack below includes the project direction from the supplied technology overview; planned integrations are not yet implemented.
 
 ## Developer documentation
 
@@ -22,9 +22,9 @@ implemented ecommerce features.
 | Language                | TypeScript          | Configured with strict compiler settings                                     |
 | Backend                 | Node.js, Express    | Auth service with `GET /`; gateway with `GET /gateway-health`                |
 | Frontend                | Next.js             | Planned                                                                      |
-| Primary database        | MongoDB             | Planned                                                                      |
+| Primary database        | MongoDB             | Schema configured; service persistence not integrated                                                                      |
 | Secondary data store    | Redis               | Planned                                                                      |
-| Database ORM            | Prisma              | Planned                                                                      |
+| Database ORM            | Prisma 6.19         | CLI/client dependencies and generation configured                                                                      |
 | Message broker          | Apache Kafka        | Planned                                                                      |
 | Machine learning        | TensorFlow.js       | Planned                                                                      |
 | WebSocket communication | Socket.IO           | Planned                                                                      |
@@ -37,7 +37,7 @@ implemented ecommerce features.
 | Deployment              | AWS                 | Planned                                                                      |
 | Domain management       | Cloudflare          | Planned                                                                      |
 
-Dependency versions are recorded in [package.json](package.json) and [package-lock.json](package-lock.json). No database, message broker, frontend, or cloud integration is currently included.
+Dependency versions are recorded in [package.json](package.json) and [package-lock.json](package-lock.json). Prisma tooling and a MongoDB schema are included; application database access, message brokers, frontend, and cloud integrations are not implemented.
 
 ## Architecture
 
@@ -99,6 +99,9 @@ and [response formats](docs/api/api-specification.md#shared-error-handler-auth-s
 |   |-- tsconfig.lib.json       # Includes all TypeScript modules
 |   |-- index.ts                # Optional aggregate exports
 |   `-- error-handler/          # Error classes and response handler
+|-- prisma/schema.prisma        # Initial users/images MongoDB schema
+|-- prisma.config.ts            # Prisma CLI config and explicit .env loading
+|-- generated/prisma/           # Generated client output (Git-ignored)
 |-- nx.json                     # Nx plugins and target defaults
 |-- package.json                # Root dependencies and workspaces
 |-- package-lock.json           # Locked dependency tree
@@ -160,7 +163,7 @@ Open `http://localhost:8080/gateway-health` for the gateway response. With auth 
 | `PORT`   | Auth service | `6001`        | Converted to a number before listening |
 | `PORT`   | API gateway  | `8080`        | HTTP port                              |
 
-Both applications read uppercase `PORT`. Neither reads `HOST`, and both listen without an explicit bind address. The gateway upstream is fixed at `http://localhost:6001`, so overriding the auth port does not update gateway forwarding. No explicit `.env` loader or `.env.example` is configured in the application source.
+Both applications read uppercase `PORT`. Neither reads `HOST`, and both listen without an explicit bind address. The gateway upstream is fixed at `http://localhost:6001`, so overriding the auth port does not update gateway forwarding. Neither application entry point explicitly loads `.env`; Prisma CLI separately loads it through `prisma.config.ts`. No `.env.example` is provided.
 
 For example, in PowerShell:
 
@@ -176,13 +179,22 @@ Remove-Item Env:PORT -ErrorAction SilentlyContinue
 npm run dev
 ```
 
+### Prisma and MongoDB setup
+
+Prisma CLI reads `DATABASE_URL` from the root `.env` through `prisma.config.ts`.
+The schema defines `users` and `images`; no application imports the generated client.
+For placeholder-only setup, generation, and database synchronization instructions,
+see [database setup](docs/development/getting-started.md#prisma-and-mongodb).
+The reported `db push` attempt failed Atlas authentication; successful synchronization
+has not been confirmed. `.env` and `/generated/prisma` are Git-ignored.
+
 ## Development commands
 
 Shared modules use `@microservice-eshop/<folder>` imports. For example,
 `@microservice-eshop/error-handler` resolves to `packages/error-handler/index.ts`.
 Add an `index.ts` exporting the public API in each new module folder; no
-per-folder package or TypeScript configs are required. Auth already references
-the shared library and bundles this source. Other apps and test runners need
+per-folder package or TypeScript configs are required. Auth references
+the shared library from `tsconfig.app.json` and bundles this source. Other apps and test runners need
 their own project-reference and alias-resolution setup. See
 [adding shared modules](docs/development/development-guide.md#adding-shared-modules).
 

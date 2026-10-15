@@ -74,6 +74,18 @@ The workflow also invokes `npx nx fix-ci` under `if: always()`. Nx Cloud agent s
 
 Neither explicit E2E target is included in the check command. The workflow does not publish images or deploy applications.
 
+## Prisma deployment boundary
+
+Prisma 6.19 and the MongoDB users/images schema are configured at the workspace
+root, with generated TypeScript under Git-ignored `generated/prisma`. Neither
+service imports the client, and Docker/CI do not explicitly generate or deploy this
+schema. Do not assume current images contain a usable generated client.
+Future service integration needs generation/build packaging and secret injection;
+keep the local `.env` out of images and source control. MongoDB schema/index
+synchronization uses an explicitly reviewed `db push` workflow rather than Prisma
+Migrate. No successful database deployment, backup/restore, or data migration is
+confirmed. See [database setup](../development/getting-started.md#prisma-and-mongodb).
+
 ## Before introducing production deployment
 
 Decide and document the deployment owner, image/version strategy, environment variables and secrets, network exposure, health checks, logging, rollback, and shutdown behavior. Add database migrations and backup procedures when persistence exists.

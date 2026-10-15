@@ -3,13 +3,16 @@
 [Documentation index](../README.md)
 
 **Priority:** Critical. **Status:** Proposed backlog, not a committed schedule.
-**Updated:** 2026-10-14. Owners, estimates, tickets, and dates are not supplied.
+**Updated:** 2026-10-15. Owners, estimates, tickets, and dates are not supplied.
 
 ## 1. Starting point
 
 Gateway/auth scaffolds and tooling exist. Product behavior and production
 infrastructure do not. [Implementation status](implementation-status.md) tracks
-current evidence. All tasks below remain open; a specification does not complete them.
+current evidence. Prisma 6.19 configuration and the initial users/images schema
+provide part of D-01, but authentication to Atlas, index application, safe credential
+storage, and service integration are unverified or absent. All tasks below remain
+open; schema declarations alone do not complete identity persistence.
 
 ## 2. Tasks and acceptance criteria
 
