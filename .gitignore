@@ -45,3 +45,8 @@ Thumbs.db
 .claude/settings.local.json
 
 test-output
+
+
+.env
+
+/generated/prisma

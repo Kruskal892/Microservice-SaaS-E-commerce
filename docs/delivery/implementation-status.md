@@ -4,8 +4,8 @@
 
 This is a source-inspected snapshot of the current working tree. "Configured" means files and target definitions exist; it does not mean runtime or CI validation passed.
 
-**Updated:** 2026-10-14. Proposed product requirements, database models, and API
-contracts in the new documentation are design drafts, not implemented features.
+**Updated:** 2026-10-15. Proposed product requirements, database models, and API
+contracts are design drafts except for the initial users/images Prisma schema described in the database design.
 
 ## Present
 
@@ -23,6 +23,7 @@ the error handler after routes. The internal workspace manifest is named
 | Gateway                      | Default port 8080, local `GET /gateway-health`, catch-all proxy to localhost:6001                                              |
 | Gateway middleware           | CORS, Morgan logging, JSON/URL-encoded parsers, cookie parsing, and in-memory rate limiting                                    |
 | API documentation dependency | `swagger-ui-express` installed; no UI route or specification                                                                   |
+| Persistence tooling          | Prisma/client 6.19.0 locked; MongoDB users/images schema; root CLI config loads DATABASE_URL; generated output ignored |
 | Local runner                 | `npm run dev` invokes all serve targets                                                                                        |
 | Build tooling                | Auth esbuild configuration; gateway Webpack configuration                                                                      |
 | Tests                        | Auth smoke spec and all auth support defaults aligned to 6001; generated gateway spec still mismatched; Jest/SWC configuration |
@@ -49,7 +50,9 @@ the error handler after routes. The internal workspace manifest is named
 - The gateway E2E defaults and assertion do not match the gateway; see [testing](../development/testing.md).
 - No authentication endpoints, token/session handling, or user persistence exist.
 - No storefront, product catalog, cart, checkout, orders, or payments exist.
-- No database schema, client, migration, cache, event producer/consumer, or external service connection exists.
+- Prisma schema and client generation are configured, but services do not import or instantiate the client. No migrations, seeds, cache, event producer/consumer, or working external integration exists.
+- The reported Atlas `db push` failed SCRAM authentication; schema/index deployment remains unconfirmed. `users.imagesId` is required but separate from the avatar relation; resolve this before user persistence.
+- `prisma.config.ts` imports `dotenv/config`, but dotenv is only a transitive dependency.
 - Auth registers the shared handler, which defines two different response
   shapes; the gateway retains its existing handling. Request validation and token
   verification are absent. Both apps have CORS; rate limiting exists only at the gateway.
@@ -64,7 +67,7 @@ the error handler after routes. The internal workspace manifest is named
 
 The [root README stack table](../../README.md#technology-stack) records the supplied project direction: Next.js, MongoDB, Redis, Prisma, Kafka, TensorFlow.js, Socket.IO, Firebase, Swagger/OpenAPI, ImageKit (logo interpretation), AWS, and Cloudflare.
 
-Swagger's UI dependency is installed, but its contract and route are not implemented. The other integrations' adoption details and service contracts are not implemented. This list is not a delivery schedule or evidence of working integrations.
+Swagger's UI dependency is installed, but its contract and route are not implemented. Prisma/MongoDB tooling is now configured; its application integration and the other technologies' service contracts remain unimplemented. This list is not a delivery schedule or evidence of working integrations.
 
 ## Suggested implementation sequence
 
@@ -74,10 +77,10 @@ is implied by the plan.
 
 ## Verification boundary
 
-This update inspects source/configuration and reorganizes documentation. Prior
+This update inspects the current develop working tree, including untracked Prisma files, and synchronizes documentation. The changes are uncommitted; there are no branch-only commits against local develop. Prior
 typecheck results are not evidence for the current working tree. Installation,
 startup, lint, typechecks, builds, automated tests, Docker, live CI, databases,
-and cloud services were not run or verified during this update.
+and cloud services were not run or verified during this update. The user-provided Atlas authentication failure is recorded as a failed attempt, not a successful database check.
 
 Earlier in this session, offline installation refreshed the workspace link and
 lockfile, and direct no-emit TypeScript inspection found no package compiler

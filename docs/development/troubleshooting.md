@@ -50,7 +50,31 @@ The current raw-IP key generator can trigger the limiter's IPv6 validation warni
 
 ## Environment file appears ignored
 
-Neither entry point explicitly loads `.env`. Set process variables in the launching terminal as described in [getting started](getting-started.md). Avoid assuming a planned integration's configuration keys already exist.
+Neither application entry point explicitly loads `.env`. Set application process
+variables in the launching terminal as described in [getting started](getting-started.md).
+Prisma CLI is different: `prisma.config.ts` imports `dotenv/config`, so its
+"skipping environment variable loading" notice does not mean `.env` was ignored.
+A pre-existing shell `DATABASE_URL` takes precedence over the file.
+
+## MongoDB SCRAM authentication failed
+
+`bad auth : authentication failed` means Atlas rejected authentication. Verify the
+database user under Atlas Database Access (not the Atlas website login), reset its
+password if needed, and update the local `DATABASE_URL`. URL-encode special
+characters in credentials and use the correct authentication database; Atlas SCRAM
+users normally authenticate against `admin`. Copy the connection details for the
+intended cluster. Never paste credentials into logs, PR evidence, or documentation.
+
+The reported `npx prisma db push` attempt failed at authentication; no successful
+schema/index synchronization is confirmed. Retry only after correcting credentials,
+against the intended development database. See [database setup](getting-started.md#prisma-and-mongodb).
+
+## Prisma editor uses incompatible schema syntax
+
+The workspace uses Prisma 6.19 with MongoDB `String @db.ObjectId` fields and a
+`datasource` block. Keep the VS Code `prisma.pinToPrisma6` setting enabled for this
+checkout; Prisma 8 RC contract syntax from earlier experiments does not describe
+the current schema.
 
 ## Nx cannot find a project or target
 
