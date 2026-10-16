@@ -51,14 +51,15 @@ docs/
 feature. **Undecided** marks input needed before dependent implementation.
 Future product requirements are drafts because no approved product brief exists here.
 
-Aligned to source on **2026-10-15**. Runtime, tests, lint, builds, Docker, and CI
-were not executed for this update. Source links support current behavior claims.
+Aligned to source on **2026-10-17**. See
+[authentication development](development/authentication.md) for the branch review,
+registration scaffolding, shared clients, and actual verification results.
 
 Prisma 6.19 MongoDB tooling and the initial users/images schema are now configured.
 Read [database setup](development/getting-started.md#prisma-and-mongodb) and
 [current schema](architecture/database-design.md#current-prisma-schema) separately
-from the proposed commerce ERD. Services still do not use the generated client;
-the reported Atlas authentication failure remains unresolved.
+from the proposed commerce ERD. The draft controller uses a wrapper with a mismatched client import;
+successful database connectivity remains unverified.
 
 ## Where to update documentation
 

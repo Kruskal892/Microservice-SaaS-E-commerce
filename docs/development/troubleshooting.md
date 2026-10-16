@@ -71,6 +71,14 @@ against the intended development database. See [database setup](getting-started.
 
 ## Prisma editor uses incompatible schema syntax
 
+If model autocomplete (`prisma.users.findUnique`) is missing, check that the
+wrapper imports the client produced by the configured generator. This schema
+outputs to `generated/prisma`, while the current wrapper imports `@prisma/client`;
+the locally installed default client is a placeholder typed as `any`. Restarting
+the TypeScript server does not repair a generator/import mismatch. See
+[authentication blockers](authentication.md#blockers-before-wiring-registration)
+before changing imports across project boundaries.
+
 The workspace uses Prisma 6.19 with MongoDB `String @db.ObjectId` fields and a
 `datasource` block. Keep the VS Code `prisma.pinToPrisma6` setting enabled for this
 checkout; Prisma 8 RC contract syntax from earlier experiments does not describe

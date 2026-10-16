@@ -2,7 +2,7 @@
 
 A microservice ecommerce project built with an **Nx monorepo** and **TypeScript**. The intended platform combines a Next.js storefront, Express backend services, persistent storage, event messaging, real-time communication, and machine learning.
 
-The repository is currently at the foundation stage: Express scaffolds for an API gateway and authentication service, initial Prisma/MongoDB schema and CLI configuration, generated API smoke tests, authentication-service Docker packaging, and a GitHub Actions workflow are present. The stack below includes the project direction from the supplied technology overview; planned integrations are not yet implemented.
+The repository is currently at the foundation stage: Express scaffolds for an API gateway and authentication service, initial Prisma/MongoDB schema and CLI configuration, draft registration/OTP helpers, generated API smoke tests, authentication-service Docker packaging, and a GitHub Actions workflow are present. The stack below includes the project direction from the supplied technology overview; planned integrations are not yet implemented.
 
 ## Developer documentation
 
@@ -22,9 +22,9 @@ implemented ecommerce features.
 | Language                | TypeScript          | Configured with strict compiler settings                                     |
 | Backend                 | Node.js, Express    | Auth service with `GET /`; gateway with `GET /gateway-health`                |
 | Frontend                | Next.js             | Planned                                                                      |
-| Primary database        | MongoDB             | Schema configured; service persistence not integrated                                                                      |
-| Secondary data store    | Redis               | Planned                                                                      |
-| Database ORM            | Prisma 6.19         | CLI/client dependencies and generation configured                                                                      |
+| Primary database        | MongoDB             | Schema configured; service persistence not integrated                        |
+| Secondary data store    | Redis               | Dependency installed; client module empty                                    |
+| Database ORM            | Prisma 6.19         | CLI/client dependencies and generation configured                            |
 | Message broker          | Apache Kafka        | Planned                                                                      |
 | Machine learning        | TensorFlow.js       | Planned                                                                      |
 | WebSocket communication | Socket.IO           | Planned                                                                      |
@@ -182,7 +182,10 @@ npm run dev
 ### Prisma and MongoDB setup
 
 Prisma CLI reads `DATABASE_URL` from the root `.env` through `prisma.config.ts`.
-The schema defines `users` and `images`; no application imports the generated client.
+The schema defines `users` and `images`. A draft auth controller imports a shared
+Prisma wrapper, but its client import does not match the generator output.
+See [authentication development](docs/development/authentication.md) for the
+current flow, dependencies, and blockers. Registration is not routed.
 For placeholder-only setup, generation, and database synchronization instructions,
 see [database setup](docs/development/getting-started.md#prisma-and-mongodb).
 The reported `db push` attempt failed Atlas authentication; successful synchronization

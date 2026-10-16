@@ -7,15 +7,15 @@
 
 ## 1. Implementation ownership
 
-| Concern                                          | Current owner / source                                             |
-| ------------------------------------------------ | ------------------------------------------------------------------ |
-| Gateway middleware, local route, proxy, listener | [Gateway main.ts](../../apps/api-gateway/src/main.ts)              |
-| Auth CORS, root response, listener error status  | [Auth main.ts](../../apps/auth-service/src/main.ts)                |
-| App tasks/dependencies                           | Each app's package.json                                            |
-| Inferred tasks/caching/base branch               | [nx.json](../../nx.json)                                           |
-| Strict TypeScript                                | [tsconfig.base.json](../../tsconfig.base.json), project references |
+| Concern                                          | Current owner / source                                                                                                 |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Gateway middleware, local route, proxy, listener | [Gateway main.ts](../../apps/api-gateway/src/main.ts)                                                                  |
+| Auth CORS, root response, listener error status  | [Auth main.ts](../../apps/auth-service/src/main.ts)                                                                    |
+| App tasks/dependencies                           | Each app's package.json                                                                                                |
+| Inferred tasks/caching/base branch               | [nx.json](../../nx.json)                                                                                               |
+| Strict TypeScript                                | [tsconfig.base.json](../../tsconfig.base.json), project references                                                     |
 | Shared modules and folder aliases                | [packages](../../packages/package.json), [library config](../../packages/tsconfig.lib.json), shared TypeScript `paths` |
-| HTTP checks                                      | E2E projects; gateway generated assertion is mismatched            |
+| HTTP checks                                      | E2E projects; gateway generated assertion is mismatched                                                                |
 
 Keep behavior/configuration with its app. Reuse Express/Nx patterns and introduce
 shared modules only for real consumers. No service-layer framework exists. The
@@ -27,8 +27,10 @@ shared modules only for real consumers. No service-layer framework exists. The
 classic engine, `DATABASE_URL`, and a migrations directory path. The
 [MongoDB schema](../../prisma/schema.prisma) declares users/images and a
 `prisma-client` generator with custom TypeScript output under `generated/prisma`.
-Prisma and its client are locked to 6.19.0. Neither service consumes the client;
-HTTP request behavior is unchanged. The root CLI config is not included in the
+Prisma and its client are locked to 6.19.0. The draft auth controller consumes a
+shared wrapper importing `@prisma/client`, which does not match this generator.
+Registration is not routed, so HTTP request behavior is unchanged. See
+[authentication development](../development/authentication.md) for blockers. The root CLI config is not included in the
 root TypeScript project's empty `files` list.
 
 Auth's solution config no longer directly references `../../packages`; its
@@ -108,14 +110,14 @@ Sources: [error classes](../../packages/error-handler/index.ts),
 `any`). Its constructor initializes the message and captures a Node stack trace.
 The readonly fields are a TypeScript restriction, not runtime object freezing.
 
-| Class | HTTP status | Default message | Optional details |
-| --- | --- | --- | --- |
-| `NotFoundError` | 404 | Resources not found | No |
-| `ValidationError` | 400 | Invalid request data | Yes |
-| `AuthError` | 401 | Unauthorized | No |
-| `ForbiddenError` | 403 | Forbidden Access | No |
-| `DatabaseError` | 500 | Database Error | Yes |
-| `RateLimitError` | 429 | Too many requests, please try again later | No |
+| Class             | HTTP status | Default message                           | Optional details |
+| ----------------- | ----------- | ----------------------------------------- | ---------------- |
+| `NotFoundError`   | 404         | Resources not found                       | No               |
+| `ValidationError` | 400         | Invalid request data                      | Yes              |
+| `AuthError`       | 401         | Unauthorized                              | No               |
+| `ForbiddenError`  | 403         | Forbidden Access                          | No               |
+| `DatabaseError`   | 500         | Database Error                            | Yes              |
+| `RateLimitError`  | 429         | Too many requests, please try again later | No               |
 
 For example, `throw new NotFoundError('User not found')` creates a 404 error;
 it does not send a response by itself. All subclasses currently set

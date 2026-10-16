@@ -97,7 +97,9 @@ DATABASE_URL="mongodb+srv://USERNAME:ENCODED_PASSWORD@CLUSTER.mongodb.net/develo
 
 Use a MongoDB database user, URL-encode credentials where needed, and keep `.env`
 local. Existing process variables take precedence over dotenv values.
-The application entry points do not instantiate Prisma or use this URL yet.
+The entry points do not wire database-backed routes yet. A draft controller uses
+a shared Prisma wrapper; see [authentication development](authentication.md)
+for its client-import mismatch and incomplete registration flow.
 
 When explicitly checking the schema and generating the configured client:
 
@@ -109,7 +111,9 @@ npx prisma generate
 The `prisma-client` generator outputs TypeScript to `generated/prisma`, which is
 Git-ignored. Future consumers must import that generated output and include it
 in their build; installing `@prisma/client` alone does not integrate persistence.
-`dotenv` is currently available transitively, not declared as a root dependency.
+`dotenv` is now an explicit root dependency. The wrapper still imports
+`@prisma/client` rather than this generated output; align generation, imports,
+and shared-project compiler ownership before relying on model types.
 
 To synchronize schema/index changes against your intended development database:
 
