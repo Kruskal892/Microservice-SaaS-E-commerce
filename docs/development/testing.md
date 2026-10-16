@@ -90,6 +90,12 @@ no errors in `packages/tsconfig.lib.json`; it was not a test or application buil
 
 ## Prisma verification boundary
 
+The 2026-10-17 branch check and registration test gaps are recorded in
+[authentication development](authentication.md#configuration-and-verification).
+The project-reference TypeScript build currently fails on unused `name` and
+`otp` values. The imported default Prisma client is locally typed as `any`, so
+shared compilation does not prove the draft query has a valid filter shape.
+
 The schema and CLI configuration are present; no database integration tests exist.
 Schema validation, client generation, database synchronization, and runtime CRUD
 were not run during this documentation update. The user-reported `db push` failed

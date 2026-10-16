@@ -29,6 +29,14 @@ No authentication, query parameters, or request body are required. This is a sca
 
 Auth applies CORS before its route: origin `http://localhost:3000`, credentials allowed, and `Authorization` and `Content-Type` request headers allowed. It has no body parser or rate limiter. Listener errors are logged to stderr and set a nonzero process exit status.
 
+## Registration draft (not exposed)
+
+`userRegistration` exists in auth source but is not registered in `main.ts`.
+No registration URL, success status, or OTP response contract is implemented.
+The existing `GET /` contract is unchanged. See
+[authentication development](../development/authentication.md) for the controller
+flow and blockers; proposed auth routes below remain proposals.
+
 ## API gateway
 
 Source: [main.ts](../../apps/api-gateway/src/main.ts). Default base URL: `http://localhost:8080`.

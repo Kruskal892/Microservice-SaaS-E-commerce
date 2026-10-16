@@ -10,12 +10,15 @@ are unverified. **Updated:** 2026-10-15.
 
 Source: [schema.prisma](../../prisma/schema.prisma) and
 [Prisma CLI configuration](../../prisma.config.ts). The generator is `prisma-client`
-with output `generated/prisma`. No service imports or instantiates the client.
+with output `generated/prisma`. The draft auth controller imports a shared Prisma
+wrapper, but that wrapper uses `@prisma/client` instead of the generated output.
+No database-backed route is wired. See
+[authentication development](../development/authentication.md).
 
-| Model | Declared fields and constraints |
-| ----- | ------------------------------- |
-| `users` | ObjectId `id` mapped to `_id`, required `name`, unique `email`, optional `password`, optional `avatar`, string-array `following`, `createdAt` defaulting to now, auto-updated `updatedAt`, required ObjectId `imagesId` |
-| `images` | ObjectId `id` mapped to `_id`, required `file_id` and `url`, optional unique ObjectId `userId`, optional `users` relation |
+| Model    | Declared fields and constraints                                                                                                                                                                                         |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`  | ObjectId `id` mapped to `_id`, required `name`, unique `email`, optional `password`, optional `avatar`, string-array `following`, `createdAt` defaulting to now, auto-updated `updatedAt`, required ObjectId `imagesId` |
+| `images` | ObjectId `id` mapped to `_id`, required `file_id` and `url`, optional unique ObjectId `userId`, optional `users` relation                                                                                               |
 
 The avatar relation is owned by `images.userId` and references `users.id`, allowing
 at most one linked image per user through the declared unique field. `users.imagesId`

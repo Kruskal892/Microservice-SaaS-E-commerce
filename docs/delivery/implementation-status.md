@@ -4,7 +4,7 @@
 
 This is a source-inspected snapshot of the current working tree. "Configured" means files and target definitions exist; it does not mean runtime or CI validation passed.
 
-**Updated:** 2026-10-15. Proposed product requirements, database models, and API
+**Updated:** 2026-10-17. Proposed product requirements, database models, and API
 contracts are design drafts except for the initial users/images Prisma schema described in the database design.
 
 ## Present
@@ -23,7 +23,7 @@ the error handler after routes. The internal workspace manifest is named
 | Gateway                      | Default port 8080, local `GET /gateway-health`, catch-all proxy to localhost:6001                                              |
 | Gateway middleware           | CORS, Morgan logging, JSON/URL-encoded parsers, cookie parsing, and in-memory rate limiting                                    |
 | API documentation dependency | `swagger-ui-express` installed; no UI route or specification                                                                   |
-| Persistence tooling          | Prisma/client 6.19.0 locked; MongoDB users/images schema; root CLI config loads DATABASE_URL; generated output ignored |
+| Persistence tooling          | Prisma/client 6.19.0 locked; MongoDB users/images schema; root CLI config loads DATABASE_URL; generated output ignored         |
 | Local runner                 | `npm run dev` invokes all serve targets                                                                                        |
 | Build tooling                | Auth esbuild configuration; gateway Webpack configuration                                                                      |
 | Tests                        | Auth smoke spec and all auth support defaults aligned to 6001; generated gateway spec still mismatched; Jest/SWC configuration |
@@ -31,6 +31,17 @@ the error handler after routes. The internal workspace manifest is named
 | CI                           | GitHub Actions install and lint/test/build/typecheck commands                                                                  |
 | Debugging                    | Separate VS Code launch configurations                                                                                         |
 | Documentation                | Product requirements, features, UI/UX, system/data/technical design, API contracts, delivery plan, and developer guides        |
+
+## Registration work in progress
+
+See [authentication development](../development/authentication.md) for the review
+of `feat/auth-controller` against local `develop`, including working-tree changes.
+The controller moved under `src`, validates registration fields, and attempts an
+email lookup. A shared Prisma singleton/barrel and OTP helper stubs were added.
+Redis has an empty module; dotenv, ioredis, nodemailer, and ejs are dependencies.
+Registration is not routed and does not create users or deliver OTPs. Client
+generation/import mismatch, an incorrect unique-filter argument, and unused
+values remain blockers.
 
 ## Known gaps
 
@@ -77,15 +88,11 @@ is implied by the plan.
 
 ## Verification boundary
 
-This update inspects the current develop working tree, including untracked Prisma files, and synchronizes documentation. The changes are uncommitted; there are no branch-only commits against local develop. Prior
-typecheck results are not evidence for the current working tree. Installation,
-startup, lint, typechecks, builds, automated tests, Docker, live CI, databases,
-and cloud services were not run or verified during this update. The user-provided Atlas authentication failure is recorded as a failed attempt, not a successful database check.
-
-Earlier in this session, offline installation refreshed the workspace link and
-lockfile, and direct no-emit TypeScript inspection found no package compiler
-diagnostics. These checks do not verify application builds or runtime responses.
-Nx target inspection was blocked by `spawn EPERM`. The IDE's literal-wildcard diagnostic was not reproduced
-by the compiler and its resolution in the editor remains unverified.
+Reviewed branch `feat/auth-controller` against local `develop`, including its
+uncommitted/untracked files. The TypeScript project build failed on unused `name`
+and `otp` (TS6133); shared-library compilation completed. Database, Redis, email,
+startup, lint, Nx application builds, automated tests, Docker, and CI were not
+verified. See [the branch review](../development/authentication.md#configuration-and-verification)
+for the command and scope. Prior checks do not validate this working tree.
 
 Update this page when code changes the status, and record actual validation separately from intended behavior.
