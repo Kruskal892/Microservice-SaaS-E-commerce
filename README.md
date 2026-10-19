@@ -101,7 +101,6 @@ and [response formats](docs/api/api-specification.md#shared-error-handler-auth-s
 |   `-- error-handler/          # Error classes and response handler
 |-- prisma/schema.prisma        # Initial users/images MongoDB schema
 |-- prisma.config.ts            # Prisma CLI config and explicit .env loading
-|-- generated/prisma/           # Generated client output (Git-ignored)
 |-- nx.json                     # Nx plugins and target defaults
 |-- package.json                # Root dependencies and workspaces
 |-- package-lock.json           # Locked dependency tree
@@ -182,14 +181,15 @@ npm run dev
 ### Prisma and MongoDB setup
 
 Prisma CLI reads `DATABASE_URL` from the root `.env` through `prisma.config.ts`.
-The schema defines `users` and `images`. A draft auth controller imports a shared
-Prisma wrapper, but its client import does not match the generator output.
+The schema defines `users` and `images`. The `prisma-client-js` generator matches
+the shared wrapper's `@prisma/client` import. Run `npx prisma generate` after
+installing dependencies or changing the schema, before starting auth.
 See [authentication development](docs/development/authentication.md) for the
 current flow, dependencies, and blockers. Registration is not routed.
 For placeholder-only setup, generation, and database synchronization instructions,
 see [database setup](docs/development/getting-started.md#prisma-and-mongodb).
 The reported `db push` attempt failed Atlas authentication; successful synchronization
-has not been confirmed. `.env` and `/generated/prisma` are Git-ignored.
+has not been confirmed. `.env` and generated clients are Git-ignored.
 
 ## Development commands
 

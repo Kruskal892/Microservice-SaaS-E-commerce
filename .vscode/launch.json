@@ -7,9 +7,7 @@
       "name": "Debug @microservice-eshop/auth-service with Nx",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["nx", "serve", "@microservice-eshop/auth-service"],
-      "env": {
-        "NODE_OPTIONS": "--inspect=9229"
-      },
+      "autoAttachChildProcesses": true,
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "skipFiles": ["<node_internals>/**"],
@@ -25,9 +23,7 @@
       "name": "Debug @microservice-eshop/api-gateway with Nx",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["nx", "serve", "@microservice-eshop/api-gateway"],
-      "env": {
-        "NODE_OPTIONS": "--inspect=9230"
-      },
+      "autoAttachChildProcesses": true,
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "skipFiles": ["<node_internals>/**"],

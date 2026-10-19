@@ -26,10 +26,9 @@ shared modules only for real consumers. No service-layer framework exists. The
 [prisma.config.ts](../../prisma.config.ts) loads dotenv and configures the schema,
 classic engine, `DATABASE_URL`, and a migrations directory path. The
 [MongoDB schema](../../prisma/schema.prisma) declares users/images and a
-`prisma-client` generator with custom TypeScript output under `generated/prisma`.
-Prisma and its client are locked to 6.19.0. The draft auth controller consumes a
-shared wrapper importing `@prisma/client`, which does not match this generator.
-Registration is not routed, so HTTP request behavior is unchanged. See
+`prisma-client-js` generator, matching the shared wrapper's `@prisma/client`
+import. Prisma and its client are locked to 6.19.0. Generate the client before
+starting auth; the former custom TypeScript output is no longer used. See
 [authentication development](../development/authentication.md) for blockers. The root CLI config is not included in the
 root TypeScript project's empty `files` list.
 

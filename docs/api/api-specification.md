@@ -2,11 +2,11 @@
 
 [Documentation index](../README.md)
 
-**Priority:** Critical. **Updated:** 2026-10-14. Sections through errors describe
+**Priority:** Critical. **Updated:** 2026-10-19. Sections through errors describe
 current source; the final section proposes unimplemented product contracts.
 
-This reference describes the current entry points. `swagger-ui-express` is installed,
-but no OpenAPI specification, Swagger UI route, or API versioning exists. Shared
+This reference describes the current entry points. Auth serves Swagger UI at
+`/api-docs` and its Swagger JSON at `/docs-json`. No API versioning exists. Shared
 error handling is registered in auth; the gateway retains its existing handling.
 
 ## Auth service
@@ -27,15 +27,18 @@ Invoke-RestMethod http://localhost:6001/
 
 No authentication, query parameters, or request body are required. This is a scaffold response, not a login endpoint or dependency-aware health check.
 
-Auth applies CORS before its route: origin `http://localhost:3000`, credentials allowed, and `Authorization` and `Content-Type` request headers allowed. It has no body parser or rate limiter. Listener errors are logged to stderr and set a nonzero process exit status.
+Auth applies CORS before its routes: origin `http://localhost:3000`, credentials allowed, and `Authorization` and `Content-Type` request headers allowed. JSON parsing precedes the routes; auth has no rate limiter middleware. Listener errors are logged to stderr and set a nonzero process exit status.
 
-## Registration draft (not exposed)
+### POST /api/user-registration
 
-`userRegistration` exists in auth source but is not registered in `main.ts`.
-No registration URL, success status, or OTP response contract is implemented.
-The existing `GET /` contract is unchanged. See
-[authentication development](../development/authentication.md) for the controller
-flow and blockers; proposed auth routes below remain proposals.
+Send `Content-Type: application/json` with `name`, `email`, and `password`.
+The controller validates input, looks up the email, checks OTP restrictions,
+tracks requests, and calls the email/OTP helper. Its success response is HTTP 200
+with `{ "message": "OTP sent. Please check your account" }`; it does not create
+a user. Missing or null bodies return HTTP 400 with
+`{ "status": "error", "message": "Missing required fields" }`.
+These contracts describe source behavior; delivery and integrations remain
+unverified. See [authentication development](../development/authentication.md).
 
 ## API gateway
 
@@ -59,7 +62,7 @@ The former `GET /api` route is forwarded to auth and returns 404 with the curren
 
 After the local route, the gateway proxies remaining requests to the fixed upstream `http://localhost:6001`. The upstream receives the requested path; no auth prefix is stripped.
 
-With auth running, `GET http://localhost:8080/` returns HTTP 200 and the auth `Hello API` JSON. This is the current forwarding smoke-check path. Other paths are not automatically implemented APIs; auth only defines `GET /`.
+With auth running, `GET http://localhost:8080/` returns HTTP 200 and the auth `Hello API` JSON. This is the current forwarding smoke-check path. Auth also defines registration and Swagger routes above; other paths are not automatically implemented APIs.
 
 There is no gateway static middleware anymore. Requests to `/assets` are forwarded like other unmatched routes.
 

@@ -44,6 +44,16 @@ The `/gateway-health` route does not call auth. Confirm auth responds at `http:/
 
 Only `http://localhost:3000` is allowed as a credentialed browser origin. `http://127.0.0.1:3000` and other ports are different origins. Update the intended allowlist when adding a frontend; do not treat CORS as authentication.
 
+## Registration fails while destructuring email
+
+`Cannot destructure property 'email' of 'data' as it is undefined` means the
+registration validator received no parsed body. Auth now mounts `express.json()`
+before its router. Restart auth after updating the code and send
+`POST http://localhost:6001/api/user-registration` with
+`Content-Type: application/json` and a JSON object containing `name`, `email`,
+and `password`. Missing bodies return HTTP 400 with `Missing required fields`.
+Swagger UI is at `/api-docs`, not `/docs`.
+
 ## Rate-limit warnings or unexpected client identities
 
 The current raw-IP key generator can trigger the limiter's IPv6 validation warning. The one-hop proxy trust setting also accepts forwarded identities on direct connections. These settings need correction before limits can be relied on. An HTTP 429 response uses a 15-minute window and a process-local counter; see [API middleware](../api/api-specification.md).
@@ -71,13 +81,11 @@ against the intended development database. See [database setup](getting-started.
 
 ## Prisma editor uses incompatible schema syntax
 
-If model autocomplete (`prisma.users.findUnique`) is missing, check that the
-wrapper imports the client produced by the configured generator. This schema
-outputs to `generated/prisma`, while the current wrapper imports `@prisma/client`;
-the locally installed default client is a placeholder typed as `any`. Restarting
-the TypeScript server does not repair a generator/import mismatch. See
-[authentication blockers](authentication.md#blockers-before-wiring-registration)
-before changing imports across project boundaries.
+If startup reports `@prisma/client did not initialize yet`, run
+`npx prisma generate` from the workspace root, then restart auth. The schema uses
+Prisma 6's `prisma-client-js` generator, matching the wrapper's `@prisma/client`
+import. The former custom `generated/prisma` output did not initialize that
+package. Restarting the TypeScript server alone does not generate a client.
 
 The workspace uses Prisma 6.19 with MongoDB `String @db.ObjectId` fields and a
 `datasource` block. Keep the VS Code `prisma.pinToPrisma6` setting enabled for this
@@ -96,6 +104,13 @@ npx nx show project @microservice-eshop/api-gateway
 Check both the project's package configuration and plugins in `nx.json`. The gateway build is inferred from Webpack configuration, so looking only for an explicit `build` entry in its package file is insufficient.
 
 If Nx reports stale workspace state after configuration changes, stop running Nx processes before using `npx nx reset`, then inspect the project again. This resets local Nx state; it does not fix application code.
+
+If auth warns that the daemon is not running, stop the serve command and run
+`npx nx reset --onlyDaemon`, followed by `npx nx daemon --start`, then restart
+serve. A previous daemon failure can leave `.nx/workspace-data/d/disabled` in
+place. Also check that the launching terminal does not set `NX_DAEMON=false`.
+Auth uses `runBuildTargetDependencies: true`, whose file watching requires the
+daemon. This warning is separate from a Prisma initialization crash.
 
 ## Compiler errors or missing emitted JavaScript
 
@@ -141,6 +156,10 @@ Its generated setup defaults to port 3000 and its spec checks the auth response 
 
 ## Debugger port conflicts or unbound breakpoints
 
-The VS Code configurations set inspection ports 9229 and 9230 through `NODE_OPTIONS`. This environment variable can be inherited by Nx and child processes. If logs report an occupied inspector port, stop duplicate debug sessions and inspect which process owns the port before changing the launch settings.
+The service targets set inspection ports 9229 (auth) and 9230 (gateway). VS Code
+attaches to child processes without setting `NODE_OPTIONS`, avoiding inherited
+inspection flags on Nx and its children. Remove a stale `NODE_OPTIONS` inspection
+flag from the launching terminal and stop duplicate debug sessions if a port is
+still occupied. Inspect the owning process before stopping it.
 
 Use the matching app's debug configuration and confirm source-map paths match its distribution directory. Run only that app while diagnosing the debugger. The existing launch configurations were not verified by this documentation work.
