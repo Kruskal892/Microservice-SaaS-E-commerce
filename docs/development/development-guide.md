@@ -127,7 +127,7 @@ Both apps read uppercase `PORT` and ignore `HOST`; auth E2E reads `HOST` as the 
 
 ## Debugging
 
-[.vscode/launch.json](../../.vscode/launch.json) contains separate Nx launch configurations for the auth service and gateway. They set `NODE_OPTIONS` inspection ports to 9229 and 9230 respectively and use source maps.
+[.vscode/launch.json](../../.vscode/launch.json) contains separate Nx launch configurations for the auth service and gateway. They attach to child processes and use source maps. Each service's `serve` target owns its inspector port: 9229 for auth and 9230 for the gateway. No inherited `NODE_OPTIONS` inspection flag is needed.
 
 Open **Run and Debug**, select the application configuration, and set a breakpoint in its entry point. Send an HTTP request to trigger a route breakpoint. These launch configurations have not been runtime-verified in this documentation update; see [debugger troubleshooting](troubleshooting.md) if inspection ports conflict.
 

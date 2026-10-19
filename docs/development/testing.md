@@ -92,9 +92,10 @@ no errors in `packages/tsconfig.lib.json`; it was not a test or application buil
 
 The 2026-10-17 branch check and registration test gaps are recorded in
 [authentication development](authentication.md#configuration-and-verification).
-The project-reference TypeScript build currently fails on unused `name` and
-`otp` values. The imported default Prisma client is locally typed as `any`, so
-shared compilation does not prove the draft query has a valid filter shape.
+The earlier project-reference check failed on unused `name` and `otp` values;
+those diagnostics describe the 2026-10-17 snapshot. On 2026-10-19 the generator
+was aligned with `@prisma/client` and client generation succeeded. No build or
+tests were run for that correction; generation alone does not validate queries.
 
 The schema and CLI configuration are present; no database integration tests exist.
 Schema validation, client generation, database synchronization, and runtime CRUD

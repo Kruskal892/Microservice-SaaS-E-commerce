@@ -77,10 +77,11 @@ Neither explicit E2E target is included in the check command. The workflow does 
 ## Prisma deployment boundary
 
 Prisma 6.19 and the MongoDB users/images schema are configured at the workspace
-root, with generated TypeScript under Git-ignored `generated/prisma`. Neither
-service imports the client, and Docker/CI do not explicitly generate or deploy this
-schema. Do not assume current images contain a usable generated client.
-Future service integration needs generation/build packaging and secret injection;
+root. The `prisma-client-js` generator produces the client used by auth's shared
+wrapper through `@prisma/client`. Docker/CI do not explicitly generate or deploy
+this schema. Generate the client in the target environment before building and
+package its runtime/engine dependencies; local generation does not establish
+that current images contain a usable client. Deployment also needs secret injection;
 keep the local `.env` out of images and source control. MongoDB schema/index
 synchronization uses an explicitly reviewed `db push` workflow rather than Prisma
 Migrate. No successful database deployment, backup/restore, or data migration is

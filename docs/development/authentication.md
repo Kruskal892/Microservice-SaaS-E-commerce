@@ -2,10 +2,35 @@
 
 [Documentation index](../README.md)
 
+## Startup correction (2026-10-19)
+
+The generator now uses Prisma 6's `prisma-client-js`, matching the shared
+wrapper's `@prisma/client` import without adding generated TypeScript to the
+shared compiler project. Client generation completed successfully. Run
+`npx prisma generate` after installing dependencies or changing the schema.
+Auth now wires the registration router and includes Redis/SMTP work in progress;
+the dated snapshot below describes the earlier implementation. Its generator
+mismatch and unused-value diagnostics are historical, not current validation.
+No application build, tests, startup, or database requests were run for this fix.
+
 Source snapshot: **2026-10-17**, branch `feat/auth-controller`, including its
 uncommitted and untracked changes relative to local `develop`.
 
-## Current implementation
+## Registration request parsing (2026-10-19)
+
+Auth parses JSON before mounting `POST /api/user-registration`. Send
+`Content-Type: application/json` with `name`, `email`, and `password`. An absent
+or null body now raises `ValidationError('Missing required fields')`, returned
+as HTTP 400 by the shared error middleware, before any database or OTP work.
+Previously, the missing parser left `req.body` undefined and destructuring it
+raised a TypeError.
+
+Swagger UI is at `http://localhost:6001/api-docs`; its JSON is at `/docs-json`.
+A regression spec covers missing bodies and valid required fields. It was added
+without running tests, lint, or build. HTTP, database, Redis, and email behavior
+were not verified for this correction.
+
+## Historical implementation (2026-10-17)
 
 The [controller](../../apps/auth-service/src/controller/auth.controller.ts) now
 lives under `src/controller/`, replacing the earlier empty controller outside

@@ -47,6 +47,7 @@
         ],
         "options": {
           "buildTarget": "@microservice-eshop/api-gateway:build",
+          "port": 9230,
           "runBuildTargetDependencies": false
         },
         "configurations": {

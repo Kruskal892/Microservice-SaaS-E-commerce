@@ -9,10 +9,10 @@ are unverified. **Updated:** 2026-10-15.
 ## Current Prisma schema
 
 Source: [schema.prisma](../../prisma/schema.prisma) and
-[Prisma CLI configuration](../../prisma.config.ts). The generator is `prisma-client`
-with output `generated/prisma`. The draft auth controller imports a shared Prisma
-wrapper, but that wrapper uses `@prisma/client` instead of the generated output.
-No database-backed route is wired. See
+[Prisma CLI configuration](../../prisma.config.ts). The generator is
+`prisma-client-js`, producing the client consumed by the shared wrapper through
+`@prisma/client`. Run `npx prisma generate` before starting auth. Generation
+does not establish database connectivity or a complete registration flow. See
 [authentication development](../development/authentication.md).
 
 | Model    | Declared fields and constraints                                                                                                                                                                                         |

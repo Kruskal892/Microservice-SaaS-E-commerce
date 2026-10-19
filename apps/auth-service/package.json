@@ -86,6 +86,7 @@
         ],
         "options": {
           "buildTarget": "@microservice-eshop/auth-service:build",
+          "port": 9229,
           "runBuildTargetDependencies": true
         },
         "configurations": {

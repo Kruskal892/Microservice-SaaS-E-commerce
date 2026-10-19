@@ -34,6 +34,13 @@ the error handler after routes. The internal workspace manifest is named
 
 ## Registration work in progress
 
+2026-10-19 startup correction: Prisma's generator now matches the shared
+`@prisma/client` import and generation succeeded. Inspector ports are assigned
+per service, without inherited `NODE_OPTIONS`. Nx's disabled daemon state was
+reset. No build, tests, database requests, or application startup were run for
+this correction. The registration and integration gaps below are an earlier
+snapshot; consult current source before relying on them.
+
 See [authentication development](../development/authentication.md) for the review
 of `feat/auth-controller` against local `develop`, including working-tree changes.
 The controller moved under `src`, validates registration fields, and attempts an
