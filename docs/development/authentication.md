@@ -2,110 +2,80 @@
 
 [Documentation index](../README.md)
 
-## Startup correction (2026-10-19)
+**Updated:** 2026-10-20. This describes source, not a verified running system.
 
-The generator now uses Prisma 6's `prisma-client-js`, matching the shared
-wrapper's `@prisma/client` import without adding generated TypeScript to the
-shared compiler project. Client generation completed successfully. Run
-`npx prisma generate` after installing dependencies or changing the schema.
-Auth now wires the registration router and includes Redis/SMTP work in progress;
-the dated snapshot below describes the earlier implementation. Its generator
-mismatch and unused-value diagnostics are historical, not current validation.
-No application build, tests, startup, or database requests were run for this fix.
+## Current registration flow
 
-Source snapshot: **2026-10-17**, branch `feat/auth-controller`, including its
-uncommitted and untracked changes relative to local `develop`.
+`POST /api/user-registration` accepts JSON with name, email, and password.
+The controller validates and normalizes input, looks up the email through Prisma,
+checks OTP restrictions, tracks requests, and sends an activation email.
+Success is HTTP 200 with `{ "message": "OTP sent. Please check your account" }`.
+It does not create a user or persist a password.
 
-## Registration request parsing (2026-10-19)
+Validation accepts an object only. Name is trimmed and must contain 1-100
+characters. Email is trimmed, lowercased, limited to 254 characters, and checked
+for basic format. Password must be a string of 8-128 characters. Seller validation
+also requires bounded string phone_number and country fields. Invalid input
+throws ValidationError and returns 400 before infrastructure calls.
 
-Auth parses JSON before mounting `POST /api/user-registration`. Send
-`Content-Type: application/json` with `name`, `email`, and `password`. An absent
-or null body now raises `ValidationError('Missing required fields')`, returned
-as HTTP 400 by the shared error middleware, before any database or OTP work.
-Previously, the missing parser left `req.body` undefined and destructuring it
-raised a TypeError.
+## Simple OTP helpers
 
-Swagger UI is at `http://localhost:6001/api-docs`; its JSON is at `/docs-json`.
-A regression spec covers missing bodies and valid required fields. It was added
-without running tests, lint, or build. HTTP, database, Redis, and email behavior
-were not verified for this correction.
+The original ioredis client remains at `packages/libs/redis/index.ts`:
+`new Redis(process.env.REDIS_DATABASE_URL!)`. No custom connection options,
+client factory, gateway Redis store, Lua scripts, or ownership tokens are added.
 
-## Historical implementation (2026-10-17)
+| Key                         | Value / expiry                                                       |
+| --------------------------- | -------------------------------------------------------------------- |
+| `otp_lock:<email>`          | Lock checked by registration; verification must implement its writer |
+| `otp_spam_lock:<email>`     | One-hour lock after the request limit is reached                     |
+| `otp_request_count:<email>` | Sequential request counter; expiry refreshed to one hour             |
+| `otp_cooldown:<email>`      | String flag expiring after 60 seconds                                |
+| `otp:<email>`               | Four-digit string expiring after 300 seconds                         |
 
-The [controller](../../apps/auth-service/src/controller/auth.controller.ts) now
-lives under `src/controller/`, replacing the earlier empty controller outside
-`src`. `userRegistration` validates input, attempts a unique-user lookup by email,
-passes a `ValidationError` to Express for an existing user, and calls the OTP
-restriction helper. It does not create a user, send an OTP, or return a success
-response.
+Restrictions throw rather than calling Express next from a helper. The controller
+catches once, so a failed restriction stops delivery. Two requests are allowed
+before the next request creates a spam lock, subject to cooldown checks.
 
-The [helpers](../../apps/auth-service/src/utils/auth.helper.ts) currently provide:
+Mail rendering and SMTP errors propagate. Redis OTP/cooldown writes happen only
+after SMTP acceptance. SMTP rejection therefore does not return success or write
+an OTP. A later Redis failure can still occur after SMTP accepted the email.
+Sequential counters/cooldowns can race under concurrent requests; these are
+explicit future tasks in the [Redis and runtime plan](../architecture/redis-and-runtime-plan.md).
 
-| Helper                     | Current behavior                                                                                                                                                                                                       |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `validateRegistrationData` | Requires name, email, password; sellers also require phone_number and country. Throws for missing fields or a failed email regex. Input is still typed as `any`; password policy and field-type validation are absent. |
-| `checkOtpRestrictions`     | Returns `null`; no Redis lookup, cooldown, expiry, or attempt restriction.                                                                                                                                             |
-| `sendOtp`                  | Generates a local numeric string with `crypto.randomInt(1000, 9999)` (upper bound excluded). Does not return, store, or deliver it.                                                                                    |
+## Runtime and packaging
 
-The [auth entry point](../../apps/auth-service/src/main.ts) does not import or
-register the controller and has no JSON body parser. Only `GET /` is exposed;
-there is no registration endpoint to call yet.
+Auth loads dotenv before application imports. Use the root `.env.example` as a
+placeholder guide for DATABASE_URL, REDIS_DATABASE_URL, and SMTP variables.
+Prisma uses `prisma-client-js` and imports `@prisma/client`; generate the client
+after installation/schema changes. Generating a client does not verify MongoDB.
 
-## Shared clients and dependencies
+Mail templates from `src/mail/templates` are copied to `dist/templates` and resolved relative to the auth
+bundle. Build assets also copy the Prisma schema. Docker installs locked runtime
+dependencies and generates Linux Prisma runtime files before its final image.
 
-[Prisma wrapper](../../packages/libs/prisma/index.ts) creates a client and reuses
-`globalThis.prismadb` during development. Production creates a module-local
-instance. The [libs barrel](../../packages/libs/index.ts) exposes named `prisma`,
-and `packages/index.ts` re-exports it. The controller currently uses the direct
-default import `@microservice-eshop/libs/prisma`.
+Auth uses `PORT` with default 6001; gateway defaults to 8080. There is no shared
+port parser or per-app port variable. See [setup](getting-started.md).
 
-The shared alias maps `@microservice-eshop/*` to `packages/*/index.ts`, so that
-nested path resolves to `packages/libs/prisma/index.ts`. `@microservice-eshop/libs`
-instead uses the barrel and requires a named import. These are source aliases,
-not independently published packages.
+Each main.ts calls app.listen() directly. There are no /ready probes or custom
+signal/drain handlers. Readiness and graceful shutdown are deferred in the
+[HTTP lifecycle plan](../architecture/http-lifecycle-plan.md).
 
-Root dependencies now explicitly include `dotenv`, `ioredis`, `nodemailer`, and
-`ejs`, with lockfile updates. The [Redis module](../../packages/libs/redis/index.ts)
-is empty and is not exported. No Redis connection, mail transport, template,
-SMTP settings, or OTP persistence is implemented. Do not infer environment
-variable names for those integrations from installed dependencies.
+## Remaining authentication work
 
-## Blockers before wiring registration
-
-1. Align the Prisma wrapper with the schema generator. The schema uses
-   `prisma-client` with output `generated/prisma`, while the wrapper imports
-   `@prisma/client`. The locally installed default client is a placeholder typed
-   as `any`, which hides model autocomplete and query errors. Generate the
-   configured client and use its entry point; account for generated source in
-   the shared project's `rootDir`/references and application bundling. A direct
-   import outside `packages/` needs compiler ownership changes.
-2. Change the lookup from `findUnique({ where: email })` to
-   `findUnique({ where: { email } })`. The current code supplies a string where
-   a unique-filter object is expected.
-3. Complete restriction checks and OTP delivery/storage before exposing the flow.
-   Add request types, field validation, deliberate error propagation, and an
-   explicit success response. Wire JSON parsing and the chosen route in auth.
-4. Resolve unused `name` and `otp` values as their behavior is implemented.
-   The configured TypeScript build currently reports TS6133 for both.
+`userVerification` remains unrouted and calls an undefined `verifyOtp()`.
+Verification, failed-code attempt handling, single-use consumption, password
+hashing, user creation, login, and sessions are not completed. This existing
+placeholder prevents a clean typecheck until its separate implementation.
+The users schema also requires imagesId independently of the avatar relation;
+resolve that model requirement before creating users.
 
 ## Configuration and verification
 
-Use the root `.env` and placeholder connection string in
-[database setup](getting-started.md#prisma-and-mongodb). Prisma CLI loads dotenv;
-the application entry point still does not explicitly load it. A service-local
-`.env` is not evidence that runtime receives `DATABASE_URL`. URL-encode password
-characters (for example `@` becomes `%40`) without encoding URI separators.
-Keep credentials out of tracked files.
+Validation, restriction, and mail-failure unit coverage remains future work;
+no auth unit-test files are currently present. Tests, lint, builds, database/Redis/SMTP
+requests, Docker, and CI were not run for these changes. See the
+[testing guide](testing.md) before interpreting configured checks as proof.
 
-Verification for this snapshot:
-
-- `node node_modules/typescript/bin/tsc -b packages/tsconfig.lib.json apps/auth-service/tsconfig.app.json --pretty false`
-  failed with the two TS6133 diagnostics above; the shared project compiled.
-- No Prisma generation, database synchronization, MongoDB/Redis requests, email
-  delivery, application startup, lint, Nx builds, automated tests, or Docker
-  validation was performed. Generated declarations do not establish working
-  Prisma model types when the imported client is `any`.
-
-Future behavior tests should cover missing/invalid fields, duplicate email,
-OTP cooldown and expiry, delivery failures, and a complete HTTP response. The
-existing root smoke test does not exercise this controller.
+The [auth-service structure plan](../architecture/auth-service-structure-plan.md)
+proposes feature ownership and small migration steps; the folder moves are not
+implemented.

@@ -32,13 +32,13 @@ Remove-Item Env:PORT -ErrorAction SilentlyContinue
 
 ## Gateway returns 404
 
-Use `http://localhost:8080/gateway-health` for the local gateway response. `http://localhost:8080/` forwards to auth on port 6001. Other paths forward too, but auth only defines `GET /`, so an upstream 404 is expected for unimplemented routes.
+Use `http://localhost:8080/gateway-health` for the local gateway response. `http://localhost:8080/` forwards to auth on port 6001. Auth also defines registration and Swagger routes. Unimplemented paths return an upstream 404.
 
 Static asset middleware was removed; `/assets` now forwards to auth instead of serving gateway files.
 
 ## Gateway responds at /gateway-health but forwarding fails
 
-The `/gateway-health` route does not call auth. Confirm auth responds at `http://localhost:6001/`, then try `http://localhost:8080/`. Changing the auth `PORT` override does not change the hard-coded upstream. A host-run gateway can reach the auth container using `-p 6001:3000`; separate containers need a reachable service address instead of localhost.
+The `/gateway-health` route does not call auth. Confirm auth responds at `http://localhost:6001/`, then try `http://localhost:8080/`. Changing auth PORT requires updating AUTH_SERVICE_URL in the gateway environment. A host-run gateway can reach the auth container using `-p 6001:3000`; separate containers need a reachable service address instead of localhost.
 
 ## Browser CORS errors
 
@@ -51,20 +51,22 @@ registration validator received no parsed body. Auth now mounts `express.json()`
 before its router. Restart auth after updating the code and send
 `POST http://localhost:6001/api/user-registration` with
 `Content-Type: application/json` and a JSON object containing `name`, `email`,
-and `password`. Missing bodies return HTTP 400 with `Missing required fields`.
+and `password`. Missing or non-object bodies return HTTP 400 with `Request body must be an object`.
 Swagger UI is at `/api-docs`, not `/docs`.
 
 ## Rate-limit warnings or unexpected client identities
 
-The current raw-IP key generator can trigger the limiter's IPv6 validation warning. The one-hop proxy trust setting also accepts forwarded identities on direct connections. These settings need correction before limits can be relied on. An HTTP 429 response uses a 15-minute window and a process-local counter; see [API middleware](../api/api-specification.md).
+Gateway uses the default IPv6-aware keys and in-memory counters. Proxy trust
+is disabled by default. Configure a real ingress topology before trusting
+forwarded headers. Multiple gateway processes currently have separate quotas.
+Redis-backed limiting is deferred in the [future plan](../architecture/redis-and-runtime-plan.md).
 
 ## Environment file appears ignored
 
-Neither application entry point explicitly loads `.env`. Set application process
-variables in the launching terminal as described in [getting started](getting-started.md).
-Prisma CLI is different: `prisma.config.ts` imports `dotenv/config`, so its
-"skipping environment variable loading" notice does not mean `.env` was ignored.
-A pre-existing shell `DATABASE_URL` takes precedence over the file.
+Both entry points load dotenv at startup. Run from the repository root and use
+.env.example as a placeholder guide. Existing shell variables take precedence.
+Redis keeps its original client; there is no shared config package or custom
+port parser. Auth defaults to 6001, gateway to 8080; PORT overrides that process.
 
 ## MongoDB SCRAM authentication failed
 
@@ -116,7 +118,7 @@ daemon. This warning is separate from a Prisma initialization crash.
 
 ### Folder imports and literal wildcard diagnostics
 
-`@microservice-eshop/error-handler` maps to
+`@packages/error-handler` maps to
 `packages/error-handler/index.ts`; another folder such as `middleware` must
 have its own `index.ts` before it can be imported. The wildcard belongs in
 `compilerOptions.paths`, not a literal source filename in `files`.

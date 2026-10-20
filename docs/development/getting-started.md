@@ -6,7 +6,7 @@
 
 Use Node.js 24, matching [CI](../../.github/workflows/ci.yml), and npm. Git is needed to clone the repository. Docker is optional.
 
-No MongoDB, Redis, Kafka, Firebase, AWS, or ImageKit account is needed to serve the current HTTP scaffolds. Prisma database commands require a reachable MongoDB deployment and valid database-user credentials. There is no frontend to start yet.
+Auth registration requires MongoDB, Redis, and SMTP configuration; Kafka, Firebase, AWS, and ImageKit remain planned. Prisma database commands require a reachable MongoDB deployment and valid database-user credentials. There is no frontend to start yet.
 
 ## Install
 
@@ -21,7 +21,7 @@ The committed lockfile is the installation reference. Run installation at the
 root because [package.json](../../package.json) defines npm workspaces for
 `apps/*` and the `packages` folder itself. One package manifest and TypeScript
 configuration cover all shared module folders; each folder exposes an `index.ts`.
-Auth uses `@microservice-eshop/error-handler` through the shared TypeScript
+Auth uses `@packages/error-handler` through the shared TypeScript
 wildcard alias and bundles that source. See
 [shared modules](development-guide.md#adding-shared-modules) before adding a
 consumer in another application.
@@ -62,28 +62,28 @@ npx nx serve @microservice-eshop/api-gateway
 
 ## Environment variables
 
-| Variable | Consumer     | Default | Behavior                                 |
-| -------- | ------------ | ------- | ---------------------------------------- |
-| `PORT`   | Auth service | `6001`  | Converted to a number before listening   |
-| `PORT`   | API gateway  | `8080`  | Passed directly to Express/Node when set |
+Copy the root `.env.example` to a local `.env` and replace its placeholder
+MongoDB, Redis, and SMTP values. Both entry points load dotenv before application
+imports. Existing shell variables take precedence. Keep `.env` out of commits.
 
-The gateway's upstream is hard-coded to `http://localhost:6001`. Changing the auth port does not change the proxy destination. Neither app reads `HOST`; both listen without an explicit bind address. Both applications read uppercase `PORT`. Neither entry point explicitly loads a `.env` file, and no `.env.example` is provided.
+| Variable                  | Consumer                 | Default / purpose             |
+| ------------------------- | ------------------------ | ----------------------------- |
+| PORT                      | Each app separately      | Auth 6001; gateway 8080       |
+| AUTH_SERVICE_URL          | Gateway                  | http://localhost:6001         |
+| DATABASE_URL              | Auth / Prisma            | MongoDB connection string     |
+| REDIS_DATABASE_URL        | Existing auth OTP client | TCP redis:// or rediss:// URL |
+| SMTP_HOST / SMTP_SERVICE  | Auth mail                | SMTP provider settings        |
+| SMTP_PORT                 | Auth mail                | 587; 465 enables implicit TLS |
+| SMTP_USER / SMTP_PASSWORD | Auth mail                | Provider credentials          |
 
-To override the auth service's port in PowerShell:
+Leave PORT unset when running both apps through npm run dev. For a custom auth
+port, launch it separately with PORT and update AUTH_SERVICE_URL in the gateway's
+own environment. Separate containers need a reachable auth service hostname.
+Neither app reads HOST; both listen without an explicit bind address.
 
-```powershell
-$env:PORT = '3001'
-npx nx serve @microservice-eshop/auth-service
-```
-
-Open http://localhost:3001/ for that standalone auth session. Gateway forwarding still targets port 6001 and will not reach this overridden port. After stopping it, clear the overrides before running both apps:
-
-```powershell
-Remove-Item Env:PORT -ErrorAction SilentlyContinue
-npm run dev
-```
-
-A shared `PORT` override makes both apps compete for one port. Use separate terminals and distinct ports if you need custom values. Port values are not validated by the application code.
+There is no shared config package, custom port parser, AUTH_PORT, or GATEWAY_PORT.
+Port range validation and stronger Redis configuration are deferred in the
+[future plan](../architecture/redis-and-runtime-plan.md).
 
 ## Prisma and MongoDB
 

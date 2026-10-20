@@ -2,135 +2,78 @@
 
 [Documentation index](../README.md)
 
-**Priority:** Critical. **Updated:** 2026-10-19. Sections through errors describe
-current source; the final section proposes unimplemented product contracts.
-
-This reference describes the current entry points. Auth serves Swagger UI at
-`/api-docs` and its Swagger JSON at `/docs-json`. No API versioning exists. Shared
-error handling is registered in auth; the gateway retains its existing handling.
+**Updated:** 2026-10-20. Source contracts below are not runtime verification.
 
 ## Auth service
 
-Source: [main.ts](../../apps/auth-service/src/main.ts). Default base URL: `http://localhost:6001`.
+Default URL: http://localhost:6001. CORS allows credentialed browser requests
+from http://localhost:3000. JSON bodies are limited to 16 KB.
 
 ### GET /
 
-Returns HTTP 200 with JSON:
-
-```json
-{ "message": "Hello API" }
-```
-
-```powershell
-Invoke-RestMethod http://localhost:6001/
-```
-
-No authentication, query parameters, or request body are required. This is a scaffold response, not a login endpoint or dependency-aware health check.
-
-Auth applies CORS before its routes: origin `http://localhost:3000`, credentials allowed, and `Authorization` and `Content-Type` request headers allowed. JSON parsing precedes the routes; auth has no rate limiter middleware. Listener errors are logged to stderr and set a nonzero process exit status.
+HTTP 200: `{ "message": "Hello API" }`. This is a greeting/liveness endpoint.
 
 ### POST /api/user-registration
 
-Send `Content-Type: application/json` with `name`, `email`, and `password`.
-The controller validates input, looks up the email, checks OTP restrictions,
-tracks requests, and calls the email/OTP helper. Its success response is HTTP 200
-with `{ "message": "OTP sent. Please check your account" }`; it does not create
-a user. Missing or null bodies return HTTP 400 with
-`{ "status": "error", "message": "Missing required fields" }`.
-These contracts describe source behavior; delivery and integrations remain
-unverified. See [authentication development](../development/authentication.md).
+JSON: name, email, password. Name is a trimmed string of 1-100 characters;
+email is trimmed/lowercased with basic format and 254-character checks; password
+is a string of 8-128 characters. Invalid bodies/fields return HTTP 400.
+
+The controller looks up the normalized email, rejects an existing user, checks
+simple Redis restrictions, tracks requests, and sends the activation email.
+Restrictions throw, so the controller stops on failure. HTTP 200 returns
+`{ "message": "OTP sent. Please check your account" }` after SMTP acceptance and
+OTP/cooldown writes. SMTP failures propagate to the error handler. No account is
+created, and no password is persisted. Concurrent OTP operations can race;
+mail acceptance and Redis writes are not one transaction.
+
+### API documentation
+
+Swagger UI: /api-docs. Swagger JSON: /docs-json. The committed Swagger description
+covers registration; it is not a complete contract for future authentication.
+Verification, login, sessions, and commerce endpoints remain incomplete/absent.
 
 ## API gateway
 
-Source: [main.ts](../../apps/api-gateway/src/main.ts). Default base URL: `http://localhost:8080`.
+Default URL: http://localhost:8080.
 
 ### GET /gateway-health
 
-Returns HTTP 200 with JSON, without contacting auth:
-
-```json
-{ "message": "Welcome to api-gateway!" }
-```
-
-```powershell
-Invoke-RestMethod http://localhost:8080/gateway-health
-```
-
-The former `GET /api` route is forwarded to auth and returns 404 with the current auth routes. The startup log still prints `/api`; use `/gateway-health` for the local response. This response checks neither auth availability nor other dependencies.
+HTTP 200 `{ "message": "Welcome to api-gateway!" }`, without calling auth.
 
 ### Forwarded requests
 
-After the local route, the gateway proxies remaining requests to the fixed upstream `http://localhost:6001`. The upstream receives the requested path; no auth prefix is stripped.
-
-With auth running, `GET http://localhost:8080/` returns HTTP 200 and the auth `Hello API` JSON. This is the current forwarding smoke-check path. Auth also defines registration and Swagger routes above; other paths are not automatically implemented APIs.
-
-There is no gateway static middleware anymore. Requests to `/assets` are forwarded like other unmatched routes.
+Other paths forward unchanged to AUTH_SERVICE_URL, default http://localhost:6001.
+There is no gateway static middleware or prefix stripping. The proxy limits bodies
+to 16 KB and upstream requests to ten seconds. Errors reach shared middleware;
+there is no retry policy or dedicated 502/504 mapping yet.
 
 ## Gateway middleware
 
-| Middleware         | Current configuration                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------- |
-| CORS               | Origin `http://localhost:3000`; credentials allowed; `Authorization` and `Content-Type` headers allowed |
-| Logging            | Morgan `dev`                                                                                            |
-| JSON parser        | 100 MB limit                                                                                            |
-| URL-encoded parser | 100 MB limit, extended mode                                                                             |
-| Cookie parser      | Parses cookies; does not establish authentication                                                       |
-| Rate limiter       | 15-minute window; 100 requests per raw IP, or 1000 if `req.user` exists                                 |
+CORS -> Morgan logging -> local health route -> IP limiter -> body-reading proxy
+-> shared error middleware. Credentialed CORS allows http://localhost:3000 and
+Authorization/Content-Type headers. CORS does not authenticate callers.
 
-CORS runs first and handles preflight requests before the downstream middleware. Body parsing and cookie parsing precede the limiter and route handlers. No middleware currently establishes `req.user`, so normal traffic uses the 100-request limit.
-
-Rate-limit rejection returns **HTTP 429** with:
-
-```json
-{ "error": "Too many requests, please try again later" }
-```
-
-Both standard and legacy rate-limit headers are enabled. The store is process-local memory, not Redis; restarting the process resets counters.
-
-The gateway currently trusts one proxy hop and uses raw `req.ip` keys. This permits forwarded-header spoofing on direct connections and lacks IPv6 subnet grouping. See [implementation status](../delivery/implementation-status.md) for the outstanding review limitations.
+The limiter allows 100 requests per 15 minutes using default IPv4/IPv6 key handling.
+It uses in-memory counters, standard draft-8 headers, and no legacy headers.
+Rejection is 429 `{ "error": "Too many requests, please try again later" }`.
+No middleware establishes an authenticated user or a larger authenticated quota.
+Proxy trust is not enabled; forwarded client identities are not trusted by default.
+Multiple gateway processes do not share counters. See the
+[Redis/runtime plan](../architecture/redis-and-runtime-plan.md) for future work.
 
 ## Errors and unavailable routes
 
-There is no custom proxy error handler, timeout policy, retry policy, or active
-shared JSON error envelope. If auth is unavailable, forwarded requests fail through
-the proxy's default error handling. A successful `/gateway-health` response does
-not prove auth is reachable.
-
 ### Shared error handler (auth service)
 
-Source: [error-middleware.ts](../../packages/error-handler/error-middleware.ts).
-Auth imports `@microservice-eshop/error-handler` through a source alias and registers its four-parameter handler
-after routes. The gateway does not use it. These examples describe source
-behavior; runtime error responses have not been verified. No dedicated error
-demonstration route exists.
-
-For an `AppError`, the handler uses `err.statusCode` and returns:
-
-```json
-{ "status": "error", "message": "User not found" }
-```
-
-This example corresponds to `new NotFoundError('User not found')` (404).
-Truthy `err.details` is included as a top-level `details` property; falsy values
-such as `false`, `0`, or an empty string are omitted. Application messages and
-details are passed through without sanitization; the `isOperational` flag does
-not affect the response.
-
-For errors that are not an `AppError`, the handler returns HTTP 500 with:
-
-```json
-{ "error": "Something went wrong please try again" }
-```
-
-The fallback has a different shape from application errors. Neither branch
-includes a stack trace in its JSON. Gateway rate-limit responses still use their
-existing format above. See [technical design](../architecture/technical-design.md#shared-error-handler-current-source)
-for classes and integration gaps. The proposed product envelope below is a
-separate design draft.
-
-Registration, login, refresh, logout, password reset, profiles, catalog, cart, checkout, and order APIs remain unimplemented. Neither app verifies tokens. The gateway's body parsers are not input validation, and CORS is not access control.
-
-When adding routes, document request validation, success/error responses, access requirements, and persistent effects. Keep the eventual OpenAPI contract aligned with the implemented routes.
+Both auth and gateway register the shared four-argument middleware after routes.
+For AppError it uses statusCode and returns
+`{ "status": "error", "message": "..." }`, with truthy details included when supplied.
+Messages/details must be safe public values. Malformed bodies return 400 with
+Invalid request body; oversized bodies return 413 with Request body too large.
+Unexpected errors return 500 `{ "error": "Something went wrong please try again" }`.
+No stack is returned. If headers were already sent, the error is delegated onward.
+Unmatched auth routes keep Express's default 404 handling.
 
 ## Proposed product API - not implemented
 
