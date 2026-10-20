@@ -2,6 +2,10 @@
 
 [Documentation index](../README.md)
 
+**Reviewed:** 2026-10-21. See [repository structure](../architecture/repository-structure.md)
+for the code tree and dependency diagram, and
+[configuration](../reference/configuration.md) for runtime inputs.
+
 ## Nx task configuration
 
 Use the scoped package names as project identifiers. Explicit targets live under `nx.targets` in application package files. Plugins in [nx.json](../../nx.json) infer additional targets from configuration files.
@@ -39,7 +43,8 @@ Both E2E projects define their own `e2e` executor and dependencies. Nx's default
 | Lint auth              | `npx nx lint @microservice-eshop/auth-service`      |
 | Lint gateway           | `npx nx lint @microservice-eshop/api-gateway`       |
 
-Builds, lint, and tests are explicit developer actions. For automated assistants working under the supplied project instructions, run them only when the user requests them.
+Choose builds, lint, and tests that verify the changed behavior, and record
+the commands/results separately from checks that were not run.
 
 ## Build and compiler ownership
 
@@ -103,8 +108,11 @@ An empty folder is not importable: `packages/middleware/index.ts` must exist
 and export real middleware before using `@packages/middleware`.
 
 Auth's solution `tsconfig.json` references its app/spec configs; the shared-library
-reference remains in `tsconfig.app.json`. Auth also has `bundle: true` in its esbuild target. Gateway now references the shared library and bundles shared HTTP/error modules.
-Auth Jest/SWC maps @packages/\* to shared source; see
+reference remains in `tsconfig.app.json`. Auth also has `bundle: true` in its esbuild target.
+Gateway references the shared library and resolves shared error source with its
+Webpack alias. No shared HTTP lifecycle module exists.
+Auth Jest/SWC currently has no `@packages/*` mapper; configure one when adding
+tests that import aliased modules. See
 [testing](testing.md#shared-module-and-error-handler-coverage).
 
 ```text
@@ -131,15 +139,15 @@ in-memory limiter, default IPv6-aware IP keys, and no proxy trust. Limiting occu
 before the proxy reads bodies, with a 16 KB limit and ten-second upstream timeout.
 Gateway does not import Redis. Each main.ts calls app.listen() directly; packages/error-handler owns error
 responses. Readiness and shutdown are deferred in the
-[HTTP lifecycle plan](../architecture/http-lifecycle-plan.md).
+[HTTP lifecycle plan](../future-plans/architecture/http-lifecycle-plan.md).
 
 Both apps use PORT (auth 6001, gateway 8080) and ignore HOST. Leave PORT unset for
 simultaneous local startup. Gateway reads AUTH_SERVICE_URL with a localhost:6001
 fallback. There is no config package or custom port parser. Auth E2E still reads
 HOST/PORT separately; keep test destinations aligned with service overrides.
 
-See the [auth folder plan](../architecture/auth-service-structure-plan.md) for
-future feature ownership and the [Redis/runtime plan](../architecture/redis-and-runtime-plan.md)
+See the [auth folder plan](../future-plans/architecture/auth-service-structure-plan.md) for
+future feature ownership and the [Redis/runtime plan](../future-plans/architecture/redis-and-runtime-plan.md)
 for deliberately deferred infrastructure. Neither plan creates empty modules or
 per-folder package manifests.
 

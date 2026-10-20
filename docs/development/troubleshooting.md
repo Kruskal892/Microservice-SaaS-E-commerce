@@ -2,6 +2,9 @@
 
 [Documentation index](../README.md)
 
+**Reviewed:** 2026-10-21. Configuration defaults belong to the
+[configuration reference](../reference/configuration.md).
+
 ## Dependency installation fails
 
 Run `node --version` and `npm --version` from the repository root. CI uses Node 24. Use `npm ci` with the committed lockfile.
@@ -59,7 +62,7 @@ Swagger UI is at `/api-docs`, not `/docs`.
 Gateway uses the default IPv6-aware keys and in-memory counters. Proxy trust
 is disabled by default. Configure a real ingress topology before trusting
 forwarded headers. Multiple gateway processes currently have separate quotas.
-Redis-backed limiting is deferred in the [future plan](../architecture/redis-and-runtime-plan.md).
+Redis-backed limiting is deferred in the [future plan](../future-plans/architecture/redis-and-runtime-plan.md).
 
 ## Environment file appears ignored
 
@@ -77,8 +80,8 @@ characters in credentials and use the correct authentication database; Atlas SCR
 users normally authenticate against `admin`. Copy the connection details for the
 intended cluster. Never paste credentials into logs, PR evidence, or documentation.
 
-The reported `npx prisma db push` attempt failed at authentication; no successful
-schema/index synchronization is confirmed. Retry only after correcting credentials,
+No current successful schema/index synchronization is established by this
+documentation review. Retry a failed push only after correcting credentials,
 against the intended development database. See [database setup](getting-started.md#prisma-and-mongodb).
 
 ## Prisma editor uses incompatible schema syntax
@@ -124,10 +127,8 @@ have its own `index.ts` before it can be imported. The wildcard belongs in
 `compilerOptions.paths`, not a literal source filename in `files`.
 
 If the IDE reports that `packages/*/index.ts` is missing, inspect the effective
-config and real included files first. The direct no-emit diagnostic inspection
-in this session expanded `packages/tsconfig.lib.json` to the three actual source
-files and reported no compiler errors. That did not reproduce the IDE error or
-establish its cause. If compiler diagnostics are clean while the IDE still
+config and real included files first. The shared library includes `**/*.ts`;
+the wildcard alias is not a literal file entry. If compiler diagnostics are clean while the IDE still
 reports the error, select **TypeScript: Select TypeScript Version > Use Workspace
 Version**, then **TypeScript: Restart TS Server**; reload the editor window if
 needed. Do not replace the wildcard with per-folder configs solely to clear

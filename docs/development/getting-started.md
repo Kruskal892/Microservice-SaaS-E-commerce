@@ -2,21 +2,37 @@
 
 [Documentation index](../README.md)
 
+**Reviewed:** 2026-10-21. Commands describe setup; live integrations have not
+been verified by this documentation refresh.
+
 ## Requirements
 
 Use Node.js 24, matching [CI](../../.github/workflows/ci.yml), and npm. Git is needed to clone the repository. Docker is optional.
 
-Auth registration requires MongoDB, Redis, and SMTP configuration; Kafka, Firebase, AWS, and ImageKit remain planned. Prisma database commands require a reachable MongoDB deployment and valid database-user credentials. There is no frontend to start yet.
+Auth registration requires MongoDB, Redis, and SMTP configuration. Importing
+auth also initializes client modules, so configure these before startup.
+Kafka, frontend, and cloud integrations remain [future work](../future-plans/README.md).
+Prisma database commands require a reachable MongoDB deployment and valid
+database-user credentials. There is no frontend to start yet.
 
 ## Install
 
-Open a terminal in the repository root. In this workspace:
+Open a terminal in your clone's repository root:
 
 ```powershell
-Set-Location 'D:\Microservice Eshop'
 npm ci
+Copy-Item .env.example .env
 ```
 
+Copy the example only when creating a new local environment; preserve an
+existing `.env`. Replace the copied placeholders with development connection
+details, then generate the Prisma client before starting auth:
+
+```sh
+npx prisma generate
+```
+
+Generation prepares the client without confirming database connectivity.
 The committed lockfile is the installation reference. Run installation at the
 root because [package.json](../../package.json) defines npm workspaces for
 `apps/*` and the `packages` folder itself. One package manifest and TypeScript
@@ -62,19 +78,10 @@ npx nx serve @microservice-eshop/api-gateway
 
 ## Environment variables
 
-Copy the root `.env.example` to a local `.env` and replace its placeholder
-MongoDB, Redis, and SMTP values. Both entry points load dotenv before application
-imports. Existing shell variables take precedence. Keep `.env` out of commits.
-
-| Variable                  | Consumer                 | Default / purpose             |
-| ------------------------- | ------------------------ | ----------------------------- |
-| PORT                      | Each app separately      | Auth 6001; gateway 8080       |
-| AUTH_SERVICE_URL          | Gateway                  | http://localhost:6001         |
-| DATABASE_URL              | Auth / Prisma            | MongoDB connection string     |
-| REDIS_DATABASE_URL        | Existing auth OTP client | TCP redis:// or rediss:// URL |
-| SMTP_HOST / SMTP_SERVICE  | Auth mail                | SMTP provider settings        |
-| SMTP_PORT                 | Auth mail                | 587; 465 enables implicit TLS |
-| SMTP_USER / SMTP_PASSWORD | Auth mail                | Provider credentials          |
+The [configuration reference](../reference/configuration.md) owns all inputs,
+defaults, fixed middleware settings, and port diagrams. Use the root
+`.env.example` for MongoDB, Redis, and SMTP placeholders. Both entry points load
+dotenv at startup; shell values take precedence. Keep `.env` out of commits.
 
 Leave PORT unset when running both apps through npm run dev. For a custom auth
 port, launch it separately with PORT and update AUTH_SERVICE_URL in the gateway's
@@ -83,7 +90,7 @@ Neither app reads HOST; both listen without an explicit bind address.
 
 There is no shared config package, custom port parser, AUTH_PORT, or GATEWAY_PORT.
 Port range validation and stronger Redis configuration are deferred in the
-[future plan](../architecture/redis-and-runtime-plan.md).
+[future plan](../future-plans/architecture/redis-and-runtime-plan.md).
 
 ## Prisma and MongoDB
 
@@ -122,8 +129,9 @@ npx prisma db push
 Review the target and schema first: this command changes the database. MongoDB
 uses `db push`, not Prisma Migrate; the configured migrations path is not an
 implemented migration workflow. Do not add data-loss flags to bypass warnings.
-The reported attempt failed with Atlas SCRAM authentication; success remains
-unconfirmed. See [troubleshooting](troubleshooting.md#mongodb-scram-authentication-failed).
+Successful database/index synchronization was not verified during this refresh.
+For authentication failures see
+[troubleshooting](troubleshooting.md#mongodb-scram-authentication-failed).
 
 ## Browser requests
 
@@ -133,6 +141,6 @@ Both applications allow credentialed CORS requests from `http://localhost:3000`,
 
 - Locate both entry points and read their route handlers.
 - Get the two default responses locally.
-- Read [architecture](../architecture/architecture.md) and [API reference](../api/api-specification.md).
+- Read [architecture](../architecture/overview.md) and [API reference](../reference/api.md).
 - Read [testing limitations](testing.md) before interpreting a green test run.
-- Check [implementation status](../delivery/implementation-status.md) before assuming a feature exists.
+- Check [implementation status](../operations/implementation-status.md) before assuming a feature exists.

@@ -3,16 +3,18 @@
 [Documentation index](../README.md)
 
 **Priority:** Critical. **Status:** Proposed backlog, not a committed schedule.
-**Updated:** 2026-10-15. Owners, estimates, tickets, and dates are not supplied.
+**Reviewed:** 2026-10-21. Owner columns suggest responsibility; no actual owner
+assignments, estimates, tickets, or dates are supplied.
 
 ## 1. Starting point
 
-Gateway/auth scaffolds and tooling exist. Product behavior and production
-infrastructure do not. [Implementation status](implementation-status.md) tracks
-current evidence. Prisma 6.19 configuration and the initial users/images schema
-provide part of D-01, but authentication to Atlas, index application, safe credential
-storage, and service integration are unverified or absent. All tasks below remain
-open; schema declarations alone do not complete identity persistence.
+Gateway/auth tooling and the OTP request path exist. Account creation, a customer
+purchase journey, and production infrastructure do not.
+[Implementation status](../operations/implementation-status.md) tracks evidence.
+Prisma 6.19 and users/images provide part of D-01; F-02/F-03/F-04 and R-01 also
+have partial source work. Every task below remains open until its full acceptance
+criteria are met. The Dockerfile is still a single-stage scaffold without an
+explicit Prisma generation step; current packaging is not a completed task.
 
 ## 2. Tasks and acceptance criteria
 
@@ -43,6 +45,28 @@ tasks must be refined after O-01; no provider endpoints are assumed.
 
 ## 3. Delivery increments
 
+The graph groups task dependencies; the task table above owns the detailed
+prerequisites. All nodes are future completion gates, including tasks with
+partial source work.
+
+```mermaid
+flowchart LR
+    F["F-01 to F-04<br/>Reliable foundation"] --> A["A-01, D-01, A-02<br/>Complete identity"]
+    P["P-01<br/>Confirm scope"] --> A
+    P --> C["C-01, C-02<br/>Catalog owner and data"]
+    A --> Cart["C-03, U-01<br/>Cart and storefront"]
+    C --> Cart
+    P --> O["O-01<br/>Order and payment decisions"]
+    C --> O
+    Cart --> Orders["O-02, U-02<br/>Orders and checkout"]
+    O --> Orders
+    Orders --> Ops["Ops-01<br/>Release readiness"]
+    F --> Ops
+    Checks["R-01, Q-01<br/>Contracts and meaningful checks"] -.-> A
+    Checks -.-> Orders
+    Checks -.-> Ops
+```
+
 1. **Reliable foundation:** F-01 through F-04. Exit with trustworthy health,
    forwarding, client identity policy, and clear packaging.
 2. **Account/catalog:** P-01, A-01/D-01/A-02, C-01/C-02. Exit with safe identity
@@ -54,18 +78,18 @@ tasks must be refined after O-01; no provider endpoints are assumed.
 
 ## 4. Deferred integration triggers
 
-| Direction            | Start when                                         |
-| -------------------- | -------------------------------------------------- |
-| Redis                | Measured caching or shared-counter need            |
-| Kafka                | Agreed workflow requires durable events            |
-| Socket.IO / Firebase | Defined live/push flow with consent and auth rules |
-| TensorFlow.js        | Defined use case, data, evaluation criteria        |
-| ImageKit             | Asset provider adoption confirmed                  |
-| SaaS tenancy/billing | Product and tenant-isolation requirements agreed   |
+| Direction            | Start when                                                                  |
+| -------------------- | --------------------------------------------------------------------------- |
+| Additional Redis use | OTP already exists; add caching/shared gateway counters for a concrete need |
+| Kafka                | Agreed workflow requires durable events                                     |
+| Socket.IO / Firebase | Defined live/push flow with consent and auth rules                          |
+| TensorFlow.js        | Defined use case, data, evaluation criteria                                 |
+| ImageKit             | Asset provider adoption confirmed                                           |
+| SaaS tenancy/billing | Product and tenant-isolation requirements agreed                            |
 
 ## 5. Completion rules
 
 A task needs implementation, consumers, permanent checks, configuration, and docs
 matching acceptance criteria. Record commands/results; configured tasks are not
-verification. Assistants do not run lint/build/tests unless requested. This docs
+verification. Record checks that were not run separately. This documentation
 change does not implement the backlog or establish runtime success.

@@ -1,9 +1,9 @@
 # UI/UX Specification
 
-[Documentation index](../README.md)
+[Documentation index](../../README.md)
 
 **Priority:** High. **Status:** Proposed; no frontend, routes, components, or design
-assets exist. **Updated:** 2026-10-14. Next.js is the documented direction.
+assets exist. **Reviewed:** 2026-10-21. Next.js is the documented direction.
 
 ## 1. Screens and navigation
 

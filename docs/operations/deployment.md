@@ -1,0 +1,106 @@
+# Deployment and continuous integration
+
+[Documentation hub](../README.md)
+
+**Status:** Current packaging and workflow configuration. **Reviewed:** 2026-10-21.
+Commands below are instructions, not evidence of successful image builds or runs.
+
+## Build artifacts
+
+| Project        | Configured output                                      | Packaging inputs                                                                                             |
+| -------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Auth           | `apps/auth-service/dist/main.js`, CommonJS via esbuild | Templates at `dist/templates`; schema at `dist/prisma/schema.prisma`; production lockfile generation enabled |
+| Gateway        | `apps/api-gateway/dist`, Webpack                       | Assets, generated package metadata; explicit shared-source alias                                             |
+| Shared library | `packages/dist`, TypeScript                            | JavaScript and declarations; one shared workspace manifest                                                   |
+
+Both apps have prune-lockfile and copy-workspace-modules targets. Auth's Docker
+build depends on build/prune. Inspect generated manifests, lockfiles, external
+dependencies, copied workspace modules, and assets before treating dist as
+deployable. Explicit auth dependencies do not list every root-provided runtime
+import (for example dotenv and ioredis); generated packaging needs verification.
+
+## Auth Docker image
+
+The actual [Dockerfile](../../apps/auth-service/Dockerfile) is a single-stage
+scaffold:
+
+```mermaid
+flowchart LR
+    Build["Nx build and prune"] --> Dist["Prepared dist"]
+    Dist --> Image["FROM node:lts-alpine<br/>WORKDIR /app<br/>COPY dist ."]
+    Image --> Install["npm --omit=dev -f install"]
+    Install --> Run["PORT=3000<br/>node main.js"]
+```
+
+It uses a floating Node LTS Alpine base, sets `HOST=0.0.0.0` and `PORT=3000`,
+copies dist, runs `npm --omit=dev -f install`, then starts `main.js`. It does not
+pin Node 24, use `npm ci`, configure a non-root user, or explicitly generate
+Linux Prisma files. Package install hooks and generated dependencies have not
+been verified as a substitute for Prisma generation.
+
+Build and run targets are configured:
+
+```sh
+npx nx docker:build @microservice-eshop/auth-service
+npx nx docker:run @microservice-eshop/auth-service --env-file .env -p 6001:3000
+```
+
+The run example assumes a successfully prepared image and an environment file
+with container-reachable MongoDB/Redis/SMTP addresses. The local-loopback URLs
+in `.env.example` point inside the container when used there. Keep `PORT` unset
+in that env file to preserve internal 3000, or adjust the published mapping.
+Inject secrets at runtime; keep `.env` outside the image and source control.
+
+## Network topology
+
+```mermaid
+flowchart LR
+    Gateway["Host-run gateway :8080"] -->|"AUTH_SERVICE_URL=http://localhost:6001"| Published["Host port 6001"]
+    Published -->|"Docker -p 6001:3000"| Auth["Auth container :3000"]
+    Auth --> Dependencies["MongoDB / Redis / SMTP<br/>Container-reachable addresses"]
+```
+
+The diagram is a proposed way to use the existing port mapping, not a deployed
+environment. Separate containers need a reachable auth network hostname and
+internal port in `AUTH_SERVICE_URL`; `localhost` refers to each container itself.
+No Compose file, gateway Dockerfile, orchestrator, AWS resources, or release
+deployment job is tracked.
+
+Each app reads `PORT`; local defaults are 6001/8080. Apps do not read `HOST` as a
+bind setting. CORS is fixed to `http://localhost:3000`, proxy trust is disabled,
+and gateway limits are per process. See [configuration](../reference/configuration.md).
+
+## Health, database rollout, and shutdown
+
+Auth `/` and gateway `/gateway-health` are local responses, not dependency
+readiness. Both apps start direct listeners; there is no custom signal handling,
+HTTP drain, or Prisma/Redis/SMTP cleanup. Listener errors set an unsuccessful
+exit code without coordinated client shutdown.
+
+Prisma generation prepares a client; it does not deploy schema/index changes.
+MongoDB development synchronization is an explicit reviewed `db push` operation;
+see [setup](../development/getting-started.md#prisma-and-mongodb).
+Production backup/restore, schema rollout, TLS, secrets, monitoring, and rollback
+procedures remain unimplemented.
+
+## Continuous integration
+
+Source: [.github/workflows/ci.yml](../../.github/workflows/ci.yml).
+
+```mermaid
+flowchart LR
+    Trigger["Push to master<br/>or pull request"] --> Checkout["Checkout repository"]
+    Checkout --> Node["Set up Node 24<br/>npm cache"]
+    Node --> Install["npm ci"]
+    Install --> Checks["nx run-many<br/>lint test build typecheck"]
+    Checks --> Fix["nx fix-ci<br/>if: always"]
+```
+
+The final `nx fix-ci` step is configured with `if: always()`, including after
+earlier failures. E2E, formatting, image publication, and deployment are not
+explicit steps in this workflow. A configured workflow does not prove a passing
+remote run; no CI result was checked during this refresh.
+
+Readiness/shutdown and shared limits are future work in the
+[HTTP lifecycle](../future-plans/architecture/http-lifecycle-plan.md) and
+[Redis/runtime](../future-plans/architecture/redis-and-runtime-plan.md) plans.

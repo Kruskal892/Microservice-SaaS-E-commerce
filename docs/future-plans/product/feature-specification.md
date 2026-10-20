@@ -1,23 +1,23 @@
 # Feature Specification
 
-[Documentation index](../README.md)
+[Documentation index](../../README.md)
 
-**Priority:** Critical. **Status:** Current foundation and proposed product behavior.
-**Updated:** 2026-10-14. Requirement IDs refer to the [PRD](prd.md); draft paths are
-owned by the [API specification](../api/api-specification.md).
+**Priority:** Critical. **Status:** Proposed product behavior with current baseline.
+**Reviewed:** 2026-10-21. Requirement IDs refer to the [PRD](prd.md); draft paths are
+owned by the [proposed product API](../api/product-api.md).
 
 ## 1. Current foundation
 
-| Feature              | Trigger and result                                             | Limits                                                  |
-| -------------------- | -------------------------------------------------------------- | ------------------------------------------------------- |
-| Auth scaffold        | Auth GET / returns 200 and Hello API JSON                      | No identity, credentials, state                         |
-| Local gateway health | GET /gateway-health returns 200 and gateway JSON               | Not dependency readiness; subject to limiting           |
-| Forwarding           | Other gateway paths retain their path and go to localhost:6001 | Auth only implements GET /                              |
-| Rate limiting        | Normally 100 requests per raw IP per 15 minutes, then 429 JSON | Memory store and proxy/IP limitations; no verified user |
+| Feature              | Trigger and result                                                   | Limits                                                       |
+| -------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Auth foundation      | Greeting, registration/OTP request, Swagger routes                   | No completed verification, account writes, login or sessions |
+| Local gateway health | GET /gateway-health returns 200 and gateway JSON                     | Local response before quota; no dependency readiness         |
+| Forwarding           | Other paths go unchanged to AUTH_SERVICE_URL, default localhost:6001 | One auth upstream; no commerce routing                       |
+| Rate limiting        | 100 requests per 15 minutes using default IPv4/IPv6 IP keys          | Per-process memory; direct auth bypasses gateway             |
 
 Auth also registers the shared error handler after routes. Its source defines
 application-error and generic 500 response shapes; those responses have not
-been runtime-verified. See the [API specification](../api/api-specification.md#shared-error-handler-auth-service).
+been runtime-verified. See the [API specification](../../reference/api.md#shared-error-handler-auth-service).
 Configured tests do not validate this handler or the proposed features below.
 
 ## 2. Identity (PR-01, PR-07) - proposed
@@ -86,4 +86,4 @@ scaffold errors remain unchanged.
 
 Prevent repeated submissions while pending, retain safe input on recoverable
 failure, and show retry/sign-in actions. See [UI/UX](ui-ux-specification.md) and
-[TDD](../architecture/technical-design.md).
+[proposed platform design](../architecture/platform-design.md).

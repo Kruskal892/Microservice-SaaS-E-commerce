@@ -1,118 +1,52 @@
-# Technical Design Document (TDD)
+# Current technical design
 
-[Documentation index](../README.md)
+[Documentation hub](../README.md) · [Architecture overview](overview.md)
 
-**Priority:** High. **Status:** Current patterns and proposed first-slice decisions.
-**Updated:** 2026-10-20.
+**Status:** Current source and configuration. **Reviewed:** 2026-10-21.
+Future design decisions live in [future plans](../future-plans/README.md).
 
-## 1. Implementation ownership
+## Implementation ownership
 
-| Concern                                          | Current owner / source                                                                                                 |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| Gateway middleware, local route, proxy, listener | [Gateway main.ts](../../apps/api-gateway/src/main.ts)                                                                  |
-| Auth CORS, root response, listener error status  | [Auth main.ts](../../apps/auth-service/src/main.ts)                                                                    |
-| App tasks/dependencies                           | Each app's package.json                                                                                                |
-| Inferred tasks/caching/base branch               | [nx.json](../../nx.json)                                                                                               |
-| Strict TypeScript                                | [tsconfig.base.json](../../tsconfig.base.json), project references                                                     |
-| Shared modules and folder aliases                | [packages](../../packages/package.json), [library config](../../packages/tsconfig.lib.json), shared TypeScript `paths` |
-| HTTP checks                                      | E2E projects; gateway generated assertion is mismatched                                                                |
+```mermaid
+flowchart LR
+    Main["Auth main.ts<br/>Express wiring and listener"] --> Router["routes/auth.router.ts"]
+    Router --> Controller["controller/auth.controller.ts<br/>HTTP response and orchestration"]
+    Controller --> Validation["utils/auth.helper.ts<br/>Input validation and OTP policy"]
+    Controller --> Prisma["packages/libs/prisma"]
+    Validation --> Redis["packages/libs/redis"]
+    Validation --> Mail["mail/mail.client.ts<br/>EJS and Nodemailer"]
+    Main --> Errors["packages/error-handler"]
+    Controller --> Errors
+    Validation --> Errors
+```
 
-Keep behavior/configuration with its app. Reuse Express/Nx patterns and introduce
-shared modules only for real consumers. No service-layer framework exists. The
-[development guide](../development/development-guide.md) owns detailed task/editor setup.
+The diagram reflects today's mixed helper/controller responsibilities; no
+registration service layer exists. The [auth structure plan](../future-plans/architecture/auth-service-structure-plan.md)
+proposes a gradual refactor. The gateway keeps its middleware and listener in
+its own [main.ts](../../apps/api-gateway/src/main.ts).
 
-## Prisma persistence tooling (current source)
+## Transport and runtime
 
-[prisma.config.ts](../../prisma.config.ts) loads dotenv and configures the schema,
-classic engine, `DATABASE_URL`, and a migrations directory path. The
-[MongoDB schema](../../prisma/schema.prisma) declares users/images and a
-`prisma-client-js` generator, matching the shared wrapper's `@prisma/client`
-import. Prisma and its client are locked to 6.19.0. Generate the client before
-starting auth; the former custom TypeScript output is no longer used. See
-[authentication development](../development/authentication.md) for blockers. The root CLI config is not included in the
-root TypeScript project's empty `files` list.
+Both apps load dotenv at startup, configure CORS for `http://localhost:3000`,
+and call `app.listen()` directly with numeric `PORT` or their default. Listener
+errors are logged with `console.error` and set `process.exitCode = 1`; there is
+no coordinated resource cleanup, so open client handles can still delay exit.
+No custom readiness route, shutdown drain, or shared HTTP module exists.
 
-Auth's solution config no longer directly references `../../packages`; its
-application config retains `../../packages/tsconfig.lib.json`. Runtime bundling
-configuration is unchanged. Build/typecheck success was not checked here.
+The gateway owns logging, quota enforcement, and upstream proxy configuration.
+Auth owns JSON parsing, Swagger, and registration routing. See
+[request flows](request-flows.md) for exact ordering and
+[configuration](../reference/configuration.md) for inputs/defaults.
 
-See [database design](database-design.md#current-prisma-schema) for schema
-constraints and unresolved fields, and [setup](../development/getting-started.md#prisma-and-mongodb)
-for explicit commands. A configured migrations path does not establish MongoDB
-migration support or a deployment history.
+## Shared error handler (current source)
 
-## 2. Proposed request pattern
+Sources: [error classes](../../packages/error-handler/index.ts) and
+[middleware](../../packages/error-handler/error-middleware.ts).
 
-Route -> input validation -> verified identity when required -> ownership check ->
-business operation -> persistence -> public response. Validate in the receiving
-service even if the gateway validates. Do not pass arbitrary client objects into
-database writes. Separate transport/business code when behavior justifies it.
-
-The [API specification](../api/api-specification.md) owns contracts. Introduce
-executable API documentation with implemented APIs. Registration already has
-a committed Swagger description, /api-docs UI, and /docs-json endpoint.
-
-## 3. Proposed decisions
-
-| Topic    | Direction                                               | Decision gate                                                          |
-| -------- | ------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Identity | Auth owns hashing and session issue/revocation          | Select session/token storage, transport, expiry, verification/recovery |
-| Gateway  | Configurable upstreams and explicit failure policy      | Validate startup config; decide proxy topology, timeout/status mapping |
-| Access   | Verified identity plus ownership in the service         | Never trust client user IDs for cart/order access                      |
-| Data     | MongoDB/Prisma, service-owned collections               | Confirm connector, deployment, and checkout consistency                |
-| Commerce | Smallest complete catalog/cart/order owner              | Do not create a service for each entity by default                     |
-| Money    | Integer minor units, currency, server totals            | Decide precision, bounds, tax, shipping and rounding                   |
-| Retries  | Durable customer/key uniqueness and request fingerprint | Same request returns original order; conflicting reuse is 409          |
-| Frontend | Next.js consuming public APIs                           | No state library/cache selected                                        |
-| Async    | Integrate only for agreed workflows                     | Need schema ownership, replay/delivery/failure policy                  |
-
-These are proposals. Cookie sessions need a CSRF policy; token alternatives need
-secure transport/storage, expiry, and revocation. Parsed cookies or client identity
-headers cannot establish a logged-in user.
-
-## 4. Foundation status and deferred work
-
-Both services register shared errors and call app.listen() directly. Readiness
-and graceful shutdown are deferred in the [HTTP lifecycle plan](http-lifecycle-plan.md).
-Gateway uses default IPv6-aware IP keys, no proxy trust, a 16 KB body limit after
-in-memory rate limiting, and a ten-second upstream timeout. AUTH_SERVICE_URL is a
-simple environment override with a localhost default. Runtime packages and auth
-template/schema assets are declared; Docker generates Linux Prisma runtime files.
-These source changes have not been validated by builds, tests, or containers.
-
-Redis retains the original simple client and sequential OTP GET/SET operations.
-Custom Redis options, Lua admission, ownership tokens, gateway Redis counters, and
-the shared environment/port configuration package were reverted. Both apps retain
-PORT with defaults 6001/8080. Atomic OTP handling, shared counters for replicas,
-and production port/proxy validation are future tasks in the
-[Redis/runtime plan](redis-and-runtime-plan.md).
-
-Gateway E2E alignment and verification completion remain open. The
-[auth structure plan](auth-service-structure-plan.md) defines future ownership;
-its folder moves have not been implemented.
-
-## 5. Consistency and failures
-
-[Database design](database-design.md) owns the draft model. Cart updates need
-conflict handling; order writes need atomic or compensating stock behavior.
-Return success only after required durable state exists. Matching retries reuse
-the order; mismatching keys fail. Preserve recoverable cart state and avoid logging
-passwords, tokens, or personal request payloads.
-
-Both services register the shared error handler described below. Correlation IDs and structured logging remain absent; proxy timeout is ten seconds.
-Sanitization and upstream status mapping still need decisions; the services do
-not share a uniform failure contract.
-
-### Shared error handler (current source)
-
-Sources: [error classes](../../packages/error-handler/index.ts),
-[response handler](../../packages/error-handler/error-middleware.ts), and
-[TypeScript configuration](../../packages/tsconfig.json).
-
-`AppError` extends `Error` with a readonly HTTP `statusCode`, an
-`isOperational` flag (defaults to `true`), and optional `details` (currently
-`any`). Its constructor initializes the message and captures a Node stack trace.
-The readonly fields are a TypeScript restriction, not runtime object freezing.
+`AppError` extends `Error`, capturing a stack and readonly TypeScript fields:
+`statusCode`, `isOperational` (default true), and optional `details` (currently
+typed `any`). Readonly does not freeze the runtime object. The middleware does
+not inspect `isOperational`.
 
 | Class             | HTTP status | Default message                           | Optional details |
 | ----------------- | ----------- | ----------------------------------------- | ---------------- |
@@ -123,49 +57,49 @@ The readonly fields are a TypeScript restriction, not runtime object freezing.
 | `DatabaseError`   | 500         | Database Error                            | Yes              |
 | `RateLimitError`  | 429         | Too many requests, please try again later | No               |
 
-For example, `throw new NotFoundError('User not found')` creates a 404 error;
-it does not send a response by itself. All subclasses currently set
-`isOperational` to `true`, including `DatabaseError`. The response handler does
-not inspect this flag.
+Both apps register the four-parameter handler after routes/proxy. It delegates
+if headers were sent, sanitizes errors carrying status 400/413, handles
+`AppError`, then maps unexpected errors to a generic 500. Application messages
+and truthy details are returned unchanged; callers must supply safe public values.
+Not every response uses this envelope: gateway limiting and Express default 404s
+are separate. Exact payloads belong to the
+[API reference](../reference/api.md#shared-error-handler-auth-service).
 
-`errorMiddleware` checks `instanceof AppError`, logs the request method, URL,
-and error message, then returns the error's status and JSON. Other errors are
-logged and mapped to a generic 500 response. The exact
-[response formats](../api/api-specification.md#shared-error-handler-auth-service)
-belong in the API specification.
+## Clients and mail
 
-**Integration:** auth imports `@packages/error-handler`, mapped by
-the shared TypeScript `paths` wildcard to `packages/error-handler/index.ts`.
-That folder's entry point exports both classes and middleware. Auth's esbuild
-target bundles the shared source into its CommonJS output and registers the
-four-parameter handler after routes. Folder aliases are not standalone npm
-packages; plain Node cannot resolve them without bundling or a resolver.
-One workspace package at `packages/` groups the modules for Nx and TypeScript
-project references. Nx infers its build from `tsconfig.lib.json`, and auth runs
-dependency builds when serving. The gateway also registers the handler.
+The [Prisma wrapper](../../packages/libs/prisma/index.ts) reuses
+`globalThis.prismadb` outside production; production uses the module's client.
+Generate `@prisma/client` from the schema before starting auth. The wrapper has
+no custom connection readiness or shutdown lifecycle.
 
-The workspace manifest still names the grouping `@microservice-eshop/shared`;
-folder aliases such as `@packages/error-handler` do not correspond to
-separate npm packages. The shared config includes `**/*.ts`, excludes `dist`
-and `node_modules`, and emits JavaScript and declarations into `packages/dist`.
-New folders need only code and an `index.ts` exporting their public API. See
-[the development guide](../development/development-guide.md#adding-shared-modules)
-for consumer setup. Gateway now references the shared library, and auth Jest maps
-@packages/\* to the shared source. Builds/runtime resolution remain unverified.
+The [Redis module](../../packages/libs/redis/index.ts) directly constructs
+`new Redis(process.env.REDIS_DATABASE_URL!)`. The TypeScript non-null assertion
+does not validate runtime configuration. Sequential GET/SET operations implement
+OTP restrictions and counters; there is no atomic admission or gateway Redis store.
 
-**Current behavior:** the handler delegates with next(err) when headers were
-already sent. Malformed/oversized bodies receive sanitized 400/413 responses.
-The handler currently sends application messages and truthy `details` unchanged,
-including database details; define safe public values before using it in APIs.
-Runtime integration and response handling have not been verified.
+The [mail client](../../apps/auth-service/src/mail/mail.client.ts) creates one
+Nodemailer transport. It renders EJS from `templates` beside the bundled output,
+uses ten-second connection/greeting/socket timeouts, and rejects an SMTP result
+with no accepted recipients or any rejected recipients. Registration writes OTP
+state after mail acceptance. See [authentication development](../development/authentication.md).
 
-## 6. Verification and rollout
+## Build and alias contracts
 
-Add permanent checks for validation/ownership, credentials, expiry/revocation,
-quantity bounds, concurrent cart edits, stock conflicts, duplicate checkout, and
-upstream failure with each behavior. Align E2E lifecycle before CI integration.
-[Testing guide](../development/testing.md) explains existing coverage.
+One `packages/` workspace contains shared source. `@packages/*` resolves through
+TypeScript paths, auth's esbuild bundle, and gateway's explicit Webpack alias.
+Auth and gateway app compiler configs reference the shared library. Plain Node
+does not resolve the alias on its own; auth's Jest config currently has no
+`moduleNameMapper` for it.
 
-Persistence rollout needs reviewed schema/index updates, backups/restore,
-configuration checks, health checks, and rollback compatible with stored records.
-No application, infrastructure, lint, build, or test checks ran for this change.
+Auth esbuild emits a CommonJS bundle and copies EJS templates and the Prisma
+schema as assets. Gateway Webpack emits to its own dist and enables generated
+package metadata. Auth's production build enables lockfile generation; prune
+targets prepare runtime packages. The auth Dockerfile is a single-stage scaffold
+and does not explicitly generate Prisma files. Actual output and container
+startup still require validation; see [deployment](../operations/deployment.md).
+
+[Repository structure](repository-structure.md) and the
+[development guide](../development/development-guide.md) explain project references,
+task inference, and adding consumers. Future identity, checkout, error-contract,
+and consistency decisions belong in the
+[platform design](../future-plans/architecture/platform-design.md).

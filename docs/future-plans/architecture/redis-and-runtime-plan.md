@@ -1,8 +1,8 @@
 # Redis and runtime configuration plan
 
-[Documentation index](../README.md) · [Auth-service structure plan](auth-service-structure-plan.md)
+[Documentation index](../../README.md) · [Auth-service structure plan](auth-service-structure-plan.md)
 
-**Updated:** 2026-10-20. **Status:** Future work, not an implementation claim.
+**Updated:** 2026-10-21. **Status:** Future work, not an implementation claim.
 
 ## Current baseline
 
@@ -18,10 +18,9 @@
 - Load dotenv at application startup. No shared config package, custom port
   parser, `AUTH_PORT`, or `GATEWAY_PORT` is required now.
 
-The added Lua admission scripts, ownership tokens, OTP hashes, Redis-backed
-gateway store, custom Redis connection options, Redis integration suites, and
-shared environment/port configuration layer were removed. Existing Redis data
-was not accessed or changed by the revert.
+There are no Lua admission scripts, ownership tokens, OTP hashes, Redis-backed
+gateway store, custom Redis options, integration suites, or shared configuration
+layer in the current source. See [current authentication](../../development/authentication.md).
 
 ## Phase 1: Finish the local authentication flow
 
@@ -35,6 +34,24 @@ when the connection is verified. A provider's HTTPS REST endpoint is a different
 API. Do not change client libraries without a concrete requirement.
 
 ## Phase 2: Before public concurrent traffic
+
+The following admission/delivery flow is proposed. It replaces the current
+sequential checks only when implemented and tested.
+
+```mermaid
+flowchart TD
+    Request["Normalized OTP request"] --> Admit{"Atomic admission<br/>locks, cooldown, counter"}
+    Admit -->|Rejected| Limit["Return restriction response"]
+    Admit -->|Reserved| Send["Render and send email"]
+    Send -->|Accepted| Finalize["Finalize OTP state<br/>Only for this reservation"]
+    Send -->|Failed| Recover["Apply delivery-failure policy<br/>Preserve newer state"]
+    Finalize -->|Stored| Success["Return success"]
+    Finalize -->|Storage failed| Failure["Return failure<br/>Record partial-delivery outcome"]
+```
+
+SMTP and Redis cannot commit atomically together. The exact reservation format,
+expiry, compensation, and OTP-write timing require a decision; this sketch does
+not assert a selected Lua implementation or a solved delivery transaction.
 
 1. Make OTP admission atomic: lock checks, cooldown reservation, and request
    counting must happen together. Separate awaited `GET`/`SET` calls can overlap
@@ -85,6 +102,6 @@ enable blanket proxy trust. The gateway currently uses Express's no-trust defaul
 - [ ] Verify local, custom-port, and container upstream addresses.
 - [ ] Run requested tests/builds and record actual outcomes.
 
-No tests, lint, builds, Redis requests, or container checks were run for this revert.
-Known limits remain: sequential OTP operations can race, gateway counters are
+This plan does not implement or verify Redis behavior. Known limits remain:
+sequential OTP operations can race, gateway counters are
 per-process, and SMTP can accept an email before a later Redis write fails.
