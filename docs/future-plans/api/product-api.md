@@ -1,86 +1,17 @@
-# API Specification
+# Proposed product API
 
-[Documentation index](../README.md)
+[Future plans](../README.md) · [Current API](../../reference/api.md)
 
-**Updated:** 2026-10-20. Source contracts below are not runtime verification.
-
-## Auth service
-
-Default URL: http://localhost:6001. CORS allows credentialed browser requests
-from http://localhost:3000. JSON bodies are limited to 16 KB.
-
-### GET /
-
-HTTP 200: `{ "message": "Hello API" }`. This is a greeting/liveness endpoint.
-
-### POST /api/user-registration
-
-JSON: name, email, password. Name is a trimmed string of 1-100 characters;
-email is trimmed/lowercased with basic format and 254-character checks; password
-is a string of 8-128 characters. Invalid bodies/fields return HTTP 400.
-
-The controller looks up the normalized email, rejects an existing user, checks
-simple Redis restrictions, tracks requests, and sends the activation email.
-Restrictions throw, so the controller stops on failure. HTTP 200 returns
-`{ "message": "OTP sent. Please check your account" }` after SMTP acceptance and
-OTP/cooldown writes. SMTP failures propagate to the error handler. No account is
-created, and no password is persisted. Concurrent OTP operations can race;
-mail acceptance and Redis writes are not one transaction.
-
-### API documentation
-
-Swagger UI: /api-docs. Swagger JSON: /docs-json. The committed Swagger description
-covers registration; it is not a complete contract for future authentication.
-Verification, login, sessions, and commerce endpoints remain incomplete/absent.
-
-## API gateway
-
-Default URL: http://localhost:8080.
-
-### GET /gateway-health
-
-HTTP 200 `{ "message": "Welcome to api-gateway!" }`, without calling auth.
-
-### Forwarded requests
-
-Other paths forward unchanged to AUTH_SERVICE_URL, default http://localhost:6001.
-There is no gateway static middleware or prefix stripping. The proxy limits bodies
-to 16 KB and upstream requests to ten seconds. Errors reach shared middleware;
-there is no retry policy or dedicated 502/504 mapping yet.
-
-## Gateway middleware
-
-CORS -> Morgan logging -> local health route -> IP limiter -> body-reading proxy
--> shared error middleware. Credentialed CORS allows http://localhost:3000 and
-Authorization/Content-Type headers. CORS does not authenticate callers.
-
-The limiter allows 100 requests per 15 minutes using default IPv4/IPv6 key handling.
-It uses in-memory counters, standard draft-8 headers, and no legacy headers.
-Rejection is 429 `{ "error": "Too many requests, please try again later" }`.
-No middleware establishes an authenticated user or a larger authenticated quota.
-Proxy trust is not enabled; forwarded client identities are not trusted by default.
-Multiple gateway processes do not share counters. See the
-[Redis/runtime plan](../architecture/redis-and-runtime-plan.md) for future work.
-
-## Errors and unavailable routes
-
-### Shared error handler (auth service)
-
-Both auth and gateway register the shared four-argument middleware after routes.
-For AppError it uses statusCode and returns
-`{ "status": "error", "message": "..." }`, with truthy details included when supplied.
-Messages/details must be safe public values. Malformed bodies return 400 with
-Invalid request body; oversized bodies return 413 with Request body too large.
-Unexpected errors return 500 `{ "error": "Something went wrong please try again" }`.
-No stack is returned. If headers were already sent, the error is delegated onward.
-Unmatched auth routes keep Express's default 404 handling.
-
-## Proposed product API - not implemented
+**Status:** Draft; none of these routes are implemented. **Reviewed:** 2026-10-21.
 
 This draft supports the [feature specification](../product/feature-specification.md).
 `/v1` is a proposed public prefix, not an existing route. Requests to these paths
 currently forward to auth and have no product handlers. Session transport, exact
 limits, service routing, and checkout lifecycle require decisions before implementation.
+
+The draft direct-registration contract below differs from the current OTP request
+endpoint. Decide how verification and compatibility fit before adopting it;
+documenting `/v1/auth/register` does not replace `/api/user-registration`.
 
 ### Common draft conventions
 
@@ -132,6 +63,36 @@ request returns the original order; mismatching reuse is 409. Clearing the cart
 must not prevent recovery after a failed submission. No payment callback or
 payment success is implied by an order response.
 
+### Proposed order-submission flow
+
+This illustrates the draft order contract, not a current endpoint. Stock/order
+coordination still needs a transaction or compensation decision.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as Future order API
+    participant Data as Commerce persistence
+    Client->>API: POST /v1/orders + Idempotency-Key
+    API->>API: Verify identity and validate review payload
+    API->>Data: Check durable customer/key record
+    alt Same key and matching request already completed
+        Data-->>API: Original order
+        API-->>Client: 200 original order
+    else Key reused for different request
+        API-->>Client: 409 conflict
+    else New submission
+        API->>Data: Reload owned cart, prices, and stock
+        alt Review or stock changed
+            API-->>Client: 409, preserve recoverable cart
+        else Review accepted
+            API->>Data: Coordinate stock and durable order/idempotency write
+            Data-->>API: Persisted order
+            API-->>Client: 201 order, no payment-success claim
+        end
+    end
+```
+
 ### Proposed error envelope
 
 ```json
@@ -155,5 +116,5 @@ an explicit compatibility change, not a documentation-only assumption.
 
 Implement and test ownership, validation, repeat requests, conflicts, and upstream
 failure with each endpoint. Publish executable OpenAPI only for available routes
-and align examples with the implementation. See [technical design](../architecture/technical-design.md)
-and [implementation plan](../delivery/implementation-plan.md).
+and align examples with the implementation. See [proposed platform design](../architecture/platform-design.md)
+and [implementation plan](../implementation-plan.md).

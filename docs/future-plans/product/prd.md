@@ -1,16 +1,18 @@
 # Product Requirements Document
 
-[Documentation index](../README.md)
+[Documentation index](../../README.md)
 
 **Priority:** Critical. **Status:** Proposed baseline based on repository direction,
-not an approved business brief. **Updated:** 2026-10-14.
+not an approved business brief. **Reviewed:** 2026-10-21.
 
 ## 1. Product context and problem
 
 Microservice Eshop aims to offer an ecommerce storefront backed by service APIs.
 Customers need to find products, manage a cart, and place and review orders.
 Developers need an Nx workspace with explicit service ownership and contracts.
-Today only HTTP scaffold responses exist; no customer purchase journey works.
+Today gateway/auth source includes greetings, registration validation, and OTP
+delivery, but no completed customer account or purchase journey. See
+[current implementation status](../../operations/implementation-status.md).
 
 The repository name includes SaaS, but tenant isolation, subscriptions, merchant
 onboarding, and billing are undefined. This draft assumes one storefront for the
@@ -18,12 +20,12 @@ first increment; multi-tenancy requires a separate product/security decision.
 
 ## 2. Users and goals
 
-| User                 | Proposed goal                                         | Current availability                        |
-| -------------------- | ----------------------------------------------------- | ------------------------------------------- |
-| Visitor              | Browse products and prices/availability               | No storefront/catalog                       |
-| Customer             | Register, sign in, manage cart, place/view own orders | No identity or commerce behavior            |
-| Catalog operator     | Maintain sellable products and stock                  | Role/interface undecided                    |
-| Developer / operator | Run services and deploy safely                        | Local tooling configured; production absent |
+| User                 | Proposed goal                                         | Current availability                           |
+| -------------------- | ----------------------------------------------------- | ---------------------------------------------- |
+| Visitor              | Browse products and prices/availability               | No storefront/catalog                          |
+| Customer             | Register, sign in, manage cart, place/view own orders | OTP request only; identity/commerce incomplete |
+| Catalog operator     | Maintain sellable products and stock                  | Role/interface undecided                       |
+| Developer / operator | Run services and deploy safely                        | Local tooling configured; production absent    |
 
 ## 3. Scope and requirements
 
@@ -45,8 +47,9 @@ but its provider and lifecycle are undecided.
 
 ## 4. Deferred capabilities
 
-Kafka, Redis, Socket.IO, Firebase, TensorFlow.js, cloud assets, AWS, and Cloudflare
-are documented directions. Add each for an agreed use case. No ML benefit, payment
+Redis already stores OTP state. Additional caching/shared-counter uses, Kafka,
+Socket.IO, Firebase, TensorFlow.js, cloud assets, AWS, and Cloudflare remain
+directions. Add each for an agreed use case. No ML benefit, payment
 success, tenant isolation, sales volume, or deployment capability is claimed today.
 
 ## 5. Quality requirements
@@ -67,7 +70,7 @@ analytics consent, measurement windows, and launch dates are undecided.
 
 Dependencies: identity/session strategy, data ownership, catalog data, currency
 and stock policy, payments/shipping/tax, and operational ownership. See
-[features](feature-specification.md) and [plan](../delivery/implementation-plan.md).
+[features](feature-specification.md) and [plan](../implementation-plan.md).
 
 ## 7. Decisions needed
 

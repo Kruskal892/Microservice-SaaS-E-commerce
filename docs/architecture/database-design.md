@@ -1,138 +1,72 @@
-# Database Design (ERD)
+# Current database design
 
-[Documentation index](../README.md)
+[Documentation hub](../README.md) · [Source schema](../../prisma/schema.prisma)
 
-**Priority:** Critical. **Status:** Initial Prisma/MongoDB schema configured;
-commerce ERD remains proposed. Database synchronization and runtime persistence
-are unverified. **Updated:** 2026-10-15.
+**Status:** Declared Prisma/MongoDB schema; live synchronization and persistence
+are unverified. **Reviewed:** 2026-10-21.
 
 ## Current Prisma schema
 
-Source: [schema.prisma](../../prisma/schema.prisma) and
-[Prisma CLI configuration](../../prisma.config.ts). The generator is
-`prisma-client-js`, producing the client consumed by the shared wrapper through
-`@prisma/client`. Run `npx prisma generate` before starting auth. Generation
-does not establish database connectivity or a complete registration flow. See
-[authentication development](../development/authentication.md).
-
-| Model    | Declared fields and constraints                                                                                                                                                                                         |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`  | ObjectId `id` mapped to `_id`, required `name`, unique `email`, optional `password`, optional `avatar`, string-array `following`, `createdAt` defaulting to now, auto-updated `updatedAt`, required ObjectId `imagesId` |
-| `images` | ObjectId `id` mapped to `_id`, required `file_id` and `url`, optional unique ObjectId `userId`, optional `users` relation                                                                                               |
-
-The avatar relation is owned by `images.userId` and references `users.id`, allowing
-at most one linked image per user through the declared unique field. `users.imagesId`
-is a separate required scalar, not the relation field; clarify or remove it before
-writing users. `following` contains strings without a declared user relation.
-The schema does not implement email normalization, password hashing, input
-validation, upload handling, or user authorization. `password` must not be treated
-as evidence of safe credential storage.
-
-Unique email/user-image constraints are schema declarations, not proof that indexes
-were applied. The reported Atlas `db push` attempt failed authentication. No migration
-or seed files are present. See [setup](../development/getting-started.md#prisma-and-mongodb).
-
-The following commerce model is a proposal, distinct from the current schema.
-
-## 1. Ownership and modeling
-
-Auth owns identity. Commerce ownership and physical database separation are
-undecided. References across boundaries are not enforced foreign keys or permission
-to access another service's database. This draft assumes one storefront; tenancy
-would require reviewing every key, index, and ownership check.
-
-MongoDB collections replace relational tables here. Cart/order lines are embedded;
-users and products are independently addressable. This is a logical ERD, not SQL.
-
-## 2. Proposed ERD
+The datasource uses MongoDB and `DATABASE_URL`. The generator is
+`prisma-client-js`, consumed by the shared wrapper through `@prisma/client`.
+The schema declares two models, `users` and `images`; catalog, cart, orders,
+sessions, and tenancy have no models yet.
 
 ```mermaid
 erDiagram
-    USER ||--o| CART : owns
-    USER ||--o{ ORDER : places
-    CART ||--o{ CART_ITEM : embeds
-    ORDER ||--|{ ORDER_ITEM : embeds
-    PRODUCT ||--o{ CART_ITEM : referenced_by
-    PRODUCT ||--o{ ORDER_ITEM : historical_reference
-    USER {
-        ObjectId id PK
-        string email UK
-        string passwordHash
-        datetime createdAt
-        datetime updatedAt
-    }
-    PRODUCT {
-        ObjectId id PK
+    users o|--o| images : "optional avatar via images.userId"
+    users {
+        ObjectId id PK "mapped to _id"
         string name
-        string description
-        int priceMinor
-        string currency
-        int stockQuantity
-        boolean active
+        string email UK
+        string password "optional"
+        string_array following
         datetime createdAt
         datetime updatedAt
+        ObjectId imagesId "required scalar; not a relation"
     }
-    CART {
-        ObjectId id PK
-        ObjectId userId UK
-        int version
-        datetime updatedAt
-    }
-    CART_ITEM {
-        ObjectId productId
-        int quantity
-    }
-    ORDER {
-        ObjectId id PK
-        ObjectId userId
-        string idempotencyKey
-        string requestFingerprint
-        string status
-        string currency
-        int totalMinor
-        datetime createdAt
-    }
-    ORDER_ITEM {
-        ObjectId productId
-        string productName
-        int unitPriceMinor
-        int quantity
+    images {
+        ObjectId id PK "mapped to _id"
+        string file_id
+        string url
+        ObjectId userId UK "optional relation to users.id"
     }
 ```
 
-PK/UK denote intended identifiers/unique indexes. User/product references are
-logical; order snapshots survive later product changes or removal.
+Both directions of the avatar association are optional. `images.userId` is the
+relation scalar and is unique, allowing at most one related image per user.
+`users.avatar` and `images.users` are Prisma relation fields, not extra ObjectId
+scalars. `users.imagesId` is required but is **not** connected to this relation.
 
-## 3. Collections, constraints, and indexes
+| Model    | Additional declared behavior                                                                                                           |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`  | Generated ObjectId; unique email; optional password; string-array following; createdAt defaults to now; updatedAt maintained by Prisma |
+| `images` | Generated ObjectId; required file_id and url; optional unique userId                                                                   |
 
-| Collection | Proposed constraints                                                                         | Proposed indexes / use                                                    |
-| ---------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `users`    | Normalized unique email; never expose passwordHash                                           | Unique email; default `_id`                                               |
-| `products` | Nonempty name; nonnegative integer price/stock; currency                                     | `(active, createdAt, _id)` for stable catalog pagination                  |
-| `carts`    | One per customer; unique product lines; positive integer quantities; versioned updates       | Unique `userId`                                                           |
-| `orders`   | Nonempty items; immutable snapshots; consistent currency; server total; matching key/request | Unique `(userId, idempotencyKey)`; `(userId, createdAt, _id)` for history |
+## Current reads and transient state
 
-Validate in the owning service and apply database constraints where supported.
-Embedded-array indexes do not by themselves enforce unique products inside one
-cart; validate or update atomically. Decide string/item/quantity limits, currency
-precision, and overflow bounds before implementation.
+Registration queries `users.findUnique({ where: { email } })` using a trimmed,
+lowercased email. It does not create or update a user. The unrouted verification
+placeholder also contains an email lookup, but no completed write path exists.
+The schema itself does not enforce email normalization or safe password storage.
 
-## 4. Consistency and deletion
+OTP values, request counts, and cooldowns live in Redis, outside this schema.
+Their key/expiry contract is in [authentication development](../development/authentication.md).
+No database transaction spans SMTP and Redis.
 
-Cart edits use an expected version to avoid lost updates. Order creation needs
-idempotency, price snapshots, stock checks, and durable writes without negative
-inventory or lost carts. Decide a transaction/reservation strategy and verify its
-database topology before checkout. Cross-service transactions are not assumed.
+## Constraints to resolve before writes
 
-Archive products without rewriting historical lines. Account anonymization,
-order retention, session cleanup, backups, and deletion obligations are undecided.
-Add payment/fulfillment models only after their lifecycle is specified. Session
-storage is deliberately absent until the identity strategy is chosen.
+- Decide the purpose of required `users.imagesId` before implementing user creation.
+- Treat `following` as plain strings; no declared user relationship enforces it.
+- Implement password hashing and service-side validation before storing credentials.
+- Verify schema/index application, including unique email and image-user indexes.
+  Schema declarations alone do not prove indexes exist in MongoDB.
 
-## 5. Delivery and checks
+No migration or seed files are tracked. `prisma.config.ts` names a migrations
+directory, but that does not establish a MongoDB migration workflow. Use the
+explicit generation and development `db push` steps in
+[database setup](../development/getting-started.md#prisma-and-mongodb).
+Generation is separate from database connectivity and index synchronization.
 
-Build on the initial users/images schema with service integration, reviewed index
-creation, repeatable seed data, and verified environment setup. Establish a connector-appropriate schema
-deployment process; SQL migration behavior is not implied. Verify concurrent
-uniqueness, cart conflicts, order retries, stock consistency, and backup restore.
-See [TDD](technical-design.md) and [plan](../delivery/implementation-plan.md).
+The [proposed commerce data model](../future-plans/architecture/commerce-data-model.md)
+contains the future catalog/cart/order ERD, consistency policy, and index ideas.

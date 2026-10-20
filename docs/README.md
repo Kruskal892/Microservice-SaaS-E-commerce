@@ -1,86 +1,98 @@
 # Project documentation
 
-Microservice Eshop is an Nx/npm TypeScript workspace. Current code is an Express
-gateway and auth scaffold, with generated E2E projects. Start with
-[getting started](development/getting-started.md) to run it, or
-[architecture](architecture/architecture.md) for the system overview, tech stack,
-project structure, data flow, and future considerations.
+Microservice Eshop is an Nx/npm TypeScript monorepo with an Express API gateway,
+an authentication service, and shared infrastructure modules. Registration can
+request an email OTP; account creation, login, storefront, and commerce remain
+unfinished. **Source reviewed: 2026-10-21.**
 
-For the shared `packages/` library, start with
-[adding modules and folder imports](development/development-guide.md#adding-shared-modules).
-[Technical design](architecture/technical-design.md#shared-error-handler-current-source)
-describes the error classes; the
-[API specification](api/api-specification.md#shared-error-handler-auth-service)
-owns their response formats. Both auth and gateway register the handler.
+## Start here
 
-## Core documents
+| Need                                   | Read                                                         |
+| -------------------------------------- | ------------------------------------------------------------ |
+| Set up and run the project             | [Getting started](development/getting-started.md)            |
+| Understand the system                  | [Architecture overview](architecture/overview.md)            |
+| Find code and understand dependencies  | [Repository structure](architecture/repository-structure.md) |
+| Follow a request or OTP email          | [Request flows](architecture/request-flows.md)               |
+| Call an available endpoint             | [API reference](reference/api.md)                            |
+| Configure a service                    | [Configuration reference](reference/configuration.md)        |
+| Assess what exists and what is missing | [Implementation status](operations/implementation-status.md) |
+| Review proposals and upcoming work     | [Future plans](future-plans/README.md)                       |
 
-| #   | Document                                                   | Main purpose                                                 | Priority |
-| --- | ---------------------------------------------------------- | ------------------------------------------------------------ | -------- |
-| 1   | [PRD](product/prd.md)                                      | Define what is being built and why                           | Critical |
-| 2   | [Feature specification](product/feature-specification.md)  | Define feature behavior                                      | Critical |
-| 3   | [System architecture](architecture/architecture.md)        | Explain frontend, backend, database, and service interaction | Critical |
-| 4   | [Database design (ERD)](architecture/database-design.md)   | Define collections, relationships, constraints, and indexes  | Critical |
-| 5   | [API specification](api/api-specification.md)              | Define frontend/backend communication                        | Critical |
-| 6   | [UI/UX specification](product/ui-ux-specification.md)      | Define screens, navigation, flows, and states                | High     |
-| 7   | [Technical design (TDD)](architecture/technical-design.md) | Define patterns and technical decisions                      | High     |
-| 8   | [Implementation plan](delivery/implementation-plan.md)     | Turn the design into development tasks                       | Critical |
-
-## Supporting guides
-
-| Area        | Guides                                                                                                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Development | [Setup](development/getting-started.md), [workflow and formatting](development/development-guide.md), [testing](development/testing.md), [troubleshooting](development/troubleshooting.md) |
-| Delivery    | [Implementation status](delivery/implementation-status.md), [deployment and CI](delivery/deployment.md)                                                                                    |
-
-## Organization and status conventions
+## Documentation map
 
 ```text
 docs/
-|-- product/          # Why, feature behavior, customer interface
-|-- architecture/     # System, data model, implementation decisions
-|-- api/              # HTTP contracts
-|-- delivery/         # Tasks, status, packaging and operations
-|-- development/      # Contributor setup and workflow
-`-- README.md         # This index
+|-- README.md
+|-- architecture/                  # Current system and design explanations
+|   |-- overview.md                # Components, boundaries, technology
+|   |-- repository-structure.md    # Code ownership, workspace and build graph
+|   |-- request-flows.md           # HTTP, OTP, and error flow diagrams
+|   |-- database-design.md         # Actual Prisma schema and ERD
+|   `-- technical-design.md        # Current implementation patterns
+|-- reference/                     # Exact current contracts
+|   |-- api.md
+|   `-- configuration.md
+|-- development/                   # Contributor guides
+|   |-- getting-started.md
+|   |-- development-guide.md
+|   |-- authentication.md
+|   |-- testing.md
+|   `-- troubleshooting.md
+|-- operations/                    # Packaging, CI, and current delivery status
+|   |-- deployment.md
+|   `-- implementation-status.md
+`-- future-plans/                  # Proposed work; no availability implied
+    |-- README.md
+    |-- implementation-plan.md
+    |-- architecture/             # Refactors, runtime plans, target designs
+    |-- api/                      # Proposed product contracts
+    `-- product/                  # Draft requirements, features, UI/UX
 ```
 
-**Current / implemented** means inspected source contains the behavior.
-**Configured** means tooling exists without implying a successful run.
-**Proposed / draft** means suggested design, not an approved requirement or available
-feature. **Undecided** marks input needed before dependent implementation.
-Future product requirements are drafts because no approved product brief exists here.
+The structure separates explanations, reference material, contributor guides,
+operations, and proposals. The [root README](../README.md) provides a short
+introduction and quick start; this index owns documentation navigation.
 
-Updated source status: **2026-10-20**. See
-[authentication development](development/authentication.md) for the branch review,
-registration scaffolding, shared clients, and actual verification results.
+## Architecture and contributor guides
 
-Prisma 6.19 MongoDB tooling and the initial users/images schema are now configured.
-Read [database setup](development/getting-started.md#prisma-and-mongodb) and
-[current schema](architecture/database-design.md#current-prisma-schema) separately
-from the proposed commerce ERD. The wrapper imports @prisma/client;
-successful database connectivity remains unverified.
+- [Database design](architecture/database-design.md): current users/images
+  fields, relationships, and unresolved constraints.
+- [Technical design](architecture/technical-design.md): middleware, shared
+  errors, clients, and build/runtime ownership.
+- [Development guide](development/development-guide.md): Nx tasks, shared
+  imports, debugging, formatting, and commits.
+- [Authentication development](development/authentication.md): OTP keys,
+  delivery behavior, and remaining implementation work.
+- [Testing](development/testing.md): existing coverage and E2E lifecycle limits.
+- [Troubleshooting](development/troubleshooting.md): setup and runtime diagnosis.
+- [Deployment and CI](operations/deployment.md): actual Dockerfile, ports,
+  build artifacts, and workflow coverage.
 
-## Where to update documentation
+## Evidence and maintenance conventions
 
-| Change                         | Update                                     |
-| ------------------------------ | ------------------------------------------ |
-| Product goals or scope         | PRD, features, plan                        |
-| Screens or interface states    | UI/UX and related feature                  |
-| Service boundaries             | System architecture and TDD                |
-| Persistence or constraints     | Database design and API effects            |
-| HTTP behavior                  | API specification, features, related tests |
-| Setup, Nx, formatting, tests   | Relevant development guide and root README |
-| Packaging or infrastructure    | Deployment and system architecture         |
-| Capability becomes implemented | Implementation status and root stack table |
+**Present in source** means the reviewed files implement the behavior;
+**configured** means a tool or target exists; **verified** requires a recorded
+command and result. A source review alone does not establish working external
+services or production readiness. **Proposed** and **undecided** identify future
+designs and open decisions. See [implementation status](operations/implementation-status.md)
+for the current verification boundary.
 
-The [root README](../README.md) remains the introduction. Keep contracts in their
-owning documents and link to them rather than maintaining duplicate snapshots.
+Diagrams use Mermaid and render on GitHub or in a Mermaid-enabled Markdown
+preview. Each diagram states whether it describes current source or a proposal.
+Keep diagrams next to the explanation and update both when behavior changes.
 
-## Focused architecture plans
+| Change                               | Owning documentation                       |
+| ------------------------------------ | ------------------------------------------ |
+| Routes, validation, public errors    | API reference and request flows            |
+| Environment inputs or defaults       | Configuration reference and setup          |
+| Service boundaries or dependencies   | Architecture overview and technical design |
+| Files, aliases, build ownership      | Repository structure and development guide |
+| Prisma schema or indexes             | Database design                            |
+| Packaging, networking, CI            | Deployment and CI                          |
+| Coverage or an unresolved limitation | Testing and implementation status          |
+| A future capability or refactor      | Future plans and its implementation task   |
 
-- [Auth-service folder structure](architecture/auth-service-structure-plan.md)
-- [Redis and runtime configuration](architecture/redis-and-runtime-plan.md)
-- [HTTP readiness and shutdown](architecture/http-lifecycle-plan.md)
-
-Both are future plans, not claims of completed infrastructure or folder moves.
+Keep current contracts in their owning reference pages and link to them from
+guides. When a proposal ships, update the current docs, record validation, and
+mark or revise the corresponding plan. New accepted architecture decisions can
+be recorded beside the relevant design when a real decision is made.

@@ -1,8 +1,8 @@
 # Auth-service folder structure plan
 
-[Documentation index](../README.md) · [Current authentication flow](../development/authentication.md)
+[Documentation index](../../README.md) · [Current authentication flow](../../development/authentication.md)
 
-**Date:** 2026-10-20. **Status:** Proposed refactor; these moves have not been made.
+**Date:** 2026-10-21. **Status:** Proposed refactor; these moves have not been made.
 This plan reorganizes existing ownership without changing public endpoints.
 Advanced Redis and port configuration are deferred; see the
 [Redis and runtime plan](redis-and-runtime-plan.md).
@@ -64,6 +64,22 @@ dependency-injection containers, or base controllers.
 
 ## Responsibility rules
 
+The following dependency direction is proposed; the current helper still mixes
+validation, Redis policy, and mail orchestration.
+
+```mermaid
+flowchart LR
+    Main["main.ts<br/>Listener startup"] --> App["app.ts<br/>Express composition"]
+    App --> Router["auth.router.ts"]
+    Router --> Controller["auth.controller.ts"]
+    Controller --> Validation["registration.validation.ts<br/>Pure input checks"]
+    Controller --> Registration["registration.service.ts"]
+    Registration --> Prisma["Existing Prisma client"]
+    Registration --> OTP["otp.service.ts"]
+    OTP --> Redis["Existing Redis client"]
+    OTP --> Mail["mail.client.ts<br/>EJS and SMTP"]
+```
+
 | File / owner            | Receives                                   | Returns / side effects                                 |
 | ----------------------- | ------------------------------------------ | ------------------------------------------------------ |
 | Router                  | Express requests                           | Routes to controllers; no database or OTP operations   |
@@ -91,11 +107,12 @@ module. Never share auth business rules through `packages/libs`.
 3. **Split the helper by responsibility.** Move validation into
    `registration.validation.ts`, OTP restrictions/storage into `otp.service.ts`, and email
    lookup/orchestration into `registration.service.ts`. Add focused tests with each responsibility; no current auth unit tests need moving. Delete the old helper after all callers have moved.
-4. **Move mail and API docs.** Move the mail module/templates and Swagger files.
-   Update build asset inputs, bundled template resolution, Swagger imports, and
-   generator paths in the same change. Keep runtime `dist/templates` and
-   `dist/prisma/schema.prisma` contracts stable for Docker.
-5. **Verify the move when authorized.** Run targeted unit/Redis integration tests,
+4. **Group API documentation and retain mail ownership.** Move Swagger files
+   under `src/docs/`; mail already has its own module/templates directory.
+   Update Swagger imports and generator paths. If mail paths change, update
+   build asset inputs and bundled template resolution in the same change.
+   Keep runtime `dist/templates` and `dist/prisma/schema.prisma` contracts stable.
+5. **Verify the move.** Run targeted unit/Redis integration tests,
    typechecking, builds, and a container OTP check. Inspect generated manifests,
    Linux Prisma generation and normal listener startup. Update documentation
    only with actual results.
@@ -105,7 +122,7 @@ module. Never share auth business rules through `packages/libs`.
 Verification completion is a different change: implement OTP comparison,
 failed-attempt lockout, atomic single-use consumption, password hashing, user
 creation, unique-email race handling, route wiring, and success/failure responses.
-The existing `verifyOtp()` placeholder is unresolved. Do not describe a folder
+The existing `verifyOtp()` placeholder is commented out and unimplemented. Do not describe a folder
 refactor as working authentication.
 
 The OTP record remains a string at `otp:<normalized-email>`, expiring after
@@ -120,7 +137,7 @@ migration is explicitly implemented. Registration does not persist passwords.
 - [ ] No Express `Request`, `Response`, or `next` in OTP or registration services.
 - [ ] No listener or signal-handler side effects when importing `app.ts`.
 - [ ] Current URLs, response bodies, validation limits, and OTP TTLs preserved.
-- [ ] Validation and error-propagation tests retained; future atomicity covered when implemented.
+- [ ] Validation and error-propagation tests added; future atomicity covered when implemented.
 - [ ] Template and Prisma assets present in the deployable output.
 - [ ] App manifests, project references, Jest aliases, and documentation aligned.
 - [ ] Relevant checks actually run and results recorded before claiming success.
