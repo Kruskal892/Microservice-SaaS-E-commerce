@@ -21,7 +21,17 @@
           "main": "apps/auth-service/src/main.ts",
           "tsConfig": "apps/auth-service/tsconfig.app.json",
           "assets": [
-            "apps/auth-service/src/assets"
+            "apps/auth-service/src/assets",
+            {
+              "input": "apps/auth-service/src/mail/templates",
+              "glob": "**/*.ejs",
+              "output": "templates"
+            },
+            {
+              "input": "prisma",
+              "glob": "schema.prisma",
+              "output": "prisma"
+            }
           ],
           "esbuildOptions": {
             "sourcemap": true,
@@ -113,6 +123,10 @@
   },
   "dependencies": {
     "@microservice-eshop/shared": "*",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "cors": "^2.8.6",
+    "ejs": "^7.0.2",
+    "nodemailer": "^10.1.7",
+    "swagger-ui-express": "^5.0.1"
   }
 }

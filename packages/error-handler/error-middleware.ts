@@ -7,6 +7,14 @@ export const errorMiddleware = (
   res: Response,
   next: NextFunction,
 ) => {
+  if (res.headersSent) return next(err);
+  if ('status' in err && (err.status === 400 || err.status === 413)) {
+    return res.status(err.status).json({
+      status: 'error',
+      message:
+        err.status === 413 ? 'Request body too large' : 'Invalid request body',
+    });
+  }
   if (err instanceof AppError) {
     console.log(`Error ${req.method} ${req.url} - ${err.message}`);
 

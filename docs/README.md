@@ -11,7 +11,7 @@ For the shared `packages/` library, start with
 [Technical design](architecture/technical-design.md#shared-error-handler-current-source)
 describes the error classes; the
 [API specification](api/api-specification.md#shared-error-handler-auth-service)
-owns their response formats. Auth registers the handler; the gateway does not.
+owns their response formats. Both auth and gateway register the handler.
 
 ## Core documents
 
@@ -51,14 +51,14 @@ docs/
 feature. **Undecided** marks input needed before dependent implementation.
 Future product requirements are drafts because no approved product brief exists here.
 
-Aligned to source on **2026-10-17**. See
+Updated source status: **2026-10-20**. See
 [authentication development](development/authentication.md) for the branch review,
 registration scaffolding, shared clients, and actual verification results.
 
 Prisma 6.19 MongoDB tooling and the initial users/images schema are now configured.
 Read [database setup](development/getting-started.md#prisma-and-mongodb) and
 [current schema](architecture/database-design.md#current-prisma-schema) separately
-from the proposed commerce ERD. The draft controller uses a wrapper with a mismatched client import;
+from the proposed commerce ERD. The wrapper imports @prisma/client;
 successful database connectivity remains unverified.
 
 ## Where to update documentation
@@ -76,3 +76,11 @@ successful database connectivity remains unverified.
 
 The [root README](../README.md) remains the introduction. Keep contracts in their
 owning documents and link to them rather than maintaining duplicate snapshots.
+
+## Focused architecture plans
+
+- [Auth-service folder structure](architecture/auth-service-structure-plan.md)
+- [Redis and runtime configuration](architecture/redis-and-runtime-plan.md)
+- [HTTP readiness and shutdown](architecture/http-lifecycle-plan.md)
+
+Both are future plans, not claims of completed infrastructure or folder moves.

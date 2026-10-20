@@ -3,7 +3,7 @@
 [Documentation index](../README.md)
 
 **Priority:** High. **Status:** Current patterns and proposed first-slice decisions.
-**Updated:** 2026-10-15.
+**Updated:** 2026-10-20.
 
 ## 1. Implementation ownership
 
@@ -49,8 +49,8 @@ service even if the gateway validates. Do not pass arbitrary client objects into
 database writes. Separate transport/business code when behavior justifies it.
 
 The [API specification](../api/api-specification.md) owns contracts. Introduce
-executable OpenAPI and a Swagger route with implemented APIs; the installed UI
-dependency is not an existing contract.
+executable API documentation with implemented APIs. Registration already has
+a committed Swagger description, /api-docs UI, and /docs-json endpoint.
 
 ## 3. Proposed decisions
 
@@ -70,20 +70,26 @@ These are proposals. Cookie sessions need a CSRF policy; token alternatives need
 secure transport/storage, expiry, and revocation. Parsed cookies or client identity
 headers cannot establish a logged-in user.
 
-## 4. Foundation fixes to implement
+## 4. Foundation status and deferred work
 
-1. Align gateway E2E port/readiness/teardown/assertions; separate local health from
-   forwarding and explicitly start auth for forwarding.
-2. Declare imported runtime packages per app and review pruning. Auth declares
-   Express and the shared workspace package but omits its CORS dependency;
-   gateway declares only Express despite other imports.
-3. Replace assumed proxy trust/raw-IP keys with the chosen topology and IPv6 policy.
-   Remove the unverified req.user allowance until identity exists.
-4. Configure upstream, validate ports, correct the `/api` startup log, decide
-   practical body limits/order, and specify upstream failures.
-5. Separate liveness/readiness and add shutdown/error behavior for operations.
+Both services register shared errors and call app.listen() directly. Readiness
+and graceful shutdown are deferred in the [HTTP lifecycle plan](http-lifecycle-plan.md).
+Gateway uses default IPv6-aware IP keys, no proxy trust, a 16 KB body limit after
+in-memory rate limiting, and a ten-second upstream timeout. AUTH_SERVICE_URL is a
+simple environment override with a localhost default. Runtime packages and auth
+template/schema assets are declared; Docker generates Linux Prisma runtime files.
+These source changes have not been validated by builds, tests, or containers.
 
-These are plan tasks, not implementation changes made by this documentation.
+Redis retains the original simple client and sequential OTP GET/SET operations.
+Custom Redis options, Lua admission, ownership tokens, gateway Redis counters, and
+the shared environment/port configuration package were reverted. Both apps retain
+PORT with defaults 6001/8080. Atomic OTP handling, shared counters for replicas,
+and production port/proxy validation are future tasks in the
+[Redis/runtime plan](redis-and-runtime-plan.md).
+
+Gateway E2E alignment and verification completion remain open. The
+[auth structure plan](auth-service-structure-plan.md) defines future ownership;
+its folder moves have not been implemented.
 
 ## 5. Consistency and failures
 
@@ -93,8 +99,7 @@ Return success only after required durable state exists. Matching retries reuse
 the order; mismatching keys fail. Preserve recoverable cart state and avoid logging
 passwords, tokens, or personal request payloads.
 
-Auth registers the shared error handler described below; the gateway does not
-use it. Correlation IDs, proxy timeout, and structured logging remain absent.
+Both services register the shared error handler described below. Correlation IDs and structured logging remain absent; proxy timeout is ten seconds.
 Sanitization and upstream status mapping still need decisions; the services do
 not share a uniform failure contract.
 
@@ -129,7 +134,7 @@ logged and mapped to a generic 500 response. The exact
 [response formats](../api/api-specification.md#shared-error-handler-auth-service)
 belong in the API specification.
 
-**Integration:** auth imports `@microservice-eshop/error-handler`, mapped by
+**Integration:** auth imports `@packages/error-handler`, mapped by
 the shared TypeScript `paths` wildcard to `packages/error-handler/index.ts`.
 That folder's entry point exports both classes and middleware. Auth's esbuild
 target bundles the shared source into its CommonJS output and registers the
@@ -137,19 +142,19 @@ four-parameter handler after routes. Folder aliases are not standalone npm
 packages; plain Node cannot resolve them without bundling or a resolver.
 One workspace package at `packages/` groups the modules for Nx and TypeScript
 project references. Nx infers its build from `tsconfig.lib.json`, and auth runs
-dependency builds when serving. The gateway does not register the handler.
+dependency builds when serving. The gateway also registers the handler.
 
 The workspace manifest still names the grouping `@microservice-eshop/shared`;
-folder aliases such as `@microservice-eshop/error-handler` do not correspond to
+folder aliases such as `@packages/error-handler` do not correspond to
 separate npm packages. The shared config includes `**/*.ts`, excludes `dist`
 and `node_modules`, and emits JavaScript and declarations into `packages/dist`.
 New folders need only code and an `index.ts` exporting their public API. See
 [the development guide](../development/development-guide.md#adding-shared-modules)
-for consumer setup. Gateway has no shared-library project reference; Jest has
-no explicit alias mapping. Those consumers have not been verified for shared imports.
+for consumer setup. Gateway now references the shared library, and auth Jest maps
+@packages/\* to the shared source. Builds/runtime resolution remain unverified.
 
-**Remaining gaps:** the handler does not delegate with `next(err)` when
-`res.headersSent` is true.
+**Current behavior:** the handler delegates with next(err) when headers were
+already sent. Malformed/oversized bodies receive sanitized 400/413 responses.
 The handler currently sends application messages and truthy `details` unchanged,
 including database details; define safe public values before using it in APIs.
 Runtime integration and response handling have not been verified.
@@ -163,4 +168,4 @@ upstream failure with each behavior. Align E2E lifecycle before CI integration.
 
 Persistence rollout needs reviewed schema/index updates, backups/restore,
 configuration checks, health checks, and rollback compatible with stored records.
-No application, infrastructure, lint, build, or test checks ran for this docs update.
+No application, infrastructure, lint, build, or test checks ran for this change.

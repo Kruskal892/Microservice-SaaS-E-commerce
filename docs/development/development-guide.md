@@ -70,8 +70,8 @@ TypeScript configuration is split across:
   include this library through the root grouping and auth application config, respectively.
 
 The root npm workspace list includes `apps/*` and `packages` itself. The shared
-TypeScript config maps `@microservice-eshop/*` to `./packages/*/index.ts`.
-Import errors and middleware from `@microservice-eshop/error-handler`; relative
+TypeScript config maps `@packages/*` to `./packages/*`.
+Import errors and middleware from `@packages/error-handler`; relative
 imports between projects violate Nx module boundaries. Auth keeps `rootDir`
 scoped to its own `src` and bundles aliased shared source with esbuild. The
 workspace package remains the grouping for Nx/project references, not the
@@ -82,9 +82,15 @@ in its build/runtime configuration.
 
 ### Adding shared modules
 
+Gateway Webpack maps `@packages` to the workspace `packages/` directory in
+`apps/api-gateway/webpack.config.js`. TypeScript `paths` alone do not configure
+Webpack resolution. Keep this directory alias when importing shared folders.
+
 Add folders directly inside `packages/` with an `index.ts` exporting their
-public APIs. Import them as `@microservice-eshop/<folder-name>`; the wildcard
-needs no per-folder updates. The library includes `**/*.ts` and excludes `dist`
+public APIs. Import them as `@packages/<folder-name>`; the wildcard
+also supports individual files and nested folders, such as
+`@packages/error-handler/error-middleware` and `@packages/libs/prisma`,
+without per-folder updates. The library includes `**/*.ts` and excludes `dist`
 and `node_modules`, so new module folders need no package manifest or TypeScript
 configuration. Another application needs the shared TypeScript project
 references and a build/runtime that resolves aliases.
@@ -94,12 +100,11 @@ project; it is not the required application import name. `packages/index.ts`
 is an optional aggregate barrel. Folder imports read the folder's own `index.ts`,
 so adding a folder does not require editing the aggregate barrel or wildcard.
 An empty folder is not importable: `packages/middleware/index.ts` must exist
-and export real middleware before using `@microservice-eshop/middleware`.
+and export real middleware before using `@packages/middleware`.
 
 Auth's solution `tsconfig.json` references its app/spec configs; the shared-library
-reference remains in `tsconfig.app.json`. Auth also has `bundle: true` in its esbuild target. Gateway currently has no shared-library
-reference; add one and confirm its Webpack alias resolution before introducing
-shared imports there. Jest/SWC does not have an explicit alias mapping; see
+reference remains in `tsconfig.app.json`. Auth also has `bundle: true` in its esbuild target. Gateway now references the shared library and bundles shared HTTP/error modules.
+Auth Jest/SWC maps @packages/\* to shared source; see
 [testing](testing.md#shared-module-and-error-handler-coverage).
 
 ```text
@@ -109,21 +114,34 @@ packages/
 |-- tsconfig.lib.json
 |-- index.ts                 # Optional aggregate exports
 `-- error-handler/
-    |-- index.ts             # Public API for @microservice-eshop/error-handler
+    |-- index.ts             # Public API for @packages/error-handler
     `-- error-middleware.ts
 ```
 
 ```ts
-import { errorMiddleware, NotFoundError } from '@microservice-eshop/error-handler';
+import { errorMiddleware, NotFoundError } from '@packages/error-handler';
 ```
 
 The shared base enables `emitDeclarationOnly`. Do not assume a standalone `tsc` invocation replaces the configured Nx runtime build. Trace the application's executor and effective compiler settings when diagnosing missing JavaScript.
 
 ## Gateway configuration ownership
 
-Middleware, CORS, rate-limit options, the upstream URL, and the HTTP listener are all configured in `apps/api-gateway/src/main.ts`. Local defaults are gateway 8080 and auth 6001. The upstream is hard-coded to localhost:6001, so an auth `PORT` override does not automatically change forwarding.
+Gateway middleware stays in apps/api-gateway/src/main.ts. It uses the default
+in-memory limiter, default IPv6-aware IP keys, and no proxy trust. Limiting occurs
+before the proxy reads bodies, with a 16 KB limit and ten-second upstream timeout.
+Gateway does not import Redis. Each main.ts calls app.listen() directly; packages/error-handler owns error
+responses. Readiness and shutdown are deferred in the
+[HTTP lifecycle plan](../architecture/http-lifecycle-plan.md).
 
-Both apps read uppercase `PORT` and ignore `HOST`; auth E2E reads `HOST` as the request destination and uses the same `PORT` override. Auth E2E global setup, Axios setup, and teardown default to 6001. Keep these three consumers aligned when changing the auth default again. Gateway E2E configuration remains separate and still needs alignment; see [testing](testing.md).
+Both apps use PORT (auth 6001, gateway 8080) and ignore HOST. Leave PORT unset for
+simultaneous local startup. Gateway reads AUTH_SERVICE_URL with a localhost:6001
+fallback. There is no config package or custom port parser. Auth E2E still reads
+HOST/PORT separately; keep test destinations aligned with service overrides.
+
+See the [auth folder plan](../architecture/auth-service-structure-plan.md) for
+future feature ownership and the [Redis/runtime plan](../architecture/redis-and-runtime-plan.md)
+for deliberately deferred infrastructure. Neither plan creates empty modules or
+per-folder package manifests.
 
 ## Debugging
 

@@ -25,10 +25,10 @@
                   "example": "Michael"
                 },
                 "email": {
-                  "example": "minhnguyenfe892@gmail.com"
+                  "example": "user@example.com"
                 },
                 "password": {
-                  "example": "Anhminhdx1@"
+                  "example": "example-password"
                 }
               }
             }

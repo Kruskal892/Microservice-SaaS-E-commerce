@@ -6,8 +6,8 @@ project structure, and how requests move between components.
 [Documentation index](../README.md) · [Repository](https://github.com/Kruskal892/Microservice-SaaS-E-commerce)
 
 > **Project stage:** Backend foundation. The Express gateway and auth scaffold
-> exist alongside initial Prisma/MongoDB schema tooling. The storefront, authentication
-> behavior, runtime persistence, and commerce features remain planned. Updated **2026-10-15**.
+> exist alongside initial Prisma/MongoDB schema tooling. The storefront, account
+> verification, account creation, and commerce features remain incomplete/planned. Updated **2026-10-20**.
 
 ## 01 · System Overview
 
@@ -25,11 +25,11 @@ flowchart LR
 
     subgraph Backend["Backend services"]
         direction TB
-        Auth["AUTH SERVICE<br/>Express · port 6001<br/>Scaffold exists; identity planned"]
+        Auth["AUTH SERVICE<br/>Express · port 6001<br/>Registration/OTP; verification incomplete"]
         Commerce["COMMERCE APIs<br/>Catalog · Cart · Orders<br/>Planned; owner undecided"]
     end
 
-    Database[("PERSISTENCE<br/>MongoDB + Prisma<br/>Schema configured; integration planned")]
+    Database[("PERSISTENCE<br/>MongoDB + Prisma<br/>Schema + email lookup; writes incomplete")]
 
     Client -.->|"User interaction"| Frontend
     Frontend -.->|"HTTP API requests"| Gateway
@@ -50,8 +50,7 @@ flowchart LR
 ```
 
 **Read the diagram:** Blue boxes contain current code. Dashed boxes and arrows
-show planned components or connections. The database has initial schema tooling, while request-path integration remains
-planned; physical databases and service data ownership are still undecided.
+show planned components or connections. Auth now reads users through Prisma; physical databases and service data ownership are still undecided.
 Mermaid diagrams display on GitHub and in Mermaid-enabled Markdown previews.
 
 ### What runs today
@@ -71,16 +70,16 @@ flowchart LR
     class Health,Response response
 ```
 
-| Component          | Current responsibility                                      | Intended responsibility                                                |
-| ------------------ | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Frontend           | No application yet                                          | Product browsing, account, cart, checkout, order history               |
-| API gateway        | Middleware, local health, catch-all proxy to localhost:6001 | Public API entry point and explicit service routing                    |
-| Auth service       | CORS and fixed GET / JSON response                          | Account registration, login, sessions, identity ownership              |
-| Commerce APIs      | Not implemented                                             | Product, cart, order, and stock behavior; service boundaries undecided |
-| Persistent storage | Users/images schema; no service client integration                                     | Identity and commerce data using MongoDB/Prisma                        |
+| Component          | Current responsibility                                             | Intended responsibility                                                |
+| ------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Frontend           | No application yet                                                 | Product browsing, account, cart, checkout, order history               |
+| API gateway        | Local health, in-memory limiter, configurable auth proxy           | Public API entry point and explicit service routing                    |
+| Auth service       | Registration, simple OTP/email flow, Swagger                       | Account registration, login, sessions, identity ownership              |
+| Commerce APIs      | Not implemented                                                    | Product, cart, order, and stock behavior; service boundaries undecided |
+| Persistent storage | Users/images schema and email lookup; live connectivity unverified | Identity and commerce data using MongoDB/Prisma                        |
 
-Gateway health is local and does not prove auth is reachable. Auth has no product
-routes beyond `GET /`; other forwarded paths normally return its default 404.
+Gateway /gateway-health is local and does not check auth. Auth also
+serves registration and Swagger routes; unimplemented paths return default 404.
 
 ## 02 · Tech Stack
 
@@ -89,36 +88,36 @@ Tools already present in the codebase and the documented direction for future wo
 
 ### Foundation
 
-| Layer             | Technology                              | Role                                            | Status                                               |
-| ----------------- | --------------------------------------- | ----------------------------------------------- | ---------------------------------------------------- |
-| Workspace         | Nx + npm workspaces                     | App tasks, dependencies, caching                | Configured                                           |
-| Language          | TypeScript                              | Strict compiler settings and project references | Configured                                           |
-| Backend           | Node.js + Express                       | Gateway and auth HTTP servers                   | Scaffold implemented; CI selects Node 24             |
-| Gateway           | express-http-proxy                      | Forward unmatched requests to auth              | Implemented, fixed upstream                          |
-| HTTP middleware   | cors, cookie-parser, express-rate-limit | Browser policy, cookie parsing, IP limits       | Implemented; cookies do not establish identity       |
-| Logging           | Morgan + console                        | Request and listener logging                    | Implemented; no centralized monitoring               |
-| Build tooling     | esbuild / Webpack                       | Auth / gateway compilation                      | Configured                                           |
-| Tests             | Jest + SWC + Axios                      | Unit tooling and HTTP smoke checks              | Auth root spec exists; gateway E2E mismatched        |
-| Formatting / lint | Prettier, EditorConfig, ESLint          | Code style and module-boundary rules            | Configured                                           |
-| Containers        | Docker                                  | Auth-service packaging                          | Dockerfile and targets present; runtime not verified |
-| CI                | GitHub Actions                          | Install, lint, test, build, typecheck           | Workflow configured; no deployment job               |
+| Layer             | Technology                     | Role                                            | Status                                               |
+| ----------------- | ------------------------------ | ----------------------------------------------- | ---------------------------------------------------- |
+| Workspace         | Nx + npm workspaces            | App tasks, dependencies, caching                | Configured                                           |
+| Language          | TypeScript                     | Strict compiler settings and project references | Configured                                           |
+| Backend           | Node.js + Express              | Gateway and auth HTTP servers                   | Scaffold implemented; CI selects Node 24             |
+| Gateway           | express-http-proxy             | Forward unmatched requests to auth              | AUTH_SERVICE_URL override; localhost default         |
+| HTTP middleware   | cors, express-rate-limit       | Browser policy and IP limits                    | Default IP keys; in-memory counters; no proxy trust  |
+| Logging           | Morgan + console               | Request and listener logging                    | Implemented; no centralized monitoring               |
+| Build tooling     | esbuild / Webpack              | Auth / gateway compilation                      | Configured                                           |
+| Tests             | Jest + SWC + Axios             | Unit tooling and HTTP smoke checks              | Auth root spec exists; gateway E2E mismatched        |
+| Formatting / lint | Prettier, EditorConfig, ESLint | Code style and module-boundary rules            | Configured                                           |
+| Containers        | Docker                         | Auth-service packaging                          | Dockerfile and targets present; runtime not verified |
+| CI                | GitHub Actions                 | Install, lint, test, build, typecheck           | Workflow configured; no deployment job               |
 
 ### Platform direction and persistence tooling
 
-| Layer             | Technology        | Intended use                             | Status                                              |
-| ----------------- | ----------------- | ---------------------------------------- | --------------------------------------------------- |
-| Frontend          | Next.js           | Customer storefront                      | Planned                                             |
-| Database          | MongoDB           | Persistent identity and commerce records | Schema configured; live persistence unverified                                             |
-| Data access       | Prisma            | Database schema/client                   | Prisma 6.19 schema and client generation configured; no service consumer                |
-| Secondary store   | Redis             | Cache or shared transient state          | Planned; exact use case undecided                   |
-| Events            | Apache Kafka      | Cross-service messaging                  | Planned; no producer/consumer or event contracts    |
-| Real-time         | Socket.IO         | Live communication                       | Planned                                             |
-| Push              | Firebase          | Web notifications                        | Planned                                             |
-| Machine learning  | TensorFlow.js     | Future ML features                       | Planned; no defined use case/model                  |
-| API documentation | Swagger / OpenAPI | Executable API contract and UI           | swagger-ui-express installed; no spec or route      |
-| Assets            | ImageKit          | Cloud media                              | Unconfirmed; inferred from an earlier overview logo |
-| Hosting           | AWS               | Production infrastructure                | Planned; no resources configured                    |
-| Domains           | Cloudflare        | Domain management                        | Planned; no configuration                           |
+| Layer             | Technology        | Intended use                             | Status                                                         |
+| ----------------- | ----------------- | ---------------------------------------- | -------------------------------------------------------------- |
+| Frontend          | Next.js           | Customer storefront                      | Planned                                                        |
+| Database          | MongoDB           | Persistent identity and commerce records | Schema configured; live persistence unverified                 |
+| Data access       | Prisma            | Database schema/client                   | Prisma 6.19; auth email lookup wired, user creation incomplete |
+| Secondary store   | Redis             | Cache or shared transient state          | Simple OTP strings, cooldowns, and request counters            |
+| Events            | Apache Kafka      | Cross-service messaging                  | Planned; no producer/consumer or event contracts               |
+| Real-time         | Socket.IO         | Live communication                       | Planned                                                        |
+| Push              | Firebase          | Web notifications                        | Planned                                                        |
+| Machine learning  | TensorFlow.js     | Future ML features                       | Planned; no defined use case/model                             |
+| API documentation | Swagger / OpenAPI | Executable API contract and UI           | Registration spec, /api-docs, and /docs-json                   |
+| Assets            | ImageKit          | Cloud media                              | Unconfirmed; inferred from an earlier overview logo            |
+| Hosting           | AWS               | Production infrastructure                | Planned; no resources configured                               |
+| Domains           | Cloudflare        | Domain management                        | Planned; no configuration                                      |
 
 Authentication libraries, a payment provider, frontend styling/state tools, and
 production monitoring have not been selected.
@@ -131,8 +130,8 @@ Installed versions: [root package.json](../../package.json) and
 Applications own their code and task configuration. Documentation is grouped by
 purpose. Shared error-handler source lives under `packages/`; no frontend exists
 yet. Auth imports the shared error handler through the
-`@microservice-eshop/error-handler` alias and bundles its source; the
-gateway does not use it.
+`@packages/error-handler` alias and bundles its source; the
+gateway also uses it.
 
 ```text
 Microservice Eshop/
@@ -174,26 +173,27 @@ Microservice Eshop/
 
 **Key entry points:** [gateway main.ts](../../apps/api-gateway/src/main.ts),
 [auth main.ts](../../apps/auth-service/src/main.ts), [Nx configuration](../../nx.json).
-Handlers currently live in the entry points; controller/service/repository layers
-have not been established.
+Auth has routes, a controller, and helpers; gateway middleware remains in main.ts.
+See the [auth folder plan](auth-service-structure-plan.md) before reorganizing.
 
 ## 04 · Data Flow
 
 ### Current HTTP request
 
-1. A client calls the gateway on port **8080**.
-2. Middleware applies **CORS → Morgan logging → JSON/URL-encoded parsing → cookie
-   parsing → IP rate limiting**. CORS preflight may return before later middleware.
-3. A rate-limited request receives **429**. Normal traffic is limited to 100
-   requests per 15 minutes; counters are process-local and reset on restart.
-4. `GET /gateway-health` returns gateway JSON without contacting auth. Other paths
-   are forwarded unchanged to **http://localhost:6001**.
-5. Auth applies CORS and returns **200 / Hello API** for `GET /`; the gateway
-   passes the upstream response back to the client.
+1. Gateway applies CORS and logging. The local health route precedes limiting.
+2. Other requests pass a 100-request/15-minute in-memory IP limiter, then a proxy
+   body limit of 16 KB and ten-second upstream timeout. Proxy trust is disabled.
+3. AUTH_SERVICE_URL defaults to http://localhost:6001. Paths are preserved.
+4. Auth parses JSON; registration validates/normalizes input and looks up the email.
+5. Simple Redis checks/counters precede SMTP delivery and string OTP/cooldown writes.
+   Restrictions and delivery failures throw. Account creation is not implemented.
+6. Both services use shared error handling and direct app.listen() startup.
+   Dependency readiness and graceful shutdown are deferred.
 
-No database writes, sessions, Kafka events, or WebSocket messages participate in
-this flow. Direct auth access bypasses gateway middleware. Upstream failures use
-the proxy's default handling, not an agreed error envelope.
+The original ioredis client and sequential OTP operations are retained. Their
+concurrency and partial-failure limits are documented in the
+[Redis/runtime plan](redis-and-runtime-plan.md). No shared config package or
+custom port parser is present. Each service reads PORT with its existing default.
 
 ### Proposed customer flow
 
@@ -211,24 +211,22 @@ Contracts and behavior: [API specification](../api/api-specification.md),
 
 ## 05 · Scalability & Future Considerations
 
-| Area               | Current limit                                                           | Next architectural decision                                          |
-| ------------------ | ----------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Service routing    | All unmatched paths go to fixed localhost:6001                          | Configurable upstreams and clear commerce ownership                  |
-| Security           | No identity/token verification; proxy trust and raw-IP keys need review | Session strategy, ownership checks, trusted proxy/IPv6 policy        |
-| Request handling   | 100 MB parsers precede limiter; no shared validation/error policy       | Practical body limits, request validation, timeout/error mapping     |
-| Scaling            | Rate counters exist only in one process                                 | Shared counters if multiple gateway instances are needed             |
-| Data consistency   | No persistence                                                          | Schema/indexes, transaction or stock-reservation policy, idempotency |
-| Events and caching | No Kafka/Redis integrations                                             | Adopt for a concrete workflow or measured bottleneck                 |
-| Operations         | Console logs; no readiness, alerts, backup or rollback process          | Health/shutdown policy, observability, TLS/secrets, restore/rollback |
-| Packaging          | Auth Docker only; app manifests omit imported runtime packages          | Declare dependencies per app and verify pruned outputs/images        |
-| Test confidence    | Auth scaffold-only coverage; gateway E2E port/assertion mismatch        | Align lifecycle and cover forwarding, failures, identity, commerce   |
-| SaaS / tenancy     | Tenant isolation and billing undefined                                  | Confirm single-store versus multi-tenant scope before data design    |
+| Area             | Current limit                                                        | Next architectural decision                                              |
+| ---------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Service routing  | AUTH_SERVICE_URL override with localhost default                     | Define commerce owners when features exist                               |
+| Security         | Default IP keys and no proxy trust; identity incomplete              | Implement verification/sessions and real ingress policy                  |
+| Request handling | Limiter before 16 KB proxy body read; shared errors                  | Verify failure/timeout behavior                                          |
+| Scaling          | Sequential OTP operations and per-process gateway counters           | Atomic admission before public concurrency; shared counters for replicas |
+| Data consistency | Email lookup only; SMTP and Redis writes are separate                | Complete user persistence and delivery-failure policy                    |
+| Operations       | Direct listeners; no dependency readiness or graceful shutdown       | Verify runtime; add Redis/SMTP policy when required                      |
+| Packaging        | Templates/schema copied; runtime manifests and auth Docker updated   | Verify pruned outputs and image startup                                  |
+| Tests            | Auth validation/error/lifecycle checks added; gateway E2E mismatched | Run requested checks and align E2E                                       |
+| Product          | No storefront or commerce flow                                       | Implement smallest account/catalog/cart/order slice                      |
 
-AWS and Cloudflare are intended technologies, not deployed environments. Local
-URLs use HTTP. Both apps read `PORT`, ignore `HOST`, and have no explicit `.env`
-loader; changing auth's port does not update gateway forwarding. Auth Docker uses
-internal port 3000; publishing `6001:3000` matches a host-run gateway, while separate
-containers require a reachable upstream address instead of localhost.
+AWS and Cloudflare remain planned. PORT defaults to 6001/8080 and HOST is not read.
+The auth image uses internal port 3000; set gateway AUTH_SERVICE_URL appropriately
+for host-published ports or container network hostnames. Future folder and runtime
+changes are plans, not deployed capabilities.
 
 CI uses Node 24, `npm ci`, and `nx run-many -t lint test build typecheck`.
 Explicit E2E targets are not included; no successful execution is claimed here.
@@ -241,3 +239,6 @@ For implementation detail, use [technical design](technical-design.md),
 [implementation plan](../delivery/implementation-plan.md),
 [current status](../delivery/implementation-status.md), and
 [deployment guide](../delivery/deployment.md).
+
+Readiness and shutdown are future work in the [HTTP lifecycle plan](http-lifecycle-plan.md);
+there is no shared packages/http module or /ready route currently.

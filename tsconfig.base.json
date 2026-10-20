@@ -17,7 +17,7 @@
     "strict": true,
     "target": "es2022",
     "paths": {
-      "@microservice-eshop/*": ["./packages/*/index.ts"]
+      "@packages/*": ["./packages/*"]
     },
     "customConditions": ["@microservice-eshop/source"]
   }

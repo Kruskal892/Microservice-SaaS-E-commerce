@@ -2,7 +2,7 @@
 
 A microservice ecommerce project built with an **Nx monorepo** and **TypeScript**. The intended platform combines a Next.js storefront, Express backend services, persistent storage, event messaging, real-time communication, and machine learning.
 
-The repository is currently at the foundation stage: Express scaffolds for an API gateway and authentication service, initial Prisma/MongoDB schema and CLI configuration, draft registration/OTP helpers, generated API smoke tests, authentication-service Docker packaging, and a GitHub Actions workflow are present. The stack below includes the project direction from the supplied technology overview; planned integrations are not yet implemented.
+The repository is currently at the foundation stage: Express applications for an API gateway and authentication service, initial Prisma/MongoDB schema and CLI configuration, registration/OTP helpers, generated API smoke tests, authentication-service Docker packaging, and a GitHub Actions workflow are present. The stack below includes the project direction from the supplied technology overview; planned integrations are not yet implemented.
 
 ## Developer documentation
 
@@ -15,29 +15,29 @@ implemented ecommerce features.
 
 ## Technology stack
 
-| Area                    | Technology          | Status                                                                       |
-| ----------------------- | ------------------- | ---------------------------------------------------------------------------- |
-| Architecture            | Microservices       | API gateway and authentication service scaffolds exist                       |
-| Monorepo                | Nx                  | Configured with npm workspaces                                               |
-| Language                | TypeScript          | Configured with strict compiler settings                                     |
-| Backend                 | Node.js, Express    | Auth service with `GET /`; gateway with `GET /gateway-health`                |
-| Frontend                | Next.js             | Planned                                                                      |
-| Primary database        | MongoDB             | Schema configured; service persistence not integrated                        |
-| Secondary data store    | Redis               | Dependency installed; client module empty                                    |
-| Database ORM            | Prisma 6.19         | CLI/client dependencies and generation configured                            |
-| Message broker          | Apache Kafka        | Planned                                                                      |
-| Machine learning        | TensorFlow.js       | Planned                                                                      |
-| WebSocket communication | Socket.IO           | Planned                                                                      |
-| Web push notifications  | Firebase            | Planned                                                                      |
-| Testing                 | Jest, Axios         | Auth smoke test configured; gateway test needs alignment                     |
-| API documentation       | Swagger / OpenAPI   | Swagger UI dependency installed; no specification or documentation route yet |
-| Cloud assets            | ImageKit            | Planned; inferred from the blue "i" logo in the overview                     |
-| Containerization        | Docker              | Auth-service Dockerfile and Nx Docker targets configured                     |
-| CI/CD                   | Git, GitHub Actions | CI workflow present; deployment not configured                               |
-| Deployment              | AWS                 | Planned                                                                      |
-| Domain management       | Cloudflare          | Planned                                                                      |
+| Area                    | Technology          | Status                                                              |
+| ----------------------- | ------------------- | ------------------------------------------------------------------- |
+| Architecture            | Microservices       | API gateway and authentication service scaffolds exist              |
+| Monorepo                | Nx                  | Configured with npm workspaces                                      |
+| Language                | TypeScript          | Configured with strict compiler settings                            |
+| Backend                 | Node.js, Express    | Auth service with `GET /`; gateway with `GET /gateway-health`       |
+| Frontend                | Next.js             | Planned                                                             |
+| Primary database        | MongoDB             | Email lookup wired; user creation and live persistence unverified   |
+| Secondary data store    | Redis               | Simple ioredis client for OTP strings, expiry, and request counters |
+| Database ORM            | Prisma 6.19         | CLI/client dependencies and generation configured                   |
+| Message broker          | Apache Kafka        | Planned                                                             |
+| Machine learning        | TensorFlow.js       | Planned                                                             |
+| WebSocket communication | Socket.IO           | Planned                                                             |
+| Web push notifications  | Firebase            | Planned                                                             |
+| Testing                 | Jest, Axios         | Auth greeting smoke test; gateway E2E needs alignment               |
+| API documentation       | Swagger / OpenAPI   | Auth Swagger UI at /api-docs and JSON at /docs-json                 |
+| Cloud assets            | ImageKit            | Planned; inferred from the blue "i" logo in the overview            |
+| Containerization        | Docker              | Auth-service Dockerfile and Nx Docker targets configured            |
+| CI/CD                   | Git, GitHub Actions | CI workflow present; deployment not configured                      |
+| Deployment              | AWS                 | Planned                                                             |
+| Domain management       | Cloudflare          | Planned                                                             |
 
-Dependency versions are recorded in [package.json](package.json) and [package-lock.json](package-lock.json). Prisma tooling and a MongoDB schema are included; application database access, message brokers, frontend, and cloud integrations are not implemented.
+Dependency versions are recorded in [package.json](package.json) and [package-lock.json](package-lock.json). Prisma tooling and a MongoDB schema are included; auth reads users through Prisma; user creation, message brokers, frontend, and cloud integrations are incomplete or planned.
 
 ## Architecture
 
@@ -50,22 +50,22 @@ The intended architecture uses a Next.js frontend to consume Express service API
 | Application        | Nx project name                        | Purpose                                                                               |
 | ------------------ | -------------------------------------- | ------------------------------------------------------------------------------------- |
 | `api-gateway`      | `@microservice-eshop/api-gateway`      | Express gateway with middleware, local `/gateway-health`, and auth-service forwarding |
-| `auth-service`     | `@microservice-eshop/auth-service`     | Express scaffold; authentication endpoints are not implemented yet                    |
+| `auth-service`     | `@microservice-eshop/auth-service`     | Registration and OTP delivery; verification and account creation incomplete           |
 | `auth-service-e2e` | `@microservice-eshop/auth-service-e2e` | Jest/Axios smoke test against the backend                                             |
 | `api-gateway-e2e`  | `@microservice-eshop/api-gateway-e2e`  | Generated smoke test; currently mismatched with the gateway                           |
 
-The gateway handles `GET /gateway-health` locally and forwards other requests to the hard-coded upstream `http://localhost:6001`. Clients can also call the auth service directly. No database or message broker participates in these requests.
+The gateway handles `GET /gateway-health` locally, then forwards other paths to `AUTH_SERVICE_URL` (default `http://localhost:6001`). Auth registration reads MongoDB and uses Redis/SMTP; these integrations have not been verified end to end.
 
 | Application  | Default URL                            | Response                                   |
 | ------------ | -------------------------------------- | ------------------------------------------ |
 | Auth service | `http://localhost:6001/`               | `{ "message": "Hello API" }`               |
 | API gateway  | `http://localhost:8080/gateway-health` | `{ "message": "Welcome to api-gateway!" }` |
 
-The gateway applies CORS, request logging, body parsing, cookie parsing, and IP rate limiting before route handling. Static asset serving has been removed. See the [API reference](docs/api/api-specification.md) for middleware behavior and limitations.
+The gateway applies CORS, logging, and in-memory IP limiting before its proxy reads request bodies, with a 16 KB limit and ten-second upstream timeout. It uses default IP normalization and does not enable proxy trust. Static asset serving has been removed. See the [API reference](docs/api/api-specification.md) for middleware behavior and limitations.
 
 Shared error classes and a JSON response handler exist under
-`packages/error-handler`. Auth imports `@microservice-eshop/error-handler` and
-registers its four-parameter middleware after routes; the gateway does not use it.
+`packages/error-handler`. Auth imports `@packages/error-handler` and
+registers its four-parameter middleware after routes; the gateway also uses it.
 Folder imports use a shared TypeScript alias, and auth bundles the shared source.
 See [error-handler design](docs/architecture/technical-design.md#shared-error-handler-current-source)
 and [response formats](docs/api/api-specification.md#shared-error-handler-auth-service).
@@ -117,7 +117,7 @@ and [response formats](docs/api/api-specification.md#shared-error-handler-auth-s
 - **Git** to clone the repository.
 - **Docker** only for container development.
 
-MongoDB, Redis, Kafka, and cloud credentials are not required to run the current scaffold.
+Auth registration requires MongoDB, Redis, and SMTP configuration. Copy `.env.example` to a local `.env` and replace placeholders. Kafka and cloud services remain planned.
 
 ### Install and run
 
@@ -162,7 +162,11 @@ Open `http://localhost:8080/gateway-health` for the gateway response. With auth 
 | `PORT`   | Auth service | `6001`        | Converted to a number before listening |
 | `PORT`   | API gateway  | `8080`        | HTTP port                              |
 
-Both applications read uppercase `PORT`. Neither reads `HOST`, and both listen without an explicit bind address. The gateway upstream is fixed at `http://localhost:6001`, so overriding the auth port does not update gateway forwarding. Neither application entry point explicitly loads `.env`; Prisma CLI separately loads it through `prisma.config.ts`. No `.env.example` is provided.
+Both applications keep the ordinary PORT variable and defaults above. Leave it
+unset when launching both together. Gateway reads AUTH_SERVICE_URL or defaults
+to http://localhost:6001; update it if auth runs elsewhere. Dotenv loads at startup.
+No custom port parser, AUTH_PORT, GATEWAY_PORT, or shared config package is used.
+The placeholder-only [.env.example](.env.example) lists current integration inputs.
 
 For example, in PowerShell:
 
@@ -185,7 +189,7 @@ The schema defines `users` and `images`. The `prisma-client-js` generator matche
 the shared wrapper's `@prisma/client` import. Run `npx prisma generate` after
 installing dependencies or changing the schema, before starting auth.
 See [authentication development](docs/development/authentication.md) for the
-current flow, dependencies, and blockers. Registration is not routed.
+current registration flow, dependencies, and unfinished verification. Registration is routed.
 For placeholder-only setup, generation, and database synchronization instructions,
 see [database setup](docs/development/getting-started.md#prisma-and-mongodb).
 The reported `db push` attempt failed Atlas authentication; successful synchronization
@@ -193,10 +197,11 @@ has not been confirmed. `.env` and generated clients are Git-ignored.
 
 ## Development commands
 
-Shared modules use `@microservice-eshop/<folder>` imports. For example,
-`@microservice-eshop/error-handler` resolves to `packages/error-handler/index.ts`.
-Add an `index.ts` exporting the public API in each new module folder; no
-per-folder package or TypeScript configs are required. Auth references
+Shared modules use `@packages/<folder>` imports. For example,
+`@packages/error-handler` resolves to `packages/error-handler/index.ts`.
+The wildcard also supports individual files, such as `@packages/error-handler/error-middleware`.
+Folder imports use the folder's `index.ts`; no per-folder package or TypeScript
+configs are required. Auth references
 the shared library from `tsconfig.app.json` and bundles this source. Other apps and test runners need
 their own project-reference and alias-resolution setup. See
 [adding shared modules](docs/development/development-guide.md#adding-shared-modules).
@@ -218,7 +223,7 @@ Run these from the repository root. The root `dev` script starts all serve targe
 | Check service types      | `npx nx typecheck @microservice-eshop/auth-service`    |
 | Lint service             | `npx nx lint @microservice-eshop/auth-service`         |
 
-The auth-service build defaults to production, uses esbuild, and writes to `apps/auth-service/dist`. The gateway uses Webpack and writes to `apps/api-gateway/dist`. Auth-service unit test configuration exists, but no service unit test files are present yet.
+The auth-service build defaults to production, uses esbuild, and writes to `apps/auth-service/dist`. The gateway uses Webpack and writes to `apps/api-gateway/dist`. Auth has generated greeting smoke coverage; validation and failure-path tests remain future work. No tests were run for this change.
 
 The auth-service E2E target depends on the backend build and serve targets. It waits for the configured port and checks that `GET /` returns HTTP 200 and the expected JSON. Teardown kills the process on that port, so use a free port dedicated to the test run. Auth test setup, Axios, and teardown now default to port `6001`. The test does not cover authentication or ecommerce behavior.
 
@@ -240,7 +245,12 @@ Run the container with the HTTP port published:
 npx nx docker:run @microservice-eshop/auth-service -p 6001:3000
 ```
 
-The Dockerfile sets `HOST=0.0.0.0` and `PORT=3000`. Auth reads `PORT` and listens on 3000 inside the container, without an explicit bind address. Publish `-p 6001:3000` to match the gateway upstream, or `-p 3000:3000` for standalone use. The Dockerfile uses `node:lts-alpine`, installs production dependencies, and starts `main.js`. Auth imports `cors`, but its application package declares Express and the shared workspace dependency without declaring `cors`; align runtime dependencies before relying on a pruned container build. Docker was not verified. No Docker Compose configuration is included.
+The Dockerfile uses Node 24 Alpine, installs locked runtime dependencies,
+generates platform-compatible Prisma runtime files, and runs as the node user.
+Templates and the schema are copied through auth build assets. Supply environment
+variables separately; the example leaves PORT unset so Docker's internal 3000
+matches `-p 6001:3000`. See [deployment](docs/delivery/deployment.md) for the full
+command and constraints. The image and build output remain unverified.
 
 ## Continuous integration
 
@@ -257,3 +267,21 @@ The dedicated `e2e` target is not included in this command. Nx Cloud task distri
 Next steps are to implement authentication, establish database models and persistence, add the Next.js storefront, and define service boundaries for ecommerce features. Messaging, real-time updates, push notifications, machine learning, and production deployment can then be integrated as those features require them.
 
 When extending the workspace, keep service code and configuration with its application, define cross-service API and event contracts explicitly, and update this README as integrations become available. Keep credentials out of committed files and document required environment variables when adding external services.
+
+## Current reliability limits and plans
+
+OTP checks/counters retain simple sequential Redis GET/SET operations and string
+values. Concurrent requests can race, and SMTP acceptance can precede a failed
+Redis write. Gateway counters are per-process. Advanced Redis/port configuration
+was deferred at the user's request; no custom Redis store or shared config
+package is introduced.
+
+Each app starts Express directly with app.listen(). Dependency readiness,
+custom HTTP timeouts, and graceful shutdown are deferred in the
+[HTTP lifecycle plan](docs/architecture/http-lifecycle-plan.md). No /ready route
+is implemented. The unrouted userVerification controller still references
+undefined verifyOtp(); account activation remains unfinished.
+
+- [Auth-service folder structure plan](docs/architecture/auth-service-structure-plan.md)
+- [Redis and runtime plan](docs/architecture/redis-and-runtime-plan.md)
+- [Current implementation status](docs/delivery/implementation-status.md)
