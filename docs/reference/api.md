@@ -7,18 +7,20 @@
 
 ## Available routes
 
-| Method | Path                     | Handler            | Source-defined result                                      |
-| ------ | ------------------------ | ------------------ | ---------------------------------------------------------- |
-| GET    | `/gateway-health`        | Gateway, port 8080 | 200 `{ "message": "Welcome to api-gateway!" }`             |
-| GET    | `/`                      | Auth, port 6001    | 200 `{ "message": "Hello API" }`                           |
-| POST   | `/api/user-registration` | Auth               | Request activation OTP; no account creation                |
-| GET    | `/api-docs`              | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash |
-| GET    | `/docs-json`             | Auth               | Committed Swagger 2.0 JSON                                 |
+| Method | Path                       | Handler            | Source-defined result                                      |
+| ------ | -------------------------- | ------------------ | ---------------------------------------------------------- |
+| GET    | `/gateway-health`          | Gateway, port 8080 | 200 `{ "message": "Welcome to api-gateway!" }`             |
+| GET    | `/`                        | Auth, port 6001    | 200 `{ "message": "Hello API" }`                           |
+| POST   | `/api/user-registration`   | Auth               | Request activation OTP; no account creation                |
+| POST   | `/api/verify-registration` | Auth               | Verify OTP, hash password, and create user account         |
+| GET    | `/api-docs`                | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash |
+| GET    | `/docs-json`               | Auth               | Committed Swagger 2.0 JSON                                 |
 
 Gateway forwards other paths unchanged to `AUTH_SERVICE_URL`, default
 `http://localhost:6001`. Thus gateway `/` serves the auth greeting, and
-gateway `/api/user-registration` forwards registration. Unmatched auth paths use
-Express's default 404. Verification, login, sessions, and commerce are unavailable.
+gateway `/api/user-registration` and `/api/verify-registration` forward
+registration and verification. Unmatched auth paths use Express's default 404.
+Login, sessions, and commerce remain unavailable.
 
 ## Registration
 
@@ -63,6 +65,63 @@ limiter independently returns **429**. Prisma/Redis/rendering/SMTP errors reach
 shared error middleware. Concurrent OTP operations and mail/Redis partial
 failures remain unresolved; see [authentication development](../development/authentication.md).
 
+## Registration verification and user creation
+
+`POST http://localhost:6001/api/verify-registration`
+
+Send `Content-Type: application/json` and an object:
+
+```json
+{
+  "name": "Example Customer",
+  "email": "customer@example.com",
+  "otp": "1234",
+  "password": "example-password"
+}
+```
+
+| Field      | Current validation                                                            |
+| ---------- | ----------------------------------------------------------------------------- |
+| `name`     | Required non-empty field (`!name` returns 400 `ValidationError`)              |
+| `email`    | Required non-empty field (`!email` returns 400 `ValidationError`)             |
+| `otp`      | Required non-empty field (`!otp` returns 400 `ValidationError`)               |
+| `password` | Required non-empty field (`!password` returns 400 `ValidationError`)          |
+
+The controller checks that `email`, `otp`, `password`, and `name` are all present.
+If any field is missing, it returns **400** with `'All fields are required!'`.
+
+Next, it queries MongoDB via `prisma.users.findUnique({ where: { email } })`. If a
+record exists with that email, it returns **400** with `'The user is already existed!'`.
+
+### OTP verification flow (`verifyOtp`)
+
+1. **Existence check:** Reads `otp:${email}` from Redis. If missing or expired
+   (key has 300s TTL), returns **400** with `'Expired or invalid OTP!'`.
+2. **Attempt tracking:** Reads `otp_attempts:${email}` (integer string, 300s TTL).
+3. **Mismatch handling:**
+   - If `storedOtp !== otp` and `failedAttempt >= 2` (3rd failed attempt),
+     sets `otp_lock:${email}` with value `'locked'` and expiry 1,800s (30 minutes),
+     deletes `otp:${email}` and `otp_attempts:${email}`, and returns **400** with:
+     `'Too many failed attempts. Your account is locked for 30 minutes'`.
+   - If `storedOtp !== otp` and `failedAttempt < 2`, increments `otp_attempts:${email}`
+     with a 300-second TTL and returns **400** with:
+     `'Incorrect OTP. ${2 - failedAttempt} attempts left'`.
+4. **Success:** When the code matches, deletes `otp:${email}` and `otp_attempts:${email}`.
+
+### Persistence and response
+
+After OTP verification succeeds:
+- Hashes `password` using `bcrypt.hash(password, 10)`.
+- Persists user to MongoDB via `prisma.users.create({ data: { name, email, password: hashedPassword } })`.
+- Returns HTTP 200:
+
+```json
+{
+  "success": true,
+  "message": "User registered successfully!"
+}
+```
+
 ## Gateway policy
 
 | Concern          | Current source                                                                    |
@@ -105,14 +164,14 @@ Class definitions are in [technical design](../architecture/technical-design.md#
 ## Swagger coverage
 
 [swagger-output.json](../../apps/auth-service/src/swagger-output.json) declares
-Swagger 2.0, host `localhost:6001`, and the registration request with a 200 response.
-It does not capture the full validation/error contract above. Swagger's host is
-fixed, even when the UI is accessed through the gateway or a custom port.
+Swagger 2.0, host `localhost:6001`, and documents `/api/user-registration` and
+`/api/verify-registration` with 200 responses. It does not capture the full
+validation/error contract above. Swagger's host is fixed, even when the UI is
+accessed through the gateway or a custom port.
 
-[swagger.js](../../apps/auth-service/src/swagger.js) is a standalone generator
-with relative paths; generation is not wired into a root script, build target,
-or CI. The JSON is committed and loaded by auth at startup. Keep it aligned when
-implemented contracts change.
+[swagger.js](../../apps/auth-service/src/swagger.js) is a generator script wired
+to the root npm script `npm run auth-docs`. The generated JSON is committed and loaded
+by auth at startup. Keep it aligned when implemented contracts change.
 
 The [proposed product API](../future-plans/api/product-api.md) owns all draft
 `/v1` paths and future error-envelope ideas. They are not available routes.

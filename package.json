@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "npx nx run-many --target=serve --all",
+    "auth-docs": "node apps/auth-service/src/swagger.js",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -11,6 +12,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.0",
     "axios": "^1.20.0",
+    "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^18.0.8",
@@ -19,6 +21,7 @@
     "express-http-proxy": "^2.1.2",
     "express-rate-limit": "^8.7.1",
     "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
     "morgan": "^1.12.1",
     "nodemailer": "^10.1.7",
     "swagger-autogen": "^2.23.7",

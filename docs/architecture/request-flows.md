@@ -42,12 +42,14 @@ flowchart TD
     JSON --> Route{"Matched route?"}
     Route -->|"/api-docs or GET /docs-json"| Swagger["Swagger UI or committed JSON"]
     Route -->|"POST /api/user-registration"| Registration["Registration controller"]
+    Route -->|"POST /api/verify-registration"| Verification["Verification controller"]
     Route -->|No| Missing["Express default 404"]
     JSON -->|Parse or size error| Errors["Shared error middleware"]
     Registration -->|Error forwarded| Errors
+    Verification -->|Error forwarded| Errors
 ```
 
-Verification is exported in the controller but is not mounted in the router.
+Auth mounts `POST /api/user-registration` and `POST /api/verify-registration`.
 There are no login, session, or commerce routes.
 
 ## Registration and OTP delivery
@@ -103,6 +105,62 @@ does not guarantee inbox delivery. The sequential checks/updates are not atomic.
 This endpoint does not create a user, store a password, verify a code, or issue a
 session. See [authentication development](../development/authentication.md) for
 key names, TTLs, and implementation gaps.
+
+## Registration verification and account creation
+
+Sources: [controller](../../apps/auth-service/src/controller/auth.controller.ts),
+[helpers](../../apps/auth-service/src/utils/auth.helper.ts), and
+[prisma client](../../packages/libs/prisma/index.ts).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Auth as Verification controller
+    participant DB as Prisma / MongoDB
+    participant Redis
+    Client->>Auth: POST /api/verify-registration (name, email, otp, password)
+    Auth->>Auth: Validate required fields (name, email, otp, password)
+    alt Any missing field
+        Auth-->>Client: 400 validation error (All fields are required!)
+    else All fields present
+        Auth->>DB: users.findUnique(email)
+        DB-->>Auth: Existing user or null
+        alt Existing user
+            Auth-->>Client: 400 validation error (The user is already existed!)
+        else No existing user
+            Auth->>Redis: GET otp:email
+            Redis-->>Auth: Stored OTP or null
+            alt Stored OTP absent or expired
+                Auth-->>Client: 400 validation error (Expired or invalid OTP!)
+            else Stored OTP present
+                Auth->>Redis: GET otp_attempts:email
+                Redis-->>Auth: Failed attempt count (default 0)
+                alt Stored OTP does not match
+                    alt Failed attempt count >= 2 (3rd failed attempt)
+                        Auth->>Redis: SET otp_lock:email "locked" EX 1800
+                        Auth->>Redis: DEL otp:email, otp_attempts:email
+                        Auth-->>Client: 400 validation error (Account locked for 30 minutes)
+                    else Failed attempt count < 2
+                        Auth->>Redis: SET otp_attempts:email (count + 1) EX 300
+                        Auth-->>Client: 400 validation error (Incorrect OTP. N attempts left)
+                    end
+                else Stored OTP matches
+                    Auth->>Redis: DEL otp:email, otp_attempts:email
+                    Auth->>Auth: bcrypt.hash(password, 10)
+                    Auth->>DB: users.create({ name, email, password })
+                    DB-->>Auth: User record created
+                    Auth-->>Client: 200 User registered successfully!
+                end
+            end
+        end
+    end
+```
+
+Missing fields, existing users, missing/expired OTPs, and OTP mismatches throw
+`ValidationError` and stop further execution before account creation. On match,
+the OTP is deleted from Redis (single-use consumption), the password is
+hashed with `bcryptjs` (10 rounds), and the user record is written to MongoDB.
 
 ## Shared error path
 

@@ -23,7 +23,6 @@ erDiagram
         string_array following
         datetime createdAt
         datetime updatedAt
-        ObjectId imagesId "required scalar; not a relation"
     }
     images {
         ObjectId id PK "mapped to _id"
@@ -36,31 +35,41 @@ erDiagram
 Both directions of the avatar association are optional. `images.userId` is the
 relation scalar and is unique, allowing at most one related image per user.
 `users.avatar` and `images.users` are Prisma relation fields, not extra ObjectId
-scalars. `users.imagesId` is required but is **not** connected to this relation.
+scalars. The previously required unassociated `imagesId` scalar on `users` has been
+removed from the schema.
 
 | Model    | Additional declared behavior                                                                                                           |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `users`  | Generated ObjectId; unique email; optional password; string-array following; createdAt defaults to now; updatedAt maintained by Prisma |
 | `images` | Generated ObjectId; required file_id and url; optional unique userId                                                                   |
 
-## Current reads and transient state
+## Current reads, writes, and transient state
 
-Registration queries `users.findUnique({ where: { email } })` using a trimmed,
-lowercased email. It does not create or update a user. The unrouted verification
-placeholder also contains an email lookup, but no completed write path exists.
-The schema itself does not enforce email normalization or safe password storage.
+Registration (`POST /api/user-registration`) queries
+`users.findUnique({ where: { email } })` using a trimmed, lowercased email to
+reject duplicates. It does not write to the database.
 
-OTP values, request counts, and cooldowns live in Redis, outside this schema.
-Their key/expiry contract is in [authentication development](../development/authentication.md).
-No database transaction spans SMTP and Redis.
+Registration verification (`POST /api/verify-registration`) performs an existing
+user lookup, validates the OTP in Redis, hashes the password with bcrypt (10 rounds),
+and persists the new record via:
+
+```ts
+await prisma.users.create({
+  data: { name, email, password: hashedPassword },
+});
+```
+
+OTP values, request counts, attempt tracking, and cooldowns live in Redis outside
+this schema. Their key/expiry contract is in
+[authentication development](../development/authentication.md). No database
+transaction spans SMTP, Redis, and MongoDB.
 
 ## Constraints to resolve before writes
 
-- Decide the purpose of required `users.imagesId` before implementing user creation.
 - Treat `following` as plain strings; no declared user relationship enforces it.
-- Implement password hashing and service-side validation before storing credentials.
 - Verify schema/index application, including unique email and image-user indexes.
   Schema declarations alone do not prove indexes exist in MongoDB.
+- Run `npx prisma db push` against the target development database after schema updates.
 
 No migration or seed files are tracked. `prisma.config.ts` names a migrations
 directory, but that does not establish a MongoDB migration workflow. Use the
