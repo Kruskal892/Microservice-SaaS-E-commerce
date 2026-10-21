@@ -5,7 +5,9 @@ workspaces. The repository contains an API gateway, an authentication service,
 shared error/database clients, Prisma's MongoDB schema, and HTTP smoke tests.
 
 Registration currently validates input, checks for an existing email, and sends
-an OTP using Redis and SMTP. It does not create accounts. Verification, login,
+an OTP using Redis and SMTP. Registration verification (`POST /api/verify-registration`)
+validates the OTP, enforces attempt locks (30-minute lock after 3 failed attempts),
+hashes passwords with bcrypt, and creates user accounts in MongoDB. Login,
 sessions, the storefront, and commerce APIs remain unfinished or planned.
 
 ## Documentation
@@ -47,7 +49,7 @@ for separate startup, configuration, and database synchronization instructions.
 | --------------- | ------------------------------------ | ------------------------------------------ |
 | Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`               |
 | Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }` |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Registration documentation                 |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Registration & verification documentation  |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any
@@ -61,9 +63,10 @@ verified by this documentation refresh.
 | Workspace           | Nx 23.3, npm workspaces (`apps/*`, `packages`)                    |
 | Runtime             | Node.js; Express 5; TypeScript 6.0                                |
 | HTTP gateway        | express-http-proxy, CORS, Morgan, in-memory IP limiting           |
-| Persistence         | Prisma 6.19, MongoDB users/images schema and email lookup         |
+| Persistence         | Prisma 6.19, MongoDB users/images schema and user persistence     |
+| Security            | bcryptjs for password hashing                                     |
 | OTP and mail        | ioredis, Node crypto, Nodemailer, EJS                             |
-| API documentation   | Swagger 2.0 JSON and Swagger UI                                   |
+| API documentation   | Swagger 2.0 JSON and Swagger UI; `npm run auth-docs` generator    |
 | Checks and delivery | Jest/SWC/Axios, ESLint, Prettier, GitHub Actions; auth Dockerfile |
 
 [Package manifests](package.json) and the [lockfile](package-lock.json) own

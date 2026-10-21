@@ -30,9 +30,9 @@ npx nx lint @microservice-eshop/api-gateway
 ```
 
 Build commands and compiler ownership are in the [development guide](development-guide.md).
-Auth's verification placeholder has a commented `verifyOtp()` line, so it is
-not evidence of an active undefined-function compiler failure. Actual compiler
-results must come from a run, not an inference from that comment.
+Registration verification (`POST /api/verify-registration`) actively routes to
+`userVerification` and invokes `verifyOtp(email, otp, next)`. Run focused typecheck
+or test commands to verify changes against compiler and test suites.
 
 ## Shared-module and error-handler coverage
 

@@ -14,6 +14,16 @@
     "/api/user-registration": {
       "post": {
         "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/verify-registration": {
+      "post": {
+        "description": "",
         "parameters": [
           {
             "name": "body",
@@ -21,14 +31,17 @@
             "schema": {
               "type": "object",
               "properties": {
-                "name": {
-                  "example": "Michael"
-                },
                 "email": {
-                  "example": "user@example.com"
+                  "example": "any"
+                },
+                "otp": {
+                  "example": "any"
                 },
                 "password": {
-                  "example": "example-password"
+                  "example": "any"
+                },
+                "name": {
+                  "example": "any"
                 }
               }
             }

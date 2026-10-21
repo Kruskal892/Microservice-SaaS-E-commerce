@@ -1,6 +1,6 @@
 # Authentication development
 
-[Documentation hub](../README.md) · [Registration sequence diagram](../architecture/request-flows.md#registration-and-otp-delivery)
+[Documentation hub](../README.md) · [Registration & verification sequence diagrams](../architecture/request-flows.md#registration-and-otp-delivery)
 
 **Status:** Source implementation, not a verified live integration.
 **Reviewed:** 2026-10-21.
@@ -18,30 +18,58 @@ is trimmed/lowercased and checked for basic format/254-character maximum, and
 password must be a string of 8–128 characters. Seller validation exists in the
 helper but has no route. Invalid input stops before infrastructure calls.
 
+## Current verification and account creation
+
+`POST /api/verify-registration` completes user registration by validating the
+submitted OTP, hashing credentials, and persisting the user in MongoDB:
+
+1. **Payload validation:** Verifies that `name`, `email`, `otp`, and `password`
+   are present. Missing fields return 400 with `'All fields are required!'`.
+2. **Account existence check:** Queries MongoDB via
+   `prisma.users.findUnique({ where: { email } })`. If an account already
+   exists for that email, returns 400 with `'The user is already existed!'`.
+3. **OTP verification (`verifyOtp`):** Validates the four-digit code against Redis,
+   tracks failed attempts up to 3 tries, locks the account for 30 minutes on
+   exceeded attempts, and cleans up Redis keys on match.
+4. **Password hashing:** Hashes the plaintext password with `bcrypt.hash(password, 10)`
+   using `bcryptjs`.
+5. **Persistence:** Creates the new user in MongoDB via `prisma.users.create`
+   with `name`, `email`, and `password: hashedPassword`.
+6. **Response:** Returns HTTP 200 `{ "success": true, "message": "User registered successfully!" }`.
+
 ## OTP storage contract
 
 The [ioredis client](../../packages/libs/redis/index.ts) is a direct module-level
 instance. [auth.helper.ts](../../apps/auth-service/src/utils/auth.helper.ts) owns
 the following keys using the normalized email:
 
-| Key                         | Value / expiry                 | Current use                                              |
-| --------------------------- | ------------------------------ | -------------------------------------------------------- |
-| `otp_lock:<email>`          | Writer/TTL absent              | Read to reject a locked account; message says 30 minutes |
-| `otp_spam_lock:<email>`     | `'locked'`, 3,600 seconds      | Set when the counter is already at least 2               |
-| `otp_request_count:<email>` | Integer string, 3,600 seconds  | GET/SET increment; expiry refreshed each allowed update  |
-| `otp_cooldown:<email>`      | `'true'`, 60 seconds           | Written after accepted mail and OTP storage              |
-| `otp:<email>`               | Four-digit string, 300 seconds | Generated with `crypto.randomInt(1000, 10000)`           |
+| Key                         | Value / expiry                 | Current use                                                       |
+| --------------------------- | ------------------------------ | ----------------------------------------------------------------- |
+| `otp_lock:<email>`          | `'locked'`, 1,800 seconds      | Written on 3rd failed OTP verification attempt; blocks new OTP    |
+| `otp_spam_lock:<email>`     | `'locked'`, 3,600 seconds      | Set during registration when counter is already at least 2        |
+| `otp_request_count:<email>` | Integer string, 3,600 seconds  | GET/SET increment; expiry refreshed each allowed update           |
+| `otp_cooldown:<email>`      | `'true'`, 60 seconds           | Written after accepted mail and OTP storage                       |
+| `otp:<email>`               | Four-digit string, 300 seconds | Generated with `crypto.randomInt(1000, 10000)`; deleted on verify |
+| `otp_attempts:<email>`      | Integer string, 300 seconds    | Failed verification attempts counter; deleted on verify/lock      |
 
 Restriction checks run in lock → spam lock → cooldown order. Helpers throw
 `ValidationError`, so the controller stops on failure. Two counter increments
 are allowed; a later request that passes cooldown checks sets the spam lock.
 This is an expiry refreshed on updates, not a fixed calendar-hour quota.
 
-The sequential GET/SET operations can race. Request count is increased before
-SMTP, so a mail failure can still consume a request. A partial failure after
-SMTP acceptance can leave an email without matching OTP/cooldown state.
-No atomic admission, verification attempt counter, or single-use consumption
-is implemented. Future behavior belongs in the
+Verification inspects `otp:${email}`. If the key is absent or expired, it throws
+`ValidationError('Expired or invalid OTP!')`. On incorrect OTP entry, it reads
+`otp_attempts:${email}`. When failed attempts reach 2 (the 3rd attempt), it
+writes `otp_lock:${email}` with a 1,800-second (30-minute) TTL, deletes the OTP
+and attempt keys, and returns a 30-minute lockout error. When fewer attempts have
+failed, it increments `otp_attempts:${email}` (300-second TTL) and returns the
+remaining attempts count. On a matching OTP, it deletes both `otp:${email}` and
+`otp_attempts:${email}` for single-use consumption.
+
+The sequential GET/SET operations can race under high concurrency. Request count
+is increased before SMTP, so a mail failure can still consume a request. A partial
+failure after SMTP acceptance can leave an email without matching OTP/cooldown state.
+Atomic admission and transaction boundaries belong in the
 [Redis/runtime plan](../future-plans/architecture/redis-and-runtime-plan.md).
 
 ## Mail and runtime dependencies
@@ -61,15 +89,14 @@ The current Dockerfile has no explicit Prisma-generation step; inspect the
 
 ## Remaining authentication work
 
-`userVerification` is exported but unrouted. It reads required fields and looks
-up an existing email, then stops: its `verifyOtp()` line is **commented out**.
-There is no active undefined `verifyOtp` call. If mounted unchanged, its valid,
-non-existing-user path would not send a success response.
+With registration and verification implemented, the remaining authentication
+capabilities include:
 
-OTP comparison, failed-code limits, single-use consumption, password hashing,
-user creation, login, logout, and sessions remain unfinished. Resolve the
-schema's required independent `imagesId` scalar before creating users; see
-[database design](../architecture/database-design.md).
+- User login endpoint (`POST /api/login`) with credential validation.
+- Session or JWT token generation (`jsonwebtoken` is installed) and refresh flow.
+- Logout and session/token revocation.
+- Password recovery / reset flow.
+- Seller registration and onboarding routes.
 
 The [future structure plan](../future-plans/architecture/auth-service-structure-plan.md)
 proposes separating app creation, validation, and OTP orchestration. Current code

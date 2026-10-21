@@ -8,10 +8,11 @@ assignments, estimates, tickets, or dates are supplied.
 
 ## 1. Starting point
 
-Gateway/auth tooling and the OTP request path exist. Account creation, a customer
-purchase journey, and production infrastructure do not.
+Gateway/auth tooling, OTP delivery, and registration verification with account
+creation exist. A complete session/login lifecycle, customer purchase journey, and
+production infrastructure do not.
 [Implementation status](../operations/implementation-status.md) tracks evidence.
-Prisma 6.19 and users/images provide part of D-01; F-02/F-03/F-04 and R-01 also
+Prisma 6.19 and users/images provide part of D-01; F-02/F-03/F-04, A-02, and R-01 also
 have partial source work. Every task below remains open until its full acceptance
 criteria are met. The Dockerfile is still a single-stage scaffold without an
 explicit Prisma generation step; current packaging is not a completed task.

@@ -16,14 +16,14 @@
 |   |-- auth-service/
 |   |   |-- src/
 |   |   |   |-- main.ts                  # Express wiring, Swagger, listener
-|   |   |   |-- routes/auth.router.ts    # POST /api/user-registration
+|   |   |   |-- routes/auth.router.ts    # POST /api/user-registration, POST /api/verify-registration
 |   |   |   |-- controller/auth.controller.ts
-|   |   |   |-- utils/auth.helper.ts     # Validation and OTP policy/orchestration
+|   |   |   |-- utils/auth.helper.ts     # Validation, OTP verification, attempt locking
 |   |   |   |-- mail/
 |   |   |   |   |-- mail.client.ts       # EJS rendering and SMTP transport
 |   |   |   |   |-- index.ts
 |   |   |   |   `-- templates/user-activation-mail.ejs
-|   |   |   |-- swagger.js               # Standalone generation script
+|   |   |   |-- swagger.js               # Swagger documentation generator; npm run auth-docs
 |   |   |   `-- swagger-output.json      # Committed Swagger 2.0 document
 |   |   |-- package.json                 # esbuild, serve, prune, Docker targets
 |   |   |-- tsconfig.app.json            # App compiler config and shared reference
