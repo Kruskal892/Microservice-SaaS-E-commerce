@@ -2,7 +2,7 @@
 
 [Documentation index](../../README.md) · [Current authentication flow](../../development/authentication.md)
 
-**Date:** 2026-10-21. **Status:** Proposed refactor; these moves have not been made.
+**Date:** 2026-10-22. **Status:** Proposed refactor; these moves have not been made.
 This plan reorganizes existing ownership without changing public endpoints.
 Advanced Redis and port configuration are deferred; see the
 [Redis and runtime plan](redis-and-runtime-plan.md).
@@ -17,7 +17,9 @@ Keep environment reads local and use the existing PORT convention.
 
 The current issue is mixed responsibilities: `main.ts` builds and starts Express,
 `auth.helper.ts` combines validation with Redis policy and mail orchestration, and
-the controller performs database access. Adding directories alone will not solve
+the controller performs database access, password hashing/comparison, and JWT
+signing. Cookie policy currently lives in `utils/cookies/setCookies.ts`.
+Adding directories alone will not solve
 those responsibilities. Move them in small, behavior-preserving steps.
 
 ## Proposed target
@@ -31,10 +33,12 @@ apps/auth-service/
     |-- main.ts                  # Start Express directly; keep bootstrap small
     |-- app.ts                   # Create Express app; CORS, parsing, routes, errors
     |-- auth/
-    |   |-- auth.router.ts       # Existing /api routes; verification only when ready
+    |   |-- auth.router.ts       # Preserve existing /api registration, verification, and login routes
     |   |-- auth.controller.ts   # HTTP input/output and error forwarding
     |   |-- registration.service.ts  # Email lookup and OTP delivery orchestration
     |   |-- registration.validation.ts # unknown -> validated, normalized input
+    |   |-- login.service.ts     # Existing credential comparison and token issuance
+    |   |-- cookies.ts           # Existing cookie policy moved with the feature
     |   |-- otp.service.ts       # Existing OTP rules; future atomicity when needed
     |   |-- registration.validation.spec.ts
     |   |-- registration.service.spec.ts
@@ -57,7 +61,7 @@ packages/                        # Existing single workspace and tsconfig
 ```
 
 Create files as responsibilities move; do not create empty folders or placeholder
-modules. Future login, sessions, and verification stay in `auth/` until their size
+modules. Existing login and verification, and future session lifecycle work, stay in `auth/` until their size
 and independent ownership justify another feature folder. There is no need for
 per-folder `package.json`, `tsconfig.json`, generic repository interfaces,
 dependency-injection containers, or base controllers.
@@ -103,7 +107,8 @@ module. Never share auth business rules through `packages/libs`.
    Add readiness/shutdown only through the separate future lifecycle work. Keep greeting and health contracts intact.
 2. **Move the feature together.** Move `routes/auth.router.ts` and
    `controller/auth.controller.ts` into `auth/`; update imports. Keep
-   `POST /api/user-registration` unchanged. Do not expose incomplete verification.
+   all three `/api` POST contracts unchanged, including JWT claims and cookie
+   attributes. Improve behavior in separate changes with explicit validation.
 3. **Split the helper by responsibility.** Move validation into
    `registration.validation.ts`, OTP restrictions/storage into `otp.service.ts`, and email
    lookup/orchestration into `registration.service.ts`. Add focused tests with each responsibility; no current auth unit tests need moving. Delete the old helper after all callers have moved.
@@ -119,16 +124,18 @@ module. Never share auth business rules through `packages/libs`.
 
 ## Separate functional follow-ups
 
-Verification completion is a different change: implement OTP comparison,
-failed-attempt lockout, atomic single-use consumption, password hashing, user
-creation, unique-email race handling, route wiring, and success/failure responses.
-The existing `verifyOtp()` placeholder is commented out and unimplemented. Do not describe a folder
-refactor as working authentication.
+Verification is already routed and implements OTP comparison, attempt lockout,
+password hashing, and user creation. Login is routed and signs JWT cookies.
+Separate functional follow-ups are consistent validation/normalization, clean OTP
+error propagation without Express `next`, atomic single-use consumption,
+unique-email race handling, token verification/protected requests, refresh/logout,
+and browser/CSRF policy. A folder refactor does not establish those behaviors or
+verify live authentication.
 
 The OTP record remains a string at `otp:<normalized-email>`, expiring after
 300 seconds. Cooldown expires after 60 seconds. No Lua scripts, ownership tokens,
 Redis hash migration, or gateway Redis store are currently introduced. Future
-verification must use the same normalization and storage format unless a separate
+verification hardening must use the same normalization and storage format unless a separate
 migration is explicitly implemented. Registration does not persist passwords.
 
 ## Acceptance checklist for the future refactor

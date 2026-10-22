@@ -3,17 +3,17 @@
 [Documentation index](../../README.md)
 
 **Priority:** Critical. **Status:** Proposed product behavior with current baseline.
-**Reviewed:** 2026-10-21. Requirement IDs refer to the [PRD](prd.md); draft paths are
+**Reviewed:** 2026-10-22. Requirement IDs refer to the [PRD](prd.md); draft paths are
 owned by the [proposed product API](../api/product-api.md).
 
 ## 1. Current foundation
 
-| Feature              | Trigger and result                                                   | Limits                                                       |
-| -------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Auth foundation      | Greeting, registration/OTP request, Swagger routes                   | No completed verification, account writes, login or sessions |
-| Local gateway health | GET /gateway-health returns 200 and gateway JSON                     | Local response before quota; no dependency readiness         |
-| Forwarding           | Other paths go unchanged to AUTH_SERVICE_URL, default localhost:6001 | One auth upstream; no commerce routing                       |
-| Rate limiting        | 100 requests per 15 minutes using default IPv4/IPv6 IP keys          | Per-process memory; direct auth bypasses gateway             |
+| Feature              | Trigger and result                                                                             | Limits                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Auth foundation      | Greeting, registration/OTP, verification/account creation, login/JWT cookies, Swagger examples | No token verification/protected requests, refresh, logout, or verified live integration |
+| Local gateway health | GET /gateway-health returns 200 and gateway JSON                                               | Local response before quota; no dependency readiness                                    |
+| Forwarding           | Other paths go unchanged to AUTH_SERVICE_URL, default localhost:6001                           | One auth upstream; no commerce routing                                                  |
+| Rate limiting        | 100 requests per 15 minutes using default IPv4/IPv6 IP keys                                    | Per-process memory; direct auth bypasses gateway                                        |
 
 Auth also registers the shared error handler after routes. Its source defines
 application-error and generic 500 response shapes; those responses have not
@@ -30,8 +30,12 @@ profile; logout invalidates the session.
 
 Acceptance: duplicate registration cannot create two accounts; invalid login
 creates no session; expired/revoked sessions return 401; logout prevents reuse.
-Decide credential policy, verification/recovery, session transport/expiry, and
-browser security before implementation. No role or tenant model is established.
+Current `/api/login` already issues 15-minute access and 7-day refresh JWTs in
+Secure/HttpOnly/SameSite=None cookies. Both cookies retain a 7-day lifetime;
+missing-user and incorrect-password errors differ. The proposed generic failures,
+current-user route, refresh/revocation, logout, and browser security remain work
+to implement and verify. The token role is hard-coded to `user`; no persisted
+role or tenant model is established. See the [current API](../../reference/api.md).
 
 ## 3. Catalog (PR-02) - proposed
 

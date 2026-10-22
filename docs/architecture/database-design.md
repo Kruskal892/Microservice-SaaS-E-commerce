@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Source schema](../../prisma/schema.prisma)
 
 **Status:** Declared Prisma/MongoDB schema; live synchronization and persistence
-are unverified. **Reviewed:** 2026-10-21.
+are unverified. **Reviewed:** 2026-10-22.
 
 ## Current Prisma schema
 
@@ -63,6 +63,13 @@ OTP values, request counts, attempt tracking, and cooldowns live in Redis outsid
 this schema. Their key/expiry contract is in
 [authentication development](../development/authentication.md). No database
 transaction spans SMTP, Redis, and MongoDB.
+
+Login (`POST /api/login`) reads `users.findUnique({ where: { email } })` using
+the supplied email unchanged, compares the stored bcrypt password hash, and
+returns only `{ id, email, name }`. It does not write a session or refresh-token
+record. JWTs are signed into cookies; there are no persisted roles, revocation
+records, or token-rotation state in the current schema. The token's user role
+is a fixed controller value.
 
 ## Constraints to resolve before writes
 

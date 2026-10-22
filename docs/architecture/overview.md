@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current source. **Reviewed:** 2026-10-21. The system is a backend
+**Status:** Current source. **Reviewed:** 2026-10-22. The system is a backend
 foundation; integrations shown below are wired in code and remain unverified
 against live services.
 
@@ -29,40 +29,41 @@ See [request flows](request-flows.md) for execution order and failure paths.
 
 ## Boundaries and responsibilities
 
-| Component      | Current responsibility                                                                                                  | Source                                                                                                                  |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                               | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
-| Auth           | Registration & verification validation, email lookup, OTP restrictions/verification, password hashing, user persistence | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
-| Shared errors  | Error classes and JSON error middleware used by both apps                                                               | [error-handler](../../packages/error-handler/index.ts)                                                                  |
-| Shared clients | Prisma client reuse and a simple ioredis instance                                                                       | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
-| MongoDB schema | Identity fields and optional avatar relation                                                                            | [schema.prisma](../../prisma/schema.prisma)                                                                             |
-| Nx/npm         | Workspace dependency graph, builds, serve, and checks                                                                   | [nx.json](../../nx.json), [package.json](../../package.json)                                                            |
+| Component      | Current responsibility                                                                                                | Source                                                                                                                  |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                             | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
+| Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
+| Shared errors  | Error classes and JSON error middleware used by both apps                                                             | [error-handler](../../packages/error-handler/index.ts)                                                                  |
+| Shared clients | Prisma client reuse and a simple ioredis instance                                                                     | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
+| MongoDB schema | Identity fields and optional avatar relation                                                                          | [schema.prisma](../../prisma/schema.prisma)                                                                             |
+| Nx/npm         | Workspace dependency graph, builds, serve, and checks                                                                 | [nx.json](../../nx.json), [package.json](../../package.json)                                                            |
 
 Shared infrastructure lives in one npm workspace; `@packages/*` names are
 TypeScript/build aliases. They are not individual published packages. Auth owns
-OTP, registration, and verification policy in its app, rather than sharing
+OTP, registration, verification, and login policy in its app, rather than sharing
 those business rules. See [repository structure](repository-structure.md) and
 [technical design](technical-design.md).
 
 ## Technology in use
 
-| Area                 | Current choice                                       |
-| -------------------- | ---------------------------------------------------- |
-| Runtime and HTTP     | Node.js, Express 5, TypeScript; CI selects Node 24   |
-| Workspace and builds | Nx/npm, auth esbuild, gateway Webpack                |
-| Gateway              | express-http-proxy, express-rate-limit, cors, Morgan |
-| Persistence          | Prisma 6.19 and MongoDB; email lookup & persistence  |
-| Security             | bcryptjs for password hashing                        |
-| Transient data       | ioredis with string OTPs, counters, cooldowns        |
-| Email                | Nodemailer transport and EJS activation template     |
-| API discovery        | Committed Swagger 2.0 JSON, swagger-ui-express       |
-| Validation tooling   | Jest/SWC/Axios, ESLint, Prettier, strict TypeScript  |
-| Delivery tooling     | GitHub Actions checks and an auth-service Dockerfile |
+| Area                 | Current choice                                                                    |
+| -------------------- | --------------------------------------------------------------------------------- |
+| Runtime and HTTP     | Node.js, Express 5, TypeScript; CI selects Node 24                                |
+| Workspace and builds | Nx/npm, auth esbuild, gateway Webpack                                             |
+| Gateway              | express-http-proxy, express-rate-limit, cors, Morgan                              |
+| Persistence          | Prisma 6.19 and MongoDB; email lookup & persistence                               |
+| Security             | bcryptjs password hashing/comparison; jsonwebtoken signing; HTTP-only JWT cookies |
+| Transient data       | ioredis with string OTPs, counters, cooldowns                                     |
+| Email                | Nodemailer transport and EJS activation template                                  |
+| API discovery        | Committed Swagger 2.0 JSON, swagger-ui-express                                    |
+| Validation tooling   | Jest/SWC/Axios, ESLint, Prettier, strict TypeScript                               |
+| Delivery tooling     | GitHub Actions checks and an auth-service Dockerfile                              |
 
 The [root manifest](../../package.json) and [lockfile](../../package-lock.json)
 own versions. A dependency being installed does not imply an active feature;
-for example, cookie-parser and jsonwebtoken are installed but neither entry point
-mounts cookie handling or token signing yet.
+for example, cookie-parser is installed but neither entry point mounts it.
+Auth login does use jsonwebtoken and Express cookie writing. There is no incoming
+cookie parsing, token verification middleware, or protected route consumer yet.
 
 ## Runtime constraints
 
@@ -73,10 +74,14 @@ mounts cookie handling or token signing yet.
   Redis without creating users. Registration verification (`POST /api/verify-registration`)
   validates the OTP, enforces attempt locks (30-minute lock after 3 failed attempts),
   hashes the password with bcrypt, and persists the user record.
+- Login (`POST /api/login`) checks credentials, signs 15-minute access and 7-day
+  refresh JWTs, and sets both cookies with a 7-day lifetime. Cookies always use
+  Secure, HttpOnly, and SameSite=None. Refresh, logout, revocation, and protected
+  requests remain unimplemented; browser deployment policy is unverified.
 - OTP checks and counter updates are sequential, so concurrent requests can
   race. SMTP delivery and Redis state are separate operations.
 - Both entry points call `app.listen()` directly. Dependency readiness,
-  graceful shutdown, session identity, and production ingress are absent.
+  graceful shutdown, request identity enforcement, and production ingress are absent.
 - Docker packaging is an unverified scaffold. Its current single-stage
   Dockerfile uses `node:lts-alpine` and `npm --omit=dev -f install`; it has no
   explicit Prisma generation or non-root user configuration.

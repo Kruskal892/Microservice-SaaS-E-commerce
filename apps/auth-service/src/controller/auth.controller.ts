@@ -1,5 +1,6 @@
 import prisma from '@packages/libs/prisma';
-import { ValidationError } from '@packages/error-handler';
+import { AuthError, ValidationError } from '@packages/error-handler';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextFunction, Request, Response } from 'express';
 import {
@@ -9,12 +10,29 @@ import {
   validateRegistrationData,
   verifyOtp,
 } from '../utils/auth.helper';
+import { setCookie } from '../utils/cookies/setCookies';
 
 export const userRegistration = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
+  /* #swagger.tags = ['Authentication']
+     #swagger.summary = 'Request a registration OTP'
+     #swagger.parameters['body'] = {
+       in: 'body',
+       required: true,
+       schema: {
+         $name: 'Example Customer',
+         $email: 'customer@example.com',
+         $password: 'example-password'
+       }
+     }
+     #swagger.responses[200] = {
+       description: 'OTP sent to the supplied email address.',
+       schema: { message: 'OTP sent. Please check your account' }
+     }
+  */
   try {
     const { name, email } = validateRegistrationData(req.body, 'user');
 
@@ -41,6 +59,26 @@ export const userVerification = async (
   res: Response,
   next: NextFunction,
 ) => {
+  /* #swagger.tags = ['Authentication']
+     #swagger.summary = 'Verify the OTP and create a user account'
+     #swagger.parameters['body'] = {
+       in: 'body',
+       required: true,
+       schema: {
+         $name: 'Example Customer',
+         $email: 'customer@example.com',
+         $otp: '1234',
+         $password: 'example-password'
+       }
+     }
+     #swagger.responses[200] = {
+       description: 'User account created.',
+       schema: {
+         success: true,
+         message: 'User registered successfully!'
+       }
+     }
+  */
   try {
     const { email, otp, password, name } = req.body;
     if (!email || !otp || !password || !name) {
@@ -60,6 +98,79 @@ export const userVerification = async (
     res.status(200).json({
       success: true,
       message: 'User registered successfully!',
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const loginUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  /* #swagger.tags = ['Authentication']
+     #swagger.summary = 'Log in and set access and refresh cookies'
+     #swagger.parameters['body'] = {
+       in: 'body',
+       required: true,
+       schema: {
+         $email: 'customer@example.com',
+         $password: 'example-password'
+       }
+     }
+     #swagger.responses[200] = {
+       description: 'Login succeeded; access_token and refresh_token cookies set.',
+       schema: {
+         message: 'Login success',
+         user: {
+           id: '507f1f77bcf86cd799439011',
+           email: 'customer@example.com',
+           name: 'Example Customer'
+         }
+       }
+     }
+  */
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return next(new ValidationError('Email and password are required!'));
+    }
+    const user = await prisma.users.findUnique({ where: { email } });
+    if (!user) return next(new ValidationError("User doesn't exist"));
+    if (!user.password) return next(new AuthError('Invalid email or password'));
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return next(new AuthError('Invalid email or password'));
+
+    // Generate access and refresh token
+    const accessToken = jwt.sign(
+      { id: user.id, role: 'user' },
+      process.env.JWT_ACCESS_TOKEN_SECRET as string,
+      {
+        expiresIn: '15m',
+      },
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user.id, role: 'user' },
+      process.env.JWT_REFRESH_TOKEN_SECRET as string,
+      {
+        expiresIn: '7d',
+      },
+    );
+    setCookie(res, 'access_token', accessToken);
+    setCookie(res, 'refresh_token', refreshToken);
+
+    res.status(200).json({
+      message: 'Login success',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
     });
   } catch (error) {
     return next(error);

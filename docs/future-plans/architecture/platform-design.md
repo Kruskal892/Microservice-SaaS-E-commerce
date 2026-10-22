@@ -2,7 +2,7 @@
 
 [Future plans](../README.md) · [Current architecture](../../architecture/overview.md)
 
-**Status:** Draft target and open decisions. **Reviewed:** 2026-10-21.
+**Status:** Draft target and open decisions. **Reviewed:** 2026-10-22.
 The diagram is a proposed system; it does not describe deployed components.
 
 ## Target system
@@ -22,7 +22,8 @@ flowchart LR
 ```
 
 Dashed arrows describe target interactions. Auth and gateway have current
-scaffolds; the full flows shown here are unfinished. Logical data ownership
+implementations, including OTP/account creation and login/JWT cookie issuance;
+the full identity lifecycle and commerce flows shown here are unfinished. Logical data ownership
 does not mandate separate physical MongoDB deployments. Do not create a new
 service for every entity without a workflow and ownership reason.
 
@@ -60,6 +61,12 @@ Parsed cookies or identity headers alone do not establish a session. Avoid
 client-chosen prices or unfiltered objects in database writes. Define safe
 public errors and structured/correlated logging; do not log credentials or
 personal request payloads.
+
+Current auth signs access/refresh JWTs but has no consuming authentication
+middleware, refresh/rotation endpoint, logout, or revocation state. The existing
+fixed role and Secure/HttpOnly/SameSite=None cookie policy are the baseline to
+review when deciding production identity and browser security, rather than a
+completed implementation of this target. See [current authentication](../../development/authentication.md).
 
 ## Consistency and rollout
 

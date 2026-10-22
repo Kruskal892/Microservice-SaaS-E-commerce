@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [API reference](../reference/api.md)
 
-**Status:** Current source execution paths. **Reviewed:** 2026-10-21.
+**Status:** Current source execution paths. **Reviewed:** 2026-10-22.
 These diagrams explain code behavior, not a successful end-to-end run.
 
 ## Gateway request lifecycle
@@ -43,14 +43,17 @@ flowchart TD
     Route -->|"/api-docs or GET /docs-json"| Swagger["Swagger UI or committed JSON"]
     Route -->|"POST /api/user-registration"| Registration["Registration controller"]
     Route -->|"POST /api/verify-registration"| Verification["Verification controller"]
+    Route -->|"POST /api/login"| Login["Login controller<br/>bcrypt, JWT signing, cookies"]
     Route -->|No| Missing["Express default 404"]
     JSON -->|Parse or size error| Errors["Shared error middleware"]
     Registration -->|Error forwarded| Errors
     Verification -->|Error forwarded| Errors
+    Login -->|Error forwarded| Errors
 ```
 
-Auth mounts `POST /api/user-registration` and `POST /api/verify-registration`.
-There are no login, session, or commerce routes.
+Auth mounts `POST /api/user-registration`, `POST /api/verify-registration`, and
+`POST /api/login`. Refresh, logout, current-user, protected, and commerce routes
+are not implemented. CORS and issuing cookies do not authenticate later requests.
 
 ## Registration and OTP delivery
 
@@ -157,10 +160,55 @@ sequenceDiagram
     end
 ```
 
-Missing fields, existing users, missing/expired OTPs, and OTP mismatches throw
-`ValidationError` and stop further execution before account creation. On match,
+Missing fields and existing users are forwarded with `return next(error)`.
+For missing/expired/mismatched OTPs, `verifyOtp` calls `next(ValidationError)`
+and then throws the return value; it still stops before account creation, but
+this Express-dependent error contract needs cleanup. On match,
 the OTP is deleted from Redis (single-use consumption), the password is
 hashed with `bcryptjs` (10 rounds), and the user record is written to MongoDB.
+
+## Login and JWT issuance
+
+Sources: [controller](../../apps/auth-service/src/controller/auth.controller.ts)
+and [cookie helper](../../apps/auth-service/src/utils/cookies/setCookies.ts).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Auth as Login controller
+    participant DB as Prisma / MongoDB
+    Client->>Auth: POST /api/login (email, password)
+    Auth->>Auth: Check email and password presence
+    alt Missing or falsy field in parsed body
+        Auth-->>Client: 400 Email and password are required!
+    else Fields present
+        Auth->>DB: users.findUnique(email unchanged)
+        DB-->>Auth: User or null
+        alt User absent
+            Auth-->>Client: 400 User doesn't exist
+        else Password hash absent
+            Auth-->>Client: 401 Invalid email or password
+        else Password hash present
+            Auth->>Auth: bcrypt.compare(password, user.password)
+            alt Password does not match
+                Auth-->>Client: 401 Invalid email or password
+            else Password matches
+                Auth->>Auth: Sign access JWT (15m) and refresh JWT (7d)
+                Auth->>Auth: Set access_token and refresh_token cookies
+                Auth-->>Client: 200 Login success with public user fields
+            end
+        end
+    end
+```
+
+Both JWTs contain user ID and fixed `role: 'user'`; each uses its own environment
+signing secret. Both cookies use HttpOnly, Secure, SameSite=None, and a 7-day
+cookie lifetime. A retained access cookie does not extend the JWT's 15-minute
+expiry. No token verification, refresh, logout, or persistent session store
+consumes them yet. Unexpected errors, including absent-body destructuring or
+missing signing secrets, are forwarded to shared error handling. See the
+[API contract](../reference/api.md#login-and-jwt-cookies) for exact responses.
 
 ## Shared error path
 

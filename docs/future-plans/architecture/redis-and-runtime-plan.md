@@ -2,7 +2,7 @@
 
 [Documentation index](../../README.md) · [Auth-service structure plan](auth-service-structure-plan.md)
 
-**Updated:** 2026-10-21. **Status:** Future work, not an implementation claim.
+**Updated:** 2026-10-22. **Status:** Future work, not an implementation claim.
 
 ## Current baseline
 
@@ -10,6 +10,10 @@
 - Keep OTP values as strings with a 300-second expiry and a 60-second cooldown.
 - Keep the existing sequential `GET`/`SET` restrictions and request counter.
   Helpers throw errors so registration stops when a restriction fails.
+- Verification already compares OTPs, tracks attempts, locks after three failed
+  attempts, and deletes OTP/attempt keys on success. Those operations are sequential.
+- Login signs access/refresh JWT cookies but has no refresh/revocation store or
+  token-verification consumer. Redis still holds OTP state only.
 - Keep the gateway's default in-memory IP limiter. It does not import Redis.
 - Keep `PORT`: auth defaults to 6001, gateway to 8080. Leave it unset when
   launching both with `npm run dev`; override it in a service's own environment.
@@ -24,8 +28,9 @@ layer in the current source. See [current authentication](../../development/auth
 
 ## Phase 1: Finish the local authentication flow
 
-Complete verification, password hashing, and user creation before introducing
-more infrastructure. Validate normalized email consistently, stop on restrictions,
+Verification, password hashing, user creation, and login/token issuance exist in
+source. Verify those flows before introducing more infrastructure. Validate
+normalized email consistently, stop on restrictions,
 and propagate mail failures. Keep configuration in environment variables; do not
 log credentials or copy `.env` into images.
 
@@ -59,7 +64,8 @@ not assert a selected Lua implementation or a solved delivery transaction.
 2. Define delivery failure behavior. Redis and SMTP cannot commit together;
    preserve the original error and ensure failed attempts cannot delete newer
    state. Do not report SMTP acceptance as guaranteed inbox delivery.
-3. Add wrong-code attempt limits and single-use OTP consumption with verification.
+3. Make existing wrong-code limits and single-use OTP consumption atomic; preserve
+   the current attempt/lock contract and clean up helper error propagation.
 4. Add focused tests for simultaneous requests, expiry, delivery/storage failures,
    lockout, and replay against a dedicated test Redis instance.
 5. Add bounded connection/command behavior, safe connection error reporting,
@@ -95,7 +101,7 @@ enable blanket proxy trust. The gateway currently uses Express's no-trust defaul
 
 ## Checks for the future implementation
 
-- [ ] Complete registration and verification behavior first.
+- [ ] Verify registration, verification, and login behavior; resolve validation/error inconsistencies.
 - [ ] Reproduce concurrent OTP admission before implementing its fix.
 - [ ] Verify failures and expiry using isolated Redis data.
 - [ ] Verify shared limits only when replicas are deployed.

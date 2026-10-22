@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-10-21. See [repository structure](../architecture/repository-structure.md)
+**Reviewed:** 2026-10-22. See [repository structure](../architecture/repository-structure.md)
 for the code tree and dependency diagram, and
 [configuration](../reference/configuration.md) for runtime inputs.
 
@@ -42,6 +42,7 @@ Both E2E projects define their own `e2e` executor and dependencies. Nx's default
 | Check gateway types    | `npx nx typecheck @microservice-eshop/api-gateway`  |
 | Lint auth              | `npx nx lint @microservice-eshop/auth-service`      |
 | Lint gateway           | `npx nx lint @microservice-eshop/api-gateway`       |
+| Regenerate auth docs   | `npm run auth-docs`                                 |
 
 Choose builds, lint, and tests that verify the changed behavior, and record
 the commands/results separately from checks that were not run.
@@ -150,6 +151,24 @@ See the [auth folder plan](../future-plans/architecture/auth-service-structure-p
 future feature ownership and the [Redis/runtime plan](../future-plans/architecture/redis-and-runtime-plan.md)
 for deliberately deferred infrastructure. Neither plan creates empty modules or
 per-folder package manifests.
+
+## Auth routes and Swagger generation
+
+Auth routes live in `routes/auth.router.ts`, mounted at `/api` by `main.ts`.
+The controller handles registration, verification/account creation, and login.
+Login uses `jsonwebtoken` and the local `utils/cookies/setCookies.ts` helper;
+`@types/jsonwebtoken` is a root development dependency. See
+[authentication development](authentication.md) for signing secrets, cookie
+lifetimes, error behavior, and unfinished identity features.
+
+After changing an API contract, update the controller's `#swagger` annotations
+and run `npm run auth-docs`. The generator scans `main.ts` so mounted prefixes
+are retained automatically; scanning only the router loses `/api`. Explicit body
+schemas supply required fields and examples, including registration fields that
+are hidden behind a validation-helper call. Commit the regenerated
+`swagger-output.json`, restart auth, and reload `/api-docs` or `/docs-json`.
+Generation is static and does not start the service or check external systems.
+Swagger continues to advertise `http://localhost:6001` regardless of runtime PORT.
 
 ## Debugging
 

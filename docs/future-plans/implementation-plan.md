@@ -3,19 +3,25 @@
 [Documentation index](../README.md)
 
 **Priority:** Critical. **Status:** Proposed backlog, not a committed schedule.
-**Reviewed:** 2026-10-21. Owner columns suggest responsibility; no actual owner
+**Reviewed:** 2026-10-22. Owner columns suggest responsibility; no actual owner
 assignments, estimates, tickets, or dates are supplied.
 
 ## 1. Starting point
 
 Gateway/auth tooling, OTP delivery, and registration verification with account
-creation exist. A complete session/login lifecycle, customer purchase journey, and
-production infrastructure do not.
+creation exist. Login now compares password hashes and issues access/refresh JWT
+cookies. A complete identity lifecycle (protected requests, refresh/rotation,
+logout/revocation), customer purchase journey, and production infrastructure do not.
 [Implementation status](../operations/implementation-status.md) tracks evidence.
 Prisma 6.19 and users/images provide part of D-01; F-02/F-03/F-04, A-02, and R-01 also
 have partial source work. Every task below remains open until its full acceptance
 criteria are met. The Dockerfile is still a single-stage scaffold without an
 explicit Prisma generation step; current packaging is not a completed task.
+
+A-02 now includes implemented login/token issuance, and R-01 includes corrected
+`/api` Swagger paths and required request/success examples. Their remaining gates
+include validation/error consistency, cookie/browser policy, token verification
+and lifecycle, detailed error/cookie documentation, and permanent contract tests.
 
 ## 2. Tasks and acceptance criteria
 

@@ -3,24 +3,26 @@
 [Documentation hub](../README.md) · [Request flow diagrams](../architecture/request-flows.md)
 
 **Status:** Current source contracts; runtime integrations unverified.
-**Reviewed:** 2026-10-21.
+**Reviewed:** 2026-10-22.
 
 ## Available routes
 
-| Method | Path                       | Handler            | Source-defined result                                      |
-| ------ | -------------------------- | ------------------ | ---------------------------------------------------------- |
-| GET    | `/gateway-health`          | Gateway, port 8080 | 200 `{ "message": "Welcome to api-gateway!" }`             |
-| GET    | `/`                        | Auth, port 6001    | 200 `{ "message": "Hello API" }`                           |
-| POST   | `/api/user-registration`   | Auth               | Request activation OTP; no account creation                |
-| POST   | `/api/verify-registration` | Auth               | Verify OTP, hash password, and create user account         |
-| GET    | `/api-docs`                | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash |
-| GET    | `/docs-json`               | Auth               | Committed Swagger 2.0 JSON                                 |
+| Method | Path                       | Handler            | Source-defined result                                              |
+| ------ | -------------------------- | ------------------ | ------------------------------------------------------------------ |
+| GET    | `/gateway-health`          | Gateway, port 8080 | 200 `{ "message": "Welcome to api-gateway!" }`                     |
+| GET    | `/`                        | Auth, port 6001    | 200 `{ "message": "Hello API" }`                                   |
+| POST   | `/api/user-registration`   | Auth               | Request activation OTP; no account creation                        |
+| POST   | `/api/verify-registration` | Auth               | Verify OTP, hash password, and create user account                 |
+| POST   | `/api/login`               | Auth               | Check credentials; issue JWT cookies and return public user fields |
+| GET    | `/api-docs`                | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash         |
+| GET    | `/docs-json`               | Auth               | Committed Swagger 2.0 JSON                                         |
 
 Gateway forwards other paths unchanged to `AUTH_SERVICE_URL`, default
 `http://localhost:6001`. Thus gateway `/` serves the auth greeting, and
-gateway `/api/user-registration` and `/api/verify-registration` forward
-registration and verification. Unmatched auth paths use Express's default 404.
-Login, sessions, and commerce remain unavailable.
+gateway `/api/user-registration`, `/api/verify-registration`, and `/api/login`
+forward to auth unchanged. Unmatched auth paths use Express's default 404.
+Token refresh, logout, current-user lookup, protected routes, and commerce
+remain unavailable.
 
 ## Registration
 
@@ -80,12 +82,12 @@ Send `Content-Type: application/json` and an object:
 }
 ```
 
-| Field      | Current validation                                                            |
-| ---------- | ----------------------------------------------------------------------------- |
-| `name`     | Required non-empty field (`!name` returns 400 `ValidationError`)              |
-| `email`    | Required non-empty field (`!email` returns 400 `ValidationError`)             |
-| `otp`      | Required non-empty field (`!otp` returns 400 `ValidationError`)               |
-| `password` | Required non-empty field (`!password` returns 400 `ValidationError`)          |
+| Field      | Current validation                                                   |
+| ---------- | -------------------------------------------------------------------- |
+| `name`     | Required non-empty field (`!name` returns 400 `ValidationError`)     |
+| `email`    | Required non-empty field (`!email` returns 400 `ValidationError`)    |
+| `otp`      | Required non-empty field (`!otp` returns 400 `ValidationError`)      |
+| `password` | Required non-empty field (`!password` returns 400 `ValidationError`) |
 
 The controller checks that `email`, `otp`, `password`, and `name` are all present.
 If any field is missing, it returns **400** with `'All fields are required!'`.
@@ -111,6 +113,7 @@ record exists with that email, it returns **400** with `'The user is already exi
 ### Persistence and response
 
 After OTP verification succeeds:
+
 - Hashes `password` using `bcrypt.hash(password, 10)`.
 - Persists user to MongoDB via `prisma.users.create({ data: { name, email, password: hashedPassword } })`.
 - Returns HTTP 200:
@@ -121,6 +124,72 @@ After OTP verification succeeds:
   "message": "User registered successfully!"
 }
 ```
+
+Verification checks field presence only; it does not reuse registration's type,
+length, or email-normalization checks. Use the same normalized email and a string
+OTP. The helper forwards validation errors through `next(error)` and then throws
+the return value of `next`; this is not a clean throw-only helper contract.
+
+## Login and JWT cookies
+
+`POST http://localhost:6001/api/login`
+
+Send `Content-Type: application/json`:
+
+```json
+{
+  "email": "customer@example.com",
+  "password": "example-password"
+}
+```
+
+The controller checks field truthiness, looks up the supplied email exactly with
+`users.findUnique({ where: { email } })`, and compares the password with
+`bcrypt.compare`. It does not normalize email or enforce input types/lengths.
+Use the email stored at account creation. An absent parsed body can fail during
+destructuring and reach the generic 500 handler rather than field validation.
+
+| Condition                                          | Status | Message                            |
+| -------------------------------------------------- | ------ | ---------------------------------- |
+| Missing/falsy email or password in a parsed object | 400    | `Email and password are required!` |
+| No user for the supplied email                     | 400    | `User doesn't exist`               |
+| User has no password or comparison fails           | 401    | `Invalid email or password`        |
+| Database, hashing, or JWT signing throws           | 500    | Generic shared error response      |
+
+Application errors use `{ "status": "error", "message": "..." }`. The missing-user
+and wrong-password cases currently have different status codes/messages.
+
+On success, two JWTs carry `{ id: user.id, role: 'user' }`. The access token
+expires in 15 minutes and uses `JWT_ACCESS_TOKEN_SECRET`; the refresh token
+expires in 7 days and uses `JWT_REFRESH_TOKEN_SECRET`. Both secrets must be set;
+the TypeScript `as string` assertions do not validate configuration at runtime.
+
+HTTP 200 returns public user fields; token values are sent through `Set-Cookie`:
+
+```json
+{
+  "message": "Login success",
+  "user": {
+    "id": "507f1f77bcf86cd799439011",
+    "email": "customer@example.com",
+    "name": "Example Customer"
+  }
+}
+```
+
+| Cookie          | JWT expiry | Cookie settings                                       |
+| --------------- | ---------- | ----------------------------------------------------- |
+| `access_token`  | 15 minutes | `HttpOnly`, `Secure`, `SameSite=None`, 7-day `maxAge` |
+| `refresh_token` | 7 days     | `HttpOnly`, `Secure`, `SameSite=None`, 7-day `maxAge` |
+
+The [cookie helper](../../apps/auth-service/src/utils/cookies/setCookies.ts)
+uses the same `604800000` ms lifetime for both cookies. Cookie retention does
+not extend JWT validity. The helper has no development/environment override;
+verify browser cookie acceptance in the intended HTTPS setup. Browser callers
+need credentials enabled, for example `fetch(url, { credentials: 'include' })`.
+No handler currently verifies these tokens, refreshes them, revokes them, or
+clears the cookies. There is no persistent session/refresh-token store or
+role lookup; `role: 'user'` is assigned by the controller.
 
 ## Gateway policy
 
@@ -164,14 +233,24 @@ Class definitions are in [technical design](../architecture/technical-design.md#
 ## Swagger coverage
 
 [swagger-output.json](../../apps/auth-service/src/swagger-output.json) declares
-Swagger 2.0, host `localhost:6001`, and documents `/api/user-registration` and
-`/api/verify-registration` with 200 responses. It does not capture the full
+Swagger 2.0, host `localhost:6001`, and documents `/api/user-registration`,
+`/api/verify-registration`, and `/api/login` with required request fields,
+concrete JSON examples, and 200 response schemas. `GET /` also has a greeting
+response example. It does not capture cookie response headers or the full
 validation/error contract above. Swagger's host is fixed, even when the UI is
 accessed through the gateway or a custom port.
 
 [swagger.js](../../apps/auth-service/src/swagger.js) is a generator script wired
-to the root npm script `npm run auth-docs`. The generated JSON is committed and loaded
-by auth at startup. Keep it aligned when implemented contracts change.
+to the root npm script `npm run auth-docs`. It scans `main.ts` so mounted router
+prefixes such as `/api` are included automatically. Request and response examples
+come from `#swagger` comments in the auth controllers; update these alongside
+contract changes. The Swagger UI and JSON endpoints are excluded from generation.
+The generated JSON is committed and loaded by auth at startup. Run
+`npm run auth-docs` after changing routes or annotations, then restart the auth
+service and reload `/api-docs` to see the updated document.
+
+Generation parses source without starting Express or connecting to
+MongoDB/Redis/SMTP. A failed generation sets an unsuccessful process exit code.
 
 The [proposed product API](../future-plans/api/product-api.md) owns all draft
 `/v1` paths and future error-envelope ideas. They are not available routes.

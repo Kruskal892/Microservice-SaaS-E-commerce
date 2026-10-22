@@ -2,7 +2,7 @@
 
 [Future plans](../README.md) · [Current API](../../reference/api.md)
 
-**Status:** Draft; none of these routes are implemented. **Reviewed:** 2026-10-21.
+**Status:** Draft; none of these routes are implemented. **Reviewed:** 2026-10-22.
 
 This draft supports the [feature specification](../product/feature-specification.md).
 `/v1` is a proposed public prefix, not an existing route. Requests to these paths
@@ -12,6 +12,10 @@ limits, service routing, and checkout lifecycle require decisions before impleme
 The draft direct-registration contract below differs from the current OTP request
 endpoint. Decide how verification and compatibility fit before adopting it;
 documenting `/v1/auth/register` does not replace `/api/user-registration`.
+Likewise, current `POST /api/login` already returns a public user projection and
+sets `access_token`/`refresh_token` JWT cookies. The `/v1` login below is a proposal,
+not an alias. Current token expiries, cookie policies, and differentiated 400/401
+failures belong to the [current login contract](../../reference/api.md#login-and-jwt-cookies).
 
 ### Common draft conventions
 
@@ -43,8 +47,9 @@ documenting `/v1/auth/register` does not replace `/api/user-registration`.
 
 Registration persists only a normalized email and password hash. Login issues the
 chosen credential; logout revokes it. Credential storage/transport and CSRF policy
-are undecided, so no cookie names, token fields, lifetimes, or refresh endpoints
-are specified. Verification/recovery require separate approved contracts.
+remain design decisions for this `/v1` draft, so it does not specify cookie names,
+token fields, lifetimes, or refresh endpoints. This does not override the existing
+`/api` JWT-cookie implementation. Verification/recovery require separate approved contracts.
 
 Product summary: `{ id, name, priceMinor, currency, stockQuantity }`; detail adds
 `description`. Cart: `{ id, version, items, totalMinor, currency }`; each line has

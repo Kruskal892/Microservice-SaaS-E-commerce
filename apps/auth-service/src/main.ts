@@ -17,12 +17,24 @@ app.use(
 );
 
 app.get('/', (_req, res) => {
+  /* #swagger.responses[200] = {
+       schema: { message: 'Hello API' }
+     }
+  */
   res.send({ message: 'Hello API' });
 });
 
 app.use(express.json({ limit: '16kb' }));
-app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDoc));
-app.get('/docs-json', (_req, res) => res.json(swaggerDoc));
+app.use(
+  '/api-docs',
+  /* #swagger.ignore = true */
+  swaggerUI.serve,
+  swaggerUI.setup(swaggerDoc),
+);
+app.get('/docs-json', (_req, res) => {
+  // #swagger.ignore = true
+  res.json(swaggerDoc);
+});
 app.use('/api', router);
 app.use(errorMiddleware);
 

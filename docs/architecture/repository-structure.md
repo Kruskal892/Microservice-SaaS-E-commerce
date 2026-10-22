@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [System architecture](overview.md)
 
-**Status:** Current files and configuration. **Reviewed:** 2026-10-21.
+**Status:** Current files and configuration. **Reviewed:** 2026-10-22.
 
 ## Source layout
 
@@ -16,14 +16,15 @@
 |   |-- auth-service/
 |   |   |-- src/
 |   |   |   |-- main.ts                  # Express wiring, Swagger, listener
-|   |   |   |-- routes/auth.router.ts    # POST /api/user-registration, POST /api/verify-registration
+|   |   |   |-- routes/auth.router.ts    # /api/user-registration, /api/verify-registration, /api/login
 |   |   |   |-- controller/auth.controller.ts
 |   |   |   |-- utils/auth.helper.ts     # Validation, OTP verification, attempt locking
+|   |   |   |-- utils/cookies/setCookies.ts # Access/refresh cookie policy within auth
 |   |   |   |-- mail/
 |   |   |   |   |-- mail.client.ts       # EJS rendering and SMTP transport
 |   |   |   |   |-- index.ts
 |   |   |   |   `-- templates/user-activation-mail.ejs
-|   |   |   |-- swagger.js               # Swagger documentation generator; npm run auth-docs
+|   |   |   |-- swagger.js               # Scans main.ts mounts and annotations; npm run auth-docs
 |   |   |   `-- swagger-output.json      # Committed Swagger 2.0 document
 |   |   |-- package.json                 # esbuild, serve, prune, Docker targets
 |   |   |-- tsconfig.app.json            # App compiler config and shared reference

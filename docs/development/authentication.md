@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Registration & verification sequence diagrams](../architecture/request-flows.md#registration-and-otp-delivery)
 
 **Status:** Source implementation, not a verified live integration.
-**Reviewed:** 2026-10-21.
+**Reviewed:** 2026-10-22.
 
 ## Current registration behavior
 
@@ -37,11 +37,54 @@ submitted OTP, hashing credentials, and persisting the user in MongoDB:
    with `name`, `email`, and `password: hashedPassword`.
 6. **Response:** Returns HTTP 200 `{ "success": true, "message": "User registered successfully!" }`.
 
+Verification validates field truthiness only; it does not reuse registration's
+normalization or length checks. `verifyOtp(email, otp, next)` forwards validation
+errors with `next(error)` and then throws that call's return value. Keep this
+Express-dependent error contract visible when extracting the helper into a service.
+
+## Current login and cookie issuance
+
+`POST /api/login` is routed to `loginUser`. It checks email/password presence,
+queries the supplied email exactly, rejects a missing password hash, and uses
+`bcrypt.compare` before signing JWTs. It does not normalize email or perform
+string/length validation. An unknown user currently returns 400; a missing hash
+or incorrect password returns 401. These responses differ rather than presenting
+one generic credentials failure. See the [login contract](../reference/api.md#login-and-jwt-cookies).
+
+Both tokens contain `{ id: user.id, role: 'user' }`. The access JWT is signed
+with `JWT_ACCESS_TOKEN_SECRET` for 15 minutes; the refresh JWT uses
+`JWT_REFRESH_TOKEN_SECRET` for 7 days. Set both secrets locally: `as string`
+assertions are not runtime validation. Missing signing secrets reach the generic
+500 error response.
+
+[setCookies.ts](../../apps/auth-service/src/utils/cookies/setCookies.ts) sets
+`access_token` and `refresh_token` with `httpOnly: true`, `secure: true`,
+`sameSite: 'none'`, and a 7-day `maxAge` for both. The access JWT still expires
+after 15 minutes even while its cookie is retained. The 200 body contains only
+the login message and `{ id, email, name }`; it excludes tokens and password hash.
+No session record or refresh-token state is persisted.
+
+Cookie writing uses Express `res.cookie`; cookie-parser is not required for
+writing and is not mounted for incoming requests. Browser callers need
+credentials enabled, and the hard-coded Secure policy needs verification in
+the intended HTTPS/browser deployment. Current code does not consume or verify
+the emitted cookies, enforce protected routes, rotate refresh tokens, or log out.
+
+## Swagger maintenance
+
+Run `npm run auth-docs` after route or contract changes. The generator scans
+`main.ts`, follows the `/api` router mount, and reads `#swagger` controller
+annotations for required request fields and concrete request/200-response
+examples. It also documents the greeting and excludes the Swagger UI/JSON routes.
+Commit the generated JSON, restart auth, and reload `/api-docs`. Cookie headers
+and detailed error/validation contracts remain outside the generated schemas.
+
 ## OTP storage contract
 
 The [ioredis client](../../packages/libs/redis/index.ts) is a direct module-level
 instance. [auth.helper.ts](../../apps/auth-service/src/utils/auth.helper.ts) owns
-the following keys using the normalized email:
+the following keys. Registration normalizes email; verification uses the submitted
+email unchanged, so callers must send the same normalized email:
 
 | Key                         | Value / expiry                 | Current use                                                       |
 | --------------------------- | ------------------------------ | ----------------------------------------------------------------- |
@@ -57,8 +100,9 @@ Restriction checks run in lock → spam lock → cooldown order. Helpers throw
 are allowed; a later request that passes cooldown checks sets the spam lock.
 This is an expiry refreshed on updates, not a fixed calendar-hour quota.
 
-Verification inspects `otp:${email}`. If the key is absent or expired, it throws
-`ValidationError('Expired or invalid OTP!')`. On incorrect OTP entry, it reads
+Verification inspects `otp:${email}`. If the key is absent or expired, it forwards
+an error through `next(new ValidationError('Expired or invalid OTP!'))` and then
+throws the return value. On incorrect OTP entry, it reads
 `otp_attempts:${email}`. When failed attempts reach 2 (the 3rd attempt), it
 writes `otp_lock:${email}` with a 1,800-second (30-minute) TTL, deletes the OTP
 and attempt keys, and returns a 30-minute lockout error. When fewer attempts have
@@ -89,11 +133,13 @@ The current Dockerfile has no explicit Prisma-generation step; inspect the
 
 ## Remaining authentication work
 
-With registration and verification implemented, the remaining authentication
+With registration, verification, and login/token issuance present in source, the remaining authentication
 capabilities include:
 
-- User login endpoint (`POST /api/login`) with credential validation.
-- Session or JWT token generation (`jsonwebtoken` is installed) and refresh flow.
+- Consistent input validation/normalization and generic login credential failures.
+- JWT verification middleware, protected routes, and current-user lookup.
+- Refresh-token validation/rotation and persisted revocation policy.
+- Align access-cookie retention with token expiry and verify browser/CSRF policy.
 - Logout and session/token revocation.
 - Password recovery / reset flow.
 - Seller registration and onboarding routes.
