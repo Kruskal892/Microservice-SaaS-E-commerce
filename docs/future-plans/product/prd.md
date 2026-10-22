@@ -3,15 +3,17 @@
 [Documentation index](../../README.md)
 
 **Priority:** Critical. **Status:** Proposed baseline based on repository direction,
-not an approved business brief. **Reviewed:** 2026-10-21.
+not an approved business brief. **Reviewed:** 2026-10-22.
 
 ## 1. Product context and problem
 
 Microservice Eshop aims to offer an ecommerce storefront backed by service APIs.
 Customers need to find products, manage a cart, and place and review orders.
 Developers need an Nx workspace with explicit service ownership and contracts.
-Today gateway/auth source includes greetings, registration validation, and OTP
-delivery, but no completed customer account or purchase journey. See
+Today gateway/auth source includes greetings, registration/OTP delivery,
+verification/account persistence, and login with access/refresh JWT cookies.
+Protected requests, refresh/logout, and the customer purchase journey remain
+unfinished; live identity integrations are unverified. See
 [current implementation status](../../operations/implementation-status.md).
 
 The repository name includes SaaS, but tenant isolation, subscriptions, merchant
@@ -20,12 +22,12 @@ first increment; multi-tenancy requires a separate product/security decision.
 
 ## 2. Users and goals
 
-| User                 | Proposed goal                                         | Current availability                           |
-| -------------------- | ----------------------------------------------------- | ---------------------------------------------- |
-| Visitor              | Browse products and prices/availability               | No storefront/catalog                          |
-| Customer             | Register, sign in, manage cart, place/view own orders | OTP request only; identity/commerce incomplete |
-| Catalog operator     | Maintain sellable products and stock                  | Role/interface undecided                       |
-| Developer / operator | Run services and deploy safely                        | Local tooling configured; production absent    |
+| User                 | Proposed goal                                         | Current availability                                                                          |
+| -------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Visitor              | Browse products and prices/availability               | No storefront/catalog                                                                         |
+| Customer             | Register, sign in, manage cart, place/view own orders | OTP/account creation and login/JWT issuance in source; identity lifecycle/commerce incomplete |
+| Catalog operator     | Maintain sellable products and stock                  | Role/interface undecided                                                                      |
+| Developer / operator | Run services and deploy safely                        | Local tooling configured; production absent                                                   |
 
 ## 3. Scope and requirements
 

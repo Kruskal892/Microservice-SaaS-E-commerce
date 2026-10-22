@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [Current implementation status](../operations/implementation-status.md)
 
-**Status:** Proposed work and draft requirements. **Reviewed:** 2026-10-21.
+**Status:** Proposed work and draft requirements. **Reviewed:** 2026-10-22.
 These documents do not describe available features or approved delivery dates.
 
 ## Roadmap and design index
@@ -19,6 +19,12 @@ These documents do not describe available features or approved delivery dates.
 | Operations                    | [HTTP lifecycle plan](architecture/http-lifecycle-plan.md)                                                   | Readiness, request draining, client cleanup                      |
 
 ## Proposed delivery sequence
+
+The current baseline includes OTP delivery/verification, account persistence,
+and login with access/refresh JWT cookies. Completing identity below still means
+consistent validation, protected requests, refresh/rotation, logout/revocation,
+browser security, and meaningful integration coverage. See the
+[current login contract](../reference/api.md#login-and-jwt-cookies).
 
 ```mermaid
 flowchart TD
@@ -47,8 +53,8 @@ The media provider is unconfirmed; earlier notes suggested ImageKit, but no
 adoption decision or configuration is present. Redis is already used for OTP;
 additional caching/shared-gateway use is future work.
 
-Before implementation, confirm single-store versus tenant scope, credential and
-session strategy, service/data ownership, stock consistency, payment/tax/shipping,
+Before completing the product, confirm single-store versus tenant scope, the
+production lifecycle for the current JWT cookies, service/data ownership, stock consistency, payment/tax/shipping,
 and operational responsibility. No owner assignments, dates, or approval records
 are invented by these drafts.
 

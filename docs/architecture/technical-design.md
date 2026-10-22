@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [Architecture overview](overview.md)
 
-**Status:** Current source and configuration. **Reviewed:** 2026-10-21.
+**Status:** Current source and configuration. **Reviewed:** 2026-10-22.
 Future design decisions live in [future plans](../future-plans/README.md).
 
 ## Implementation ownership
@@ -13,6 +13,8 @@ flowchart LR
     Router --> Controller["controller/auth.controller.ts<br/>HTTP response and orchestration"]
     Controller --> Validation["utils/auth.helper.ts<br/>Input validation and OTP policy"]
     Controller --> Prisma["packages/libs/prisma"]
+    Controller --> JWT["jsonwebtoken<br/>Access and refresh signing"]
+    Controller --> Cookies["utils/cookies/setCookies.ts<br/>Express cookie writing"]
     Validation --> Redis["packages/libs/redis"]
     Validation --> Mail["mail/mail.client.ts<br/>EJS and Nodemailer"]
     Main --> Errors["packages/error-handler"]
@@ -34,7 +36,7 @@ no coordinated resource cleanup, so open client handles can still delay exit.
 No custom readiness route, shutdown drain, or shared HTTP module exists.
 
 The gateway owns logging, quota enforcement, and upstream proxy configuration.
-Auth owns JSON parsing, Swagger, and registration routing. See
+Auth owns JSON parsing, Swagger, registration/verification, and login routing. See
 [request flows](request-flows.md) for exact ordering and
 [configuration](../reference/configuration.md) for inputs/defaults.
 
@@ -82,6 +84,26 @@ Nodemailer transport. It renders EJS from `templates` beside the bundled output,
 uses ten-second connection/greeting/socket timeouts, and rejects an SMTP result
 with no accepted recipients or any rejected recipients. Registration writes OTP
 state after mail acceptance. See [authentication development](../development/authentication.md).
+
+## Login and API documentation
+
+`loginUser` reads credentials, queries Prisma, compares the bcrypt hash, signs
+two JWTs, and returns a public user projection. Tokens carry a fixed user role;
+there is no role lookup, session persistence, verification middleware, or refresh
+consumer. The access/refresh signing secrets are separate environment inputs.
+
+The cookie helper sets both tokens as HttpOnly/Secure/SameSite=None cookies with
+a 7-day lifetime; the access JWT itself expires after 15 minutes. Browser cookie
+policy, generic credential errors, input normalization, refresh/rotation, logout,
+and request authentication remain follow-ups. Exact behavior is in the
+[login contract](../reference/api.md#login-and-jwt-cookies).
+
+`npm run auth-docs` statically scans `main.ts` to retain router prefixes, then
+reads controller `#swagger` annotations for required fields and example payloads.
+The CommonJS generator exits unsuccessfully on generation failure. Auth loads
+the committed JSON at startup; regeneration requires a service restart to update
+the served document. Documentation endpoints are excluded from generation.
+Swagger host/scheme remain fixed at `http://localhost:6001`.
 
 ## Build and alias contracts
 

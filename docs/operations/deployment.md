@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current packaging and workflow configuration. **Reviewed:** 2026-10-21.
+**Status:** Current packaging and workflow configuration. **Reviewed:** 2026-10-22.
 Commands below are instructions, not evidence of successful image builds or runs.
 
 ## Build artifacts
@@ -17,7 +17,9 @@ Both apps have prune-lockfile and copy-workspace-modules targets. Auth's Docker
 build depends on build/prune. Inspect generated manifests, lockfiles, external
 dependencies, copied workspace modules, and assets before treating dist as
 deployable. Explicit auth dependencies do not list every root-provided runtime
-import (for example dotenv and ioredis); generated packaging needs verification.
+import (for example dotenv, ioredis, bcryptjs, and jsonwebtoken); generated
+packaging needs verification. JWT type declarations are a root development
+dependency, not a substitute for runtime jsonwebtoken packaging.
 
 ## Auth Docker image
 
@@ -50,6 +52,14 @@ with container-reachable MongoDB/Redis/SMTP addresses. The local-loopback URLs
 in `.env.example` point inside the container when used there. Keep `PORT` unset
 in that env file to preserve internal 3000, or adjust the published mapping.
 Inject secrets at runtime; keep `.env` outside the image and source control.
+Login now requires separate `JWT_ACCESS_TOKEN_SECRET` and
+`JWT_REFRESH_TOKEN_SECRET` values. There is no startup validation of these
+inputs; a signing failure reaches the generic 500 handler.
+
+Regenerate the committed Swagger JSON with `npm run auth-docs` before building
+when contracts change. It documents `/api` routes and examples, while its
+advertised host/scheme remain fixed at `http://localhost:6001`; container PORT
+does not rewrite them. The served document is loaded at auth startup.
 
 ## Network topology
 
@@ -69,6 +79,13 @@ deployment job is tracked.
 Each app reads `PORT`; local defaults are 6001/8080. Apps do not read `HOST` as a
 bind setting. CORS is fixed to `http://localhost:3000`, proxy trust is disabled,
 and gateway limits are per process. See [configuration](../reference/configuration.md).
+
+Login writes Secure, HttpOnly, SameSite=None cookies in every environment.
+Validate TLS termination, browser origin/credentials, and CSRF policy before
+deployment. Both cookies have 7-day retention, while the access JWT expires in
+15 minutes. There is no refresh/logout endpoint, revocation store, or middleware
+verifying tokens on subsequent requests; this is token issuance, not completed
+production identity enforcement.
 
 ## Health, database rollout, and shutdown
 

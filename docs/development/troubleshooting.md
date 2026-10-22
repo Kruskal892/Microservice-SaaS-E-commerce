@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-10-21. Configuration defaults belong to the
+**Reviewed:** 2026-10-22. Configuration defaults belong to the
 [configuration reference](../reference/configuration.md).
 
 ## Dependency installation fails
@@ -35,7 +35,7 @@ Remove-Item Env:PORT -ErrorAction SilentlyContinue
 
 ## Gateway returns 404
 
-Use `http://localhost:8080/gateway-health` for the local gateway response. `http://localhost:8080/` forwards to auth on port 6001. Auth also defines registration and Swagger routes. Unimplemented paths return an upstream 404.
+Use `http://localhost:8080/gateway-health` for the local gateway response. `http://localhost:8080/` forwards to auth on port 6001. Auth also defines registration, verification, login, and Swagger routes. Unimplemented paths return an upstream 404.
 
 Static asset middleware was removed; `/assets` now forwards to auth instead of serving gateway files.
 
@@ -56,6 +56,37 @@ before its router. Restart auth after updating the code and send
 `Content-Type: application/json` and a JSON object containing `name`, `email`,
 and `password`. Missing or non-object bodies return HTTP 400 with `Request body must be an object`.
 Swagger UI is at `/api-docs`, not `/docs`.
+
+## Swagger paths or examples are stale
+
+Run `npm run auth-docs` from the repository root, restart auth, then reload
+`http://localhost:6001/api-docs`. The service reads committed JSON at startup.
+`/docs-json` shows the document loaded by that process; it does not regenerate it.
+The generator must scan `main.ts` to retain the `/api` router prefix. Required
+request fields and concrete examples come from `#swagger` controller comments;
+inference alone cannot see registration's helper validation or choose examples.
+If you change the auth HTTP port, Swagger's advertised host must also be updated;
+it currently stays fixed at `localhost:6001`.
+
+## Login fails or cookies are missing
+
+Send JSON with `email` and `password` to `POST /api/login`. Use the stored email
+exactly: login does not trim/lowercase it. Missing fields in an object return 400,
+an unknown user returns 400, and an absent hash or wrong password returns 401.
+An absent parsed body can instead reach the generic 500 response.
+
+Set both `JWT_ACCESS_TOKEN_SECRET` and `JWT_REFRESH_TOKEN_SECRET` in the auth
+environment. Missing signing secrets fail at `jwt.sign`; TypeScript assertions
+do not supply values. Keep secret values out of diagnostics.
+
+Inspect `Set-Cookie` in the response and browser cookie rejection reasons.
+Browser calls need credentials enabled and the allowed origin. The helper always
+sets Secure, HttpOnly, SameSite=None cookies; verify storage in your intended HTTPS
+setup. HttpOnly cookies are not readable with `document.cookie`. Both cookies
+remain for 7 days, but the access JWT expires after 15 minutes. Refresh, logout,
+and token verification routes/middleware are not implemented, so cookie issuance
+alone does not establish working authenticated requests. See
+[the login contract](../reference/api.md#login-and-jwt-cookies).
 
 ## Rate-limit warnings or unexpected client identities
 

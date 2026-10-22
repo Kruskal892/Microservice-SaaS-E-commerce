@@ -7,8 +7,10 @@ shared error/database clients, Prisma's MongoDB schema, and HTTP smoke tests.
 Registration currently validates input, checks for an existing email, and sends
 an OTP using Redis and SMTP. Registration verification (`POST /api/verify-registration`)
 validates the OTP, enforces attempt locks (30-minute lock after 3 failed attempts),
-hashes passwords with bcrypt, and creates user accounts in MongoDB. Login,
-sessions, the storefront, and commerce APIs remain unfinished or planned.
+hashes passwords with bcrypt, and creates user accounts in MongoDB. Login
+(`POST /api/login`) checks credentials and issues access/refresh JWT cookies.
+Token verification on protected routes, refresh, logout, the storefront, and
+commerce APIs remain unfinished or planned. Live integrations are unverified.
 
 ## Documentation
 
@@ -33,8 +35,9 @@ Use **Node.js 24** (matching CI) and npm. From the repository root:
 npm ci
 ```
 
-Copy [.env.example](.env.example) to `.env`, configure MongoDB, Redis, and SMTP,
-then generate the Prisma client and start the services:
+Copy [.env.example](.env.example) to `.env`, configure MongoDB, Redis, SMTP, and
+separate access/refresh JWT signing secrets. Then generate the Prisma client and
+start the services:
 
 ```sh
 npx prisma generate
@@ -45,11 +48,11 @@ Leave `PORT` unset when starting both applications together. Each service reads
 the same variable in its own process. See [setup](docs/development/getting-started.md)
 for separate startup, configuration, and database synchronization instructions.
 
-| Application     | Default URL                          | Source-defined response                    |
-| --------------- | ------------------------------------ | ------------------------------------------ |
-| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`               |
-| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }` |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Registration & verification documentation  |
+| Application     | Default URL                          | Source-defined response                        |
+| --------------- | ------------------------------------ | ---------------------------------------------- |
+| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                   |
+| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`     |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Registration, verification, and login examples |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any
@@ -58,16 +61,16 @@ verified by this documentation refresh.
 
 ## Technology and repository
 
-| Area                | Present configuration                                             |
-| ------------------- | ----------------------------------------------------------------- |
-| Workspace           | Nx 23.3, npm workspaces (`apps/*`, `packages`)                    |
-| Runtime             | Node.js; Express 5; TypeScript 6.0                                |
-| HTTP gateway        | express-http-proxy, CORS, Morgan, in-memory IP limiting           |
-| Persistence         | Prisma 6.19, MongoDB users/images schema and user persistence     |
-| Security            | bcryptjs for password hashing                                     |
-| OTP and mail        | ioredis, Node crypto, Nodemailer, EJS                             |
-| API documentation   | Swagger 2.0 JSON and Swagger UI; `npm run auth-docs` generator    |
-| Checks and delivery | Jest/SWC/Axios, ESLint, Prettier, GitHub Actions; auth Dockerfile |
+| Area                | Present configuration                                                  |
+| ------------------- | ---------------------------------------------------------------------- |
+| Workspace           | Nx 23.3, npm workspaces (`apps/*`, `packages`)                         |
+| Runtime             | Node.js; Express 5; TypeScript 6.0                                     |
+| HTTP gateway        | express-http-proxy, CORS, Morgan, in-memory IP limiting                |
+| Persistence         | Prisma 6.19, MongoDB users/images schema and user persistence          |
+| Security            | bcryptjs password hashing; jsonwebtoken JWT signing; HTTP-only cookies |
+| OTP and mail        | ioredis, Node crypto, Nodemailer, EJS                                  |
+| API documentation   | Swagger 2.0 JSON and Swagger UI; `npm run auth-docs` generator         |
+| Checks and delivery | Jest/SWC/Axios, ESLint, Prettier, GitHub Actions; auth Dockerfile      |
 
 [Package manifests](package.json) and the [lockfile](package-lock.json) own
 dependency versions. Next.js, Kafka, Socket.IO, Firebase, TensorFlow.js, AWS,
