@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [API reference](../reference/api.md)
 
-**Status:** Current source execution paths. **Reviewed:** 2026-10-22.
+**Status:** Current source execution paths. **Reviewed:** 2026-10-23.
 These diagrams explain code behavior, not a successful end-to-end run.
 
 ## Gateway request lifecycle
@@ -44,15 +44,21 @@ flowchart TD
     Route -->|"POST /api/user-registration"| Registration["Registration controller"]
     Route -->|"POST /api/verify-registration"| Verification["Verification controller"]
     Route -->|"POST /api/login"| Login["Login controller<br/>bcrypt, JWT signing, cookies"]
+    Route -->|"POST /api/forgot-password-user"| Forgot["Recovery helper<br/>Recovery email and OTP storage"]
+    Route -->|"POST /api/verify-forgot-password-user"| RecoveryOTP["OTP helper directly<br/>Await verification; no reset proof"]
+    Route -->|"POST /api/reset-password-user"| Reset["Reset controller<br/>No verification proof required"]
     Route -->|No| Missing["Express default 404"]
     JSON -->|Parse or size error| Errors["Shared error middleware"]
     Registration -->|Error forwarded| Errors
     Verification -->|Error forwarded| Errors
     Login -->|Error forwarded| Errors
+    Forgot -->|Error forwarded| Errors
+    RecoveryOTP -->|Error forwarded| Errors
+    Reset -->|Error forwarded| Errors
 ```
 
-Auth mounts `POST /api/user-registration`, `POST /api/verify-registration`, and
-`POST /api/login`. Refresh, logout, current-user, protected, and commerce routes
+Auth mounts registration, registration verification, login, and three recovery
+POST routes. Recovery is incomplete and unsafe. Refresh, logout, current-user, protected, and commerce routes
 are not implemented. CORS and issuing cookies do not authenticate later requests.
 
 ## Registration and OTP delivery
@@ -209,6 +215,36 @@ expiry. No token verification, refresh, logout, or persistent session store
 consumes them yet. Unexpected errors, including absent-body destructuring or
 missing signing secrets, are forwarded to shared error handling. See the
 [API contract](../reference/api.md#login-and-jwt-cookies) for exact responses.
+
+## Password recovery execution paths
+
+Sources: [router](../../apps/auth-service/src/routes/auth.router.ts),
+[controller](../../apps/auth-service/src/controller/auth.controller.ts), and
+[helpers](../../apps/auth-service/src/utils/auth.helper.ts).
+
+These are independent public endpoints. The diagram shows current defects;
+it does not imply an enforced request → verify → reset sequence.
+
+```mermaid
+flowchart TD
+    Request["POST /api/forgot-password-user<br/>email"] --> Lookup["Check email presence and existing user<br/>Shared OTP limits and request counter"]
+    Lookup --> Mail["Render recovery template and send email<br/>Then store OTP EX 300 and cooldown EX 60"]
+    Verify["POST /api/verify-forgot-password-user<br/>email, otp"] --> Presence["Check field presence"]
+    Presence --> Launch["Await verifyOtp<br/>Validate and consume Redis OTP"]
+    Launch -->|Success| Verified["200 verified<br/>No reset authorization issued"]
+    Launch -->|Failure| Error["Forward error; no success response"]
+    Reset["POST /api/reset-password-user<br/>email, newPassword"] --> User["Check fields and user<br/>Reject same password"]
+    User --> Hash["bcrypt hash and Prisma update<br/>No OTP, token, or session check"]
+    Hash --> Done["200 Password reset successfully<br/>Existing JWTs not revoked"]
+```
+
+The recovery template uses the same responsive layout as activation mail and
+displays escaped name/OTP values with a five-minute expiry notice. The request
+counter increases before sending, so delivery failures still consume quota.
+Registration and recovery share the same unscoped OTP state. See the
+[API reference](../reference/api.md#password-recovery-incomplete-and-unsafe)
+for exact responses and [recovery blockers](../development/authentication.md#password-recovery-blockers)
+for required follow-up work.
 
 ## Shared error path
 

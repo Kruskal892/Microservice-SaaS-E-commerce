@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Registration & verification sequence diagrams](../architecture/request-flows.md#registration-and-otp-delivery)
 
 **Status:** Source implementation, not a verified live integration.
-**Reviewed:** 2026-10-22.
+**Reviewed:** 2026-10-23.
 
 ## Current registration behavior
 
@@ -70,12 +70,40 @@ credentials enabled, and the hard-coded Secure policy needs verification in
 the intended HTTPS/browser deployment. Current code does not consume or verify
 the emitted cookies, enforce protected routes, rotate refresh tokens, or log out.
 
+## Password recovery blockers
+
+Three recovery routes now exist in source, but the flow is incomplete and unsafe.
+Exact payloads, messages, and failure behavior are in the
+[API reference](../reference/api.md#password-recovery-incomplete-and-unsafe).
+
+- `POST /api/reset-password-user` changes a password using only email and
+  `newPassword`. It does not check OTP verification, a reset token, or a session.
+  Bind reset to short-lived, single-use verification proof before exposing it.
+- `POST /api/verify-forgot-password-user` awaits `verifyOtp`, then returns 200,
+  but issues no reset authorization. The router calls the helper
+  directly; `verifyUserForgotPassword` in the controller is unused.
+- `POST /api/forgot-password-user` now passes `(user.name, email, ...)` to
+  `sendOtp` and uses `forgot-password-user-email.ejs`. The template follows the
+  activation email design with escaped name/OTP values and a five-minute expiry
+  notice. Failed delivery still consumes a request; live delivery is unverified.
+- Recovery reuses registration OTP keys and restrictions, with no purpose
+  separation. Validate and normalize input, enforce a replacement-password
+  policy, and define existing-token invalidation alongside the recovery fix.
+- The helper accepts a seller type but only queries users for `'user'`; there
+  are no mounted seller recovery routes.
+
+Reset currently hashes with bcrypt (10 rounds), rejects the old password, and
+updates Prisma. It does not clear cookies or revoke existing JWTs. No recovery
+integration or security checks have been run for this refresh.
+
 ## Swagger maintenance
 
 Run `npm run auth-docs` after route or contract changes. The generator scans
-`main.ts`, follows the `/api` router mount, and reads `#swagger` controller
+`main.ts`, follows the `/api` router mount, and reads `#swagger` controller/router
 annotations for required request fields and concrete request/200-response
-examples. It also documents the greeting and excludes the Swagger UI/JSON routes.
+examples. Recovery router annotations include current defects and 400/500
+responses; they do not claim a verified or secure recovery flow. Generation also
+documents the greeting and excludes the Swagger UI/JSON routes.
 Commit the generated JSON, restart auth, and reload `/api-docs`. Cookie headers
 and detailed error/validation contracts remain outside the generated schemas.
 
@@ -84,12 +112,13 @@ and detailed error/validation contracts remain outside the generated schemas.
 The [ioredis client](../../packages/libs/redis/index.ts) is a direct module-level
 instance. [auth.helper.ts](../../apps/auth-service/src/utils/auth.helper.ts) owns
 the following keys. Registration normalizes email; verification uses the submitted
-email unchanged, so callers must send the same normalized email:
+email unchanged, so callers must send the same normalized email. Recovery reuses
+these keys without a purpose namespace:
 
 | Key                         | Value / expiry                 | Current use                                                       |
 | --------------------------- | ------------------------------ | ----------------------------------------------------------------- |
 | `otp_lock:<email>`          | `'locked'`, 1,800 seconds      | Written on 3rd failed OTP verification attempt; blocks new OTP    |
-| `otp_spam_lock:<email>`     | `'locked'`, 3,600 seconds      | Set during registration when counter is already at least 2        |
+| `otp_spam_lock:<email>`     | `'locked'`, 3,600 seconds      | Set during OTP requests when counter is already at least 2        |
 | `otp_request_count:<email>` | Integer string, 3,600 seconds  | GET/SET increment; expiry refreshed each allowed update           |
 | `otp_cooldown:<email>`      | `'true'`, 60 seconds           | Written after accepted mail and OTP storage                       |
 | `otp:<email>`               | Four-digit string, 300 seconds | Generated with `crypto.randomInt(1000, 10000)`; deleted on verify |
@@ -141,7 +170,7 @@ capabilities include:
 - Refresh-token validation/rotation and persisted revocation policy.
 - Align access-cookie retention with token expiry and verify browser/CSRF policy.
 - Logout and session/token revocation.
-- Password recovery / reset flow.
+- Complete and secure the routed password recovery/reset flow described above.
 - Seller registration and onboarding routes.
 
 The [future structure plan](../future-plans/architecture/auth-service-structure-plan.md)

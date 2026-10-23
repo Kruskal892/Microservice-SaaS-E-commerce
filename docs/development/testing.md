@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current test files and target configuration. **Reviewed:** 2026-10-22.
+**Status:** Current test files and target configuration. **Reviewed:** 2026-10-23.
 
 ## Existing coverage
 
@@ -44,14 +44,20 @@ node node_modules/typescript/bin/tsc -b packages/tsconfig.lib.json apps/auth-ser
 This focused compiler check passed on 2026-10-22. It does not establish Nx build,
 runtime packaging, or external-service success.
 
-## Swagger and login checks
+## Swagger and authentication checks
 
 Run `npm run auth-docs` and inspect the generated paths:
 
 - `POST /api/user-registration`: required name, email, password.
 - `POST /api/verify-registration`: required name, email, string OTP, password.
 - `POST /api/login`: required email and password.
+- `POST /api/forgot-password-user`: required email; recovery template and five-minute OTP.
+- `POST /api/verify-forgot-password-user`: required email and string OTP; document
+  that verification is awaited but no reset proof is issued.
+- `POST /api/reset-password-user`: required email and newPassword; document the
+  missing verification gate and existing-token invalidation.
 - Each auth POST has concrete request-property examples and a 200 response schema.
+- Recovery routes include 400/500 responses and their current limitations.
 - `GET /` has a greeting example; `/api-docs` and `/docs-json` are excluded.
 
 Generation should produce identical JSON from the root npm script and from
@@ -66,6 +72,16 @@ logging token values. Verify 15-minute access/7-day refresh JWT expiry and the
 shared 7-day cookie retention, then exercise browser credentials and Secure-cookie
 behavior in the intended HTTPS setup. Such integration checks have not been run
 for this change. Refresh/logout/protected routes do not exist to test yet.
+
+Recovery has no permanent behavior coverage. Before treating it as usable, fix
+the [known blockers](authentication.md#password-recovery-blockers), then verify
+delivery recipient/template, invalid/expired OTP rejection before any success
+response, and short-lived single-use reset authorization bound to the correct
+user and recovery purpose. Verify direct reset without proof fails without
+changing a password, reused/expired proof fails, replacement-password validation
+matches policy, and existing-token behavior is intentional. Use disposable
+accounts; the current reset handler can change any known user's password.
+These are required follow-up checks, not passing results from this refresh.
 
 ## Shared-module and error-handler coverage
 
@@ -127,5 +143,6 @@ The login/Swagger refresh records source and documentation checks in the
 [implementation status](../operations/implementation-status.md#documentation-verification-boundary).
 Application unit/E2E tests, lint, Nx builds, live integrations, Docker, and remote
 CI were not run. Documentation generation and compiler checks do not prove those
-results. See
+results. The 2026-10-23 recovery refresh runs documentation generation/formatting
+and static diff inspection only; the historical compiler check was not rerun. See
 [implementation status](../operations/implementation-status.md) for current gaps.

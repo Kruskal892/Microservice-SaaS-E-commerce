@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current source. **Reviewed:** 2026-10-22. The system is a backend
+**Status:** Current source. **Reviewed:** 2026-10-23. The system is a backend
 foundation; integrations shown below are wired in code and remain unverified
 against live services.
 
@@ -80,6 +80,9 @@ cookie parsing, token verification middleware, or protected route consumer yet.
   requests remain unimplemented; browser deployment policy is unverified.
 - OTP checks and counter updates are sequential, so concurrent requests can
   race. SMTP delivery and Redis state are separate operations.
+- Three password-recovery routes are mounted with a recovery email template and
+  awaited OTP verification, but reset still requires no verification proof.
+  See [recovery blockers](../development/authentication.md#password-recovery-blockers).
 - Both entry points call `app.listen()` directly. Dependency readiness,
   graceful shutdown, request identity enforcement, and production ingress are absent.
 - Docker packaging is an unverified scaffold. Its current single-stage

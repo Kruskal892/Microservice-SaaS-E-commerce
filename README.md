@@ -9,6 +9,9 @@ an OTP using Redis and SMTP. Registration verification (`POST /api/verify-regist
 validates the OTP, enforces attempt locks (30-minute lock after 3 failed attempts),
 hashes passwords with bcrypt, and creates user accounts in MongoDB. Login
 (`POST /api/login`) checks credentials and issues access/refresh JWT cookies.
+Three password-recovery routes are also mounted, but reset still requires no
+verification proof. See the
+[recovery blockers](docs/development/authentication.md#password-recovery-blockers).
 Token verification on protected routes, refresh, logout, the storefront, and
 commerce APIs remain unfinished or planned. Live integrations are unverified.
 
@@ -48,11 +51,11 @@ Leave `PORT` unset when starting both applications together. Each service reads
 the same variable in its own process. See [setup](docs/development/getting-started.md)
 for separate startup, configuration, and database synchronization instructions.
 
-| Application     | Default URL                          | Source-defined response                        |
-| --------------- | ------------------------------------ | ---------------------------------------------- |
-| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                   |
-| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`     |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Registration, verification, and login examples |
+| Application     | Default URL                          | Source-defined response                                 |
+| --------------- | ------------------------------------ | ------------------------------------------------------- |
+| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                            |
+| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`              |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any

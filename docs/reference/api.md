@@ -3,24 +3,28 @@
 [Documentation hub](../README.md) · [Request flow diagrams](../architecture/request-flows.md)
 
 **Status:** Current source contracts; runtime integrations unverified.
-**Reviewed:** 2026-10-22.
+**Reviewed:** 2026-10-23.
 
 ## Available routes
 
-| Method | Path                       | Handler            | Source-defined result                                              |
-| ------ | -------------------------- | ------------------ | ------------------------------------------------------------------ |
-| GET    | `/gateway-health`          | Gateway, port 8080 | 200 `{ "message": "Welcome to api-gateway!" }`                     |
-| GET    | `/`                        | Auth, port 6001    | 200 `{ "message": "Hello API" }`                                   |
-| POST   | `/api/user-registration`   | Auth               | Request activation OTP; no account creation                        |
-| POST   | `/api/verify-registration` | Auth               | Verify OTP, hash password, and create user account                 |
-| POST   | `/api/login`               | Auth               | Check credentials; issue JWT cookies and return public user fields |
-| GET    | `/api-docs`                | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash         |
-| GET    | `/docs-json`               | Auth               | Committed Swagger 2.0 JSON                                         |
+| Method | Path                               | Handler            | Source-defined result                                              |
+| ------ | ---------------------------------- | ------------------ | ------------------------------------------------------------------ |
+| GET    | `/gateway-health`                  | Gateway, port 8080 | 200 `{ "message": "Welcome to api-gateway!" }`                     |
+| GET    | `/`                                | Auth, port 6001    | 200 `{ "message": "Hello API" }`                                   |
+| POST   | `/api/user-registration`           | Auth               | Request activation OTP; no account creation                        |
+| POST   | `/api/verify-registration`         | Auth               | Verify OTP, hash password, and create user account                 |
+| POST   | `/api/login`                       | Auth               | Check credentials; issue JWT cookies and return public user fields |
+| POST   | `/api/forgot-password-user`        | Auth               | Send recovery OTP email and store OTP/cooldown state               |
+| POST   | `/api/verify-forgot-password-user` | Auth               | Await OTP verification and consume the code; no reset proof issued |
+| POST   | `/api/reset-password-user`         | Auth               | Updates password without requiring OTP/reset authorization         |
+| GET    | `/api-docs`                        | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash         |
+| GET    | `/docs-json`                       | Auth               | Committed Swagger 2.0 JSON                                         |
 
 Gateway forwards other paths unchanged to `AUTH_SERVICE_URL`, default
 `http://localhost:6001`. Thus gateway `/` serves the auth greeting, and
 gateway `/api/user-registration`, `/api/verify-registration`, and `/api/login`
-forward to auth unchanged. Unmatched auth paths use Express's default 404.
+forward to auth unchanged, as do the three password-recovery routes.
+Unmatched auth paths use Express's default 404.
 Token refresh, logout, current-user lookup, protected routes, and commerce
 remain unavailable.
 
@@ -191,6 +195,91 @@ No handler currently verifies these tokens, refreshes them, revokes them, or
 clears the cookies. There is no persistent session/refresh-token store or
 role lookup; `role: 'user'` is assigned by the controller.
 
+## Password recovery (incomplete and unsafe)
+
+These routes are mounted without authentication. The reset handler does not
+require proof of OTP verification, so knowing an existing email is sufficient to
+change its password. The three endpoints are independent handlers, not an
+enforced recovery sequence. Do not treat the current flow as secure recovery.
+
+All requests use `Content-Type: application/json`. Email is looked up unchanged;
+these handlers do not reuse registration's normalization or type/length checks.
+Missing parsed bodies can reach generic 500 handling during destructuring.
+
+### Request a recovery OTP
+
+`POST /api/forgot-password-user`
+
+```json
+{ "email": "customer@example.com" }
+```
+
+The helper checks email truthiness, looks up an existing user, applies the shared
+OTP restrictions, increments the request counter, then calls `sendOtp`.
+Missing email returns 400 `Email is required!`; unknown email returns 400
+`user not found`. Restriction failures also return 400.
+
+The helper calls `sendOtp(user.name, email, 'forgot-password-user-email')`.
+The recovery EJS template renders escaped name/OTP values, password reset
+instructions, a five-minute validity notice, and an unsolicited-request notice.
+The shared sender still uses the subject `Verify your email`. After SMTP
+acceptance it stores the OTP for 300 seconds and cooldown for 60 seconds.
+Delivery failures still consume a request because counting precedes sending.
+HTTP 200 after successful mail/Redis work:
+
+```json
+{ "message": "OTP sent successfully. Please check your account." }
+```
+
+### Submit a recovery OTP
+
+`POST /api/verify-forgot-password-user`
+
+```json
+{ "email": "customer@example.com", "otp": "1234" }
+```
+
+The router invokes `verifyForgotPasswordOtp` directly; the controller wrapper
+`verifyUserForgotPassword` is unused. Missing/falsy fields return 400
+`Email and otp are required!`. Otherwise the helper awaits `verifyOtp` and sends
+the following only after successful verification:
+
+```json
+{ "message": "Verify OTP successfully. You can nơ reset your password" }
+```
+
+The message is reproduced exactly from source. On a match the shared helper
+deletes OTP/attempt keys, but no reset token or authorization state is issued or
+stored. OTP errors use the existing Express-dependent `next(error)`/throw
+contract described above. OTP keys have no purpose namespace: registration and
+recovery use the same OTP, counters, cooldowns, and locks.
+
+### Reset a password
+
+`POST /api/reset-password-user`
+
+```json
+{ "email": "customer@example.com", "newPassword": "new-example-password" }
+```
+
+The handler checks field truthiness, looks up the user, rejects reuse of an
+existing password with `bcrypt.compare`, hashes the replacement with 10 rounds,
+and updates `users.password`. It requires neither OTP nor a reset token/session.
+It also permits setting a password on an account whose password is absent.
+
+| Condition                                  | Status | Message                                             |
+| ------------------------------------------ | ------ | --------------------------------------------------- |
+| Missing/falsy email or new password        | 400    | `Email and new password are required!`              |
+| User absent                                | 400    | `User not found`                                    |
+| New password matches existing hash         | 400    | `New password can not be the same as old password!` |
+| Password updated                           | 200    | `Password reset successfully`                       |
+| Database/bcrypt or unexpected body failure | 500    | Generic shared error response                       |
+
+Success returns `{ "message": "Password reset successfully" }`. No password
+type/length policy, cookie clearing, or existing-JWT revocation is implemented.
+See [recovery follow-ups](../development/authentication.md#password-recovery-blockers)
+before attempting an integration check.
+
 ## Gateway policy
 
 | Concern          | Current source                                                                    |
@@ -233,9 +322,11 @@ Class definitions are in [technical design](../architecture/technical-design.md#
 ## Swagger coverage
 
 [swagger-output.json](../../apps/auth-service/src/swagger-output.json) declares
-Swagger 2.0, host `localhost:6001`, and documents `/api/user-registration`,
-`/api/verify-registration`, and `/api/login` with required request fields,
-concrete JSON examples, and 200 response schemas. `GET /` also has a greeting
+Swagger 2.0, host `localhost:6001`, and documents all six auth POST routes with
+required request fields, concrete JSON examples, and 200 response schemas.
+Recovery routes also describe 400/500 responses and explicitly identify the
+missing reset authorization and shared OTP state.
+`GET /` also has a greeting
 response example. It does not capture cookie response headers or the full
 validation/error contract above. Swagger's host is fixed, even when the UI is
 accessed through the gateway or a custom port.
@@ -243,7 +334,7 @@ accessed through the gateway or a custom port.
 [swagger.js](../../apps/auth-service/src/swagger.js) is a generator script wired
 to the root npm script `npm run auth-docs`. It scans `main.ts` so mounted router
 prefixes such as `/api` are included automatically. Request and response examples
-come from `#swagger` comments in the auth controllers; update these alongside
+come from `#swagger` comments in the auth controllers and router; update these alongside
 contract changes. The Swagger UI and JSON endpoints are excluded from generation.
 The generated JSON is committed and loaded by auth at startup. Run
 `npm run auth-docs` after changing routes or annotations, then restart the auth

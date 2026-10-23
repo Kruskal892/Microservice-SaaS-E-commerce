@@ -3,8 +3,10 @@
 Microservice Eshop is an Nx/npm TypeScript monorepo with an Express API gateway,
 an authentication service, and shared infrastructure modules. Registration can
 request an email OTP, verify it to create an account, and log in to receive JWT
-cookies. Protected routes, refresh, logout, storefront, and commerce remain
-unfinished. **Source reviewed: 2026-10-22.** Live integrations are unverified.
+cookies. Three recovery routes are mounted but have
+[security blockers](development/authentication.md#password-recovery-blockers).
+Protected routes, refresh, logout, storefront, and commerce remain
+unfinished. **Source reviewed: 2026-10-23.** Live integrations are unverified.
 
 ## Start here
 
@@ -63,7 +65,7 @@ introduction and quick start; this index owns documentation navigation.
 - [Development guide](development/development-guide.md): Nx tasks, shared
   imports, debugging, formatting, and commits.
 - [Authentication development](development/authentication.md): OTP keys,
-  account creation, login/JWT cookies, and remaining implementation work.
+  account creation, login/JWT cookies, recovery blockers, and remaining work.
 - [Testing](development/testing.md): existing coverage and E2E lifecycle limits.
 - [Troubleshooting](development/troubleshooting.md): setup and runtime diagnosis.
 - [Deployment and CI](operations/deployment.md): actual Dockerfile, ports,

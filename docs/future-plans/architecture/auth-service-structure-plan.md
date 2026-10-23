@@ -107,7 +107,7 @@ module. Never share auth business rules through `packages/libs`.
    Add readiness/shutdown only through the separate future lifecycle work. Keep greeting and health contracts intact.
 2. **Move the feature together.** Move `routes/auth.router.ts` and
    `controller/auth.controller.ts` into `auth/`; update imports. Keep
-   all three `/api` POST contracts unchanged, including JWT claims and cookie
+   all six `/api` POST route contracts accounted for, including JWT claims and cookie
    attributes. Improve behavior in separate changes with explicit validation.
 3. **Split the helper by responsibility.** Move validation into
    `registration.validation.ts`, OTP restrictions/storage into `otp.service.ts`, and email
@@ -131,6 +131,12 @@ error propagation without Express `next`, atomic single-use consumption,
 unique-email race handling, token verification/protected requests, refresh/logout,
 and browser/CSRF policy. A folder refactor does not establish those behaviors or
 verify live authentication.
+
+Three recovery routes were added after this plan was written. Their public reset
+handler has no verification gate. OTP verification is now awaited and mail
+arguments/template are corrected. Fix authorization in a functional change; do not preserve the
+unsafe behavior as a refactor acceptance requirement. See
+[recovery blockers](../../development/authentication.md#password-recovery-blockers).
 
 The OTP record remains a string at `otp:<normalized-email>`, expiring after
 300 seconds. Cooldown expires after 60 seconds. No Lua scripts, ownership tokens,

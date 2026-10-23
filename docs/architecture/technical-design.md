@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [Architecture overview](overview.md)
 
-**Status:** Current source and configuration. **Reviewed:** 2026-10-22.
+**Status:** Current source and configuration. **Reviewed:** 2026-10-23.
 Future design decisions live in [future plans](../future-plans/README.md).
 
 ## Implementation ownership
@@ -11,11 +11,13 @@ Future design decisions live in [future plans](../future-plans/README.md).
 flowchart LR
     Main["Auth main.ts<br/>Express wiring and listener"] --> Router["routes/auth.router.ts"]
     Router --> Controller["controller/auth.controller.ts<br/>HTTP response and orchestration"]
+    Router -->|"Recovery OTP route calls helper directly"| Validation
     Controller --> Validation["utils/auth.helper.ts<br/>Input validation and OTP policy"]
     Controller --> Prisma["packages/libs/prisma"]
     Controller --> JWT["jsonwebtoken<br/>Access and refresh signing"]
     Controller --> Cookies["utils/cookies/setCookies.ts<br/>Express cookie writing"]
     Validation --> Redis["packages/libs/redis"]
+    Validation --> Prisma
     Validation --> Mail["mail/mail.client.ts<br/>EJS and Nodemailer"]
     Main --> Errors["packages/error-handler"]
     Controller --> Errors
@@ -36,7 +38,7 @@ no coordinated resource cleanup, so open client handles can still delay exit.
 No custom readiness route, shutdown drain, or shared HTTP module exists.
 
 The gateway owns logging, quota enforcement, and upstream proxy configuration.
-Auth owns JSON parsing, Swagger, registration/verification, and login routing. See
+Auth owns JSON parsing, Swagger, registration/verification, login, and recovery routing. See
 [request flows](request-flows.md) for exact ordering and
 [configuration](../reference/configuration.md) for inputs/defaults.
 
@@ -98,8 +100,16 @@ policy, generic credential errors, input normalization, refresh/rotation, logout
 and request authentication remain follow-ups. Exact behavior is in the
 [login contract](../reference/api.md#login-and-jwt-cookies).
 
+Recovery adds Express-aware helpers for OTP request and submission plus a
+controller for password updates. The submission route bypasses its unused
+controller wrapper and invokes the helper directly. Verification is awaited and
+mail uses the recovery template with correct name/email arguments. Reset still
+has no verification gate. See [recovery blockers](../development/authentication.md#password-recovery-blockers).
+
 `npm run auth-docs` statically scans `main.ts` to retain router prefixes, then
-reads controller `#swagger` annotations for required fields and example payloads.
+reads controller/router `#swagger` annotations for required fields and example payloads.
+Recovery annotations disable automatic inference so helper-based routes retain
+explicit request/response schemas and descriptions of current defects.
 The CommonJS generator exits unsuccessfully on generation failure. Auth loads
 the committed JSON at startup; regeneration requires a service restart to update
 the served document. Documentation endpoints are excluded from generation.
