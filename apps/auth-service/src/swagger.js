@@ -3,7 +3,8 @@ const swaggerAutogen = require('swagger-autogen');
 const doc = {
   info: {
     title: 'Auth Service API',
-    description: 'Authentication, registration, and email verification API',
+    description:
+      'Authentication, registration, email verification, and incomplete password recovery API. Password reset does not yet enforce verification proof; see endpoint descriptions.',
     version: '1.0.0',
   },
   host: 'localhost:6001',

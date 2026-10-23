@@ -2,28 +2,34 @@
 
 [Documentation hub](../README.md) · [Future implementation plan](../future-plans/implementation-plan.md)
 
-**Reviewed:** 2026-10-22. This inventory reflects source/configuration inspection.
+**Reviewed:** 2026-10-23. This inventory reflects source/configuration inspection.
 
 ## Capability inventory
 
-| Area                      | Present in source/configuration                                                                                                                  | Remaining work                                                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                 | Verify relevant targets as code changes                                                                           |
-| Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                       | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                |
-| Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                       | Concurrency, partial failures, permanent behavior coverage                                                        |
-| Verification and identity | Routed verification, Redis OTP check, 3-attempt lock, bcrypt hashing, Prisma user persistence                                                    | Consistent validation/normalization, OTP error contract and concurrency coverage                                  |
-| Login and JWT cookies     | `POST /api/login`, bcrypt comparison, 15-minute access/7-day refresh signing, HTTP-only JWT cookies, public user response                        | Protected routes/token verification, refresh/rotation, logout/revocation, password reset, browser/CSRF validation |
-| Data                      | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                      | Verify live connectivity, applied indexes, and seed/migration workflow                                            |
-| Redis                     | Simple ioredis instance; string OTP, cooldown, attempt count, and lock keys                                                                      | Atomic admission, bounded failure policy, lifecycle cleanup                                                       |
-| API docs                  | Swagger 2.0 greeting and all three auth POSTs; mounted `/api` paths, required fields and concrete examples; static `npm run auth-docs` generator | Cookie headers and detailed validation/error contracts; permanent contract-alignment tests                        |
-| Tests                     | Two greeting E2E specs; auth Jest/SWC configuration                                                                                              | Auth unit tests; correct gateway E2E; integration/failure-path coverage                                           |
-| Packaging                 | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                             | Verify generated dependencies, Prisma runtime and image startup                                                   |
-| CI                        | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                 | Explicit reliable E2E and delivery pipeline                                                                       |
-| Product                   | Draft requirements and proposed designs                                                                                                          | Storefront, catalog, cart, orders, payments, tenancy decisions                                                    |
-| Operations                | Local greetings and listener error logs/exitCode                                                                                                 | Readiness, drain/cleanup, ingress, monitoring, backups, production deployment                                     |
+| Area                      | Present in source/configuration                                                                                                                     | Remaining work                                                                                                                  |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                    | Verify relevant targets as code changes                                                                                         |
+| Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                          | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                              |
+| Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                          | Concurrency, partial failures, permanent behavior coverage                                                                      |
+| Verification and identity | Routed verification, Redis OTP check, 3-attempt lock, bcrypt hashing, Prisma user persistence                                                       | Consistent validation/normalization, OTP error contract and concurrency coverage                                                |
+| Login and JWT cookies     | `POST /api/login`, bcrypt comparison, 15-minute access/7-day refresh signing, HTTP-only JWT cookies, public user response                           | Protected routes/token verification, refresh/rotation, logout/revocation, browser/CSRF validation                               |
+| Password recovery         | Three public routes; recovery email template, corrected mail arguments, awaited OTP verification, and bcrypt password update                        | Critical: reset requires no verification proof; validation, purpose separation, token invalidation, live delivery, and coverage |
+| Data                      | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                         | Verify live connectivity, applied indexes, and seed/migration workflow                                                          |
+| Redis                     | Simple ioredis instance; string OTP, cooldown, attempt count, and lock keys                                                                         | Atomic admission, bounded failure policy, lifecycle cleanup                                                                     |
+| API docs                  | Swagger 2.0 greeting and all six auth POSTs; required fields/examples; recovery defects and 400/500 responses; static `npm run auth-docs` generator | Cookie headers and complete validation/error contracts; permanent contract-alignment tests                                      |
+| Tests                     | Two greeting E2E specs; auth Jest/SWC configuration                                                                                                 | Auth unit tests; correct gateway E2E; integration/failure-path coverage                                                         |
+| Packaging                 | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                                | Verify generated dependencies, Prisma runtime and image startup                                                                 |
+| CI                        | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                    | Explicit reliable E2E and delivery pipeline                                                                                     |
+| Product                   | Draft requirements and proposed designs                                                                                                             | Storefront, catalog, cart, orders, payments, tenancy decisions                                                                  |
+| Operations                | Local greetings and listener error logs/exitCode                                                                                                    | Readiness, drain/cleanup, ingress, monitoring, backups, production deployment                                                   |
 
 ## Known source limitations
 
+- Recovery reset accepts a known email and replacement password without OTP,
+  token, or session authorization. Verification now awaits the OTP result but
+  creates no reset proof. Recovery mail arguments/template are corrected;
+  live delivery remains unverified. Missing reset authorization is a release blocker; see
+  [recovery details](../development/authentication.md#password-recovery-blockers).
 - OTP checks/counters are sequential and can race. SMTP acceptance precedes OTP
   storage; a later Redis failure can leave an email without matching state.
 - Gateway counters are process-local; direct auth access bypasses them. Neither
@@ -52,6 +58,13 @@ Detailed behavior belongs in [architecture](../architecture/overview.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
 
 ## Documentation verification boundary
+
+The 2026-10-23 recovery refresh reviews the entire working-tree diff, adds the
+three routed contracts and known blockers to current documentation, and updates
+Swagger annotations/generated JSON. It changes no runtime authentication logic.
+Swagger generation, formatting, and Git whitespace inspection are documentation
+checks only. No lint, builds, application tests, or live integrations were run
+for this refresh. A follow-up adds the recovery email template and corrects the mail argument order; OTP verification is now awaited in the current source. No live mail or application checks were run. The historical checks below were not rerun.
 
 The 2026-10-22 refresh covers current login/cookie source, Swagger changes,
 manifests, configuration examples, and the existing schema/tests/build/CI setup.

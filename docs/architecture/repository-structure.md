@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [System architecture](overview.md)
 
-**Status:** Current files and configuration. **Reviewed:** 2026-10-22.
+**Status:** Current files and configuration. **Reviewed:** 2026-10-23.
 
 ## Source layout
 
@@ -16,14 +16,15 @@
 |   |-- auth-service/
 |   |   |-- src/
 |   |   |   |-- main.ts                  # Express wiring, Swagger, listener
-|   |   |   |-- routes/auth.router.ts    # /api/user-registration, /api/verify-registration, /api/login
+|   |   |   |-- routes/auth.router.ts    # Six /api POST routes; recovery Swagger annotations
 |   |   |   |-- controller/auth.controller.ts
-|   |   |   |-- utils/auth.helper.ts     # Validation, OTP verification, attempt locking
+|   |   |   |-- utils/auth.helper.ts     # Validation, OTP policy, incomplete recovery handlers
 |   |   |   |-- utils/cookies/setCookies.ts # Access/refresh cookie policy within auth
 |   |   |   |-- mail/
 |   |   |   |   |-- mail.client.ts       # EJS rendering and SMTP transport
 |   |   |   |   |-- index.ts
-|   |   |   |   `-- templates/user-activation-mail.ejs
+|   |   |   |   |-- templates/user-activation-mail.ejs
+|   |   |   |   `-- templates/forgot-password-user-email.ejs
 |   |   |   |-- swagger.js               # Scans main.ts mounts and annotations; npm run auth-docs
 |   |   |   `-- swagger-output.json      # Committed Swagger 2.0 document
 |   |   |-- package.json                 # esbuild, serve, prune, Docker targets
@@ -93,7 +94,9 @@ need their own resolution if they execute these imports directly.
 Import the specific module you need. The aggregate
 [packages/index.ts](../../packages/index.ts) re-exports clients that instantiate
 Prisma/Redis at import time; importing it can pull infrastructure into a consumer.
-Current applications use targeted imports.
+The new recovery helper imports Prisma through `@packages/libs`, whose barrel
+also re-exports Redis; other client imports in the applications target their
+specific modules.
 
 Keep gateway policy in the gateway and identity behavior in auth. Add a shared
 folder with an `index.ts` when it has a real consumer; no per-folder manifest or

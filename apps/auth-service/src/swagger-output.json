@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "title": "Auth Service API",
-    "description": "Authentication, registration, and email verification API",
+    "description": "Authentication, registration, email verification, and incomplete password recovery API. Password reset does not yet enforce verification proof; see endpoint descriptions.",
     "version": "1.0.0"
   },
   "host": "localhost:6001",
@@ -215,6 +215,253 @@
                       "example": "Example Customer"
                     }
                   }
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forgot-password-user": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Request a password-recovery OTP",
+        "description": "Sends a four-digit OTP using the recovery email template. The code expires after five minutes. Email is used unchanged and shares registration OTP keys and limits. Request counters are incremented before delivery, so failures may still consume a request. Password reset does not yet enforce verification proof.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "customer@example.com"
+                }
+              },
+              "required": [
+                "email"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SMTP accepted the recovery email and Redis OTP/cooldown writes completed; inbox delivery is not guaranteed.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "OTP sent successfully. Please check your account."
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Missing email, unknown user, or shared OTP restrictions.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Email is required!"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected body, database, Redis, template, or SMTP failure.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Something went wrong please try again"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reset-password-user": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Reset a user password (unsafe: no verification required)",
+        "description": "Critical limitation: this public handler accepts email and newPassword without an OTP, reset token, or authenticated session. Anyone knowing an existing email can change its password. Only field truthiness and reuse of the old password are checked; password length/type and email normalization are not enforced. Existing JWTs are not revoked.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "customer@example.com"
+                },
+                "newPassword": {
+                  "type": "string",
+                  "example": "new-example-password"
+                }
+              },
+              "required": [
+                "email",
+                "newPassword"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Password hashed with bcrypt (10 rounds) and stored for the supplied email.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Password reset successfully"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Missing fields, unknown user, or new password equals the old password.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Email and new password are required!"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected body, database, or bcrypt failure.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Something went wrong please try again"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/verify-forgot-password-user": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify a password-recovery OTP",
+        "description": "Awaits the shared OTP verification and consumes the code on success. No reset authorization is issued or stored, and the reset route does not require verification proof. The router calls the helper directly; verifyUserForgotPassword is unused.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "customer@example.com"
+                },
+                "otp": {
+                  "type": "string",
+                  "example": "1234"
+                }
+              },
+              "required": [
+                "email",
+                "otp"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP verified and consumed; no reset token is issued.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Verify OTP successfully. You can nơ reset your password"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Missing email or OTP, expired/invalid code, incorrect code, or attempt lockout.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Email and otp are required!"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected request handling or Redis failure.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Something went wrong please try again"
                 }
               },
               "xml": {

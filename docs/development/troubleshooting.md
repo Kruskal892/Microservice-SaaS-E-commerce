@@ -63,10 +63,19 @@ Run `npm run auth-docs` from the repository root, restart auth, then reload
 `http://localhost:6001/api-docs`. The service reads committed JSON at startup.
 `/docs-json` shows the document loaded by that process; it does not regenerate it.
 The generator must scan `main.ts` to retain the `/api` router prefix. Required
-request fields and concrete examples come from `#swagger` controller comments;
+request fields and concrete examples come from `#swagger` controller/router comments;
 inference alone cannot see registration's helper validation or choose examples.
 If you change the auth HTTP port, Swagger's advertised host must also be updated;
 it currently stays fixed at `localhost:6001`.
+
+## Password recovery delivery and authorization
+
+Recovery mail now uses the supplied email and the recovery template. Check SMTP
+and Redis configuration for delivery errors; a failed send still consumes a
+request. OTP submission awaits verification, but reset still accepts
+email/newPassword without proof of verification. See
+[recovery blockers](authentication.md#password-recovery-blockers) and the
+[current API contract](../reference/api.md#password-recovery-incomplete-and-unsafe).
 
 ## Login fails or cookies are missing
 
