@@ -3,10 +3,15 @@
 [Documentation index](../../README.md)
 
 **Priority:** Critical. **Status:** Proposed product behavior with current baseline.
-**Reviewed:** 2026-10-22. Requirement IDs refer to the [PRD](prd.md); draft paths are
+**Reviewed:** 2026-10-25. Requirement IDs refer to the [PRD](prd.md); draft paths are
 owned by the [proposed product API](../api/product-api.md).
 
 ## 1. Current foundation
+
+The client foundation is a Next.js App Router scaffold with React and
+[Tailwind design tokens](../../reference/design-tokens.md). It retains its original
+header and placeholder page; it implements none of the proposed customer-facing
+identity, catalog, cart, checkout, or order features below.
 
 | Feature              | Trigger and result                                                                             | Limits                                                                                  |
 | -------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |

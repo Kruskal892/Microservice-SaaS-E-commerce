@@ -3,7 +3,13 @@
 [Documentation hub](../README.md) · [Registration & verification sequence diagrams](../architecture/request-flows.md#registration-and-otp-delivery)
 
 **Status:** Source implementation, not a verified live integration.
-**Reviewed:** 2026-10-23.
+**Reviewed:** 2026-10-25.
+
+The Next.js client currently provides only a placeholder UI and design tokens.
+No login/register forms, credential requests, session handling, cookie consumer,
+or recovery UI are implemented there. The backend contracts below remain
+independent of the client scaffold. Use the [client README](../../apps/client/README.md)
+for frontend setup; tokens do not establish authentication functionality.
 
 ## Current registration behavior
 

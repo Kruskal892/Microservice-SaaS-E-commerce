@@ -1,25 +1,28 @@
 # Project documentation
 
 Microservice Eshop is an Nx/npm TypeScript monorepo with an Express API gateway,
-an authentication service, and shared infrastructure modules. Registration can
+an authentication service, shared infrastructure modules, and a Next.js client
+scaffold with Tailwind v4 design tokens. Registration can
 request an email OTP, verify it to create an account, and log in to receive JWT
 cookies. Three recovery routes are mounted but have
 [security blockers](development/authentication.md#password-recovery-blockers).
 Protected routes, refresh, logout, storefront, and commerce remain
-unfinished. **Source reviewed: 2026-10-23.** Live integrations are unverified.
+unfinished. The client retains its original header and placeholder page; no
+shopping flows or API integration exist. **Source reviewed: 2026-10-25.** Live integrations are unverified.
 
 ## Start here
 
-| Need                                   | Read                                                         |
-| -------------------------------------- | ------------------------------------------------------------ |
-| Set up and run the project             | [Getting started](development/getting-started.md)            |
-| Understand the system                  | [Architecture overview](architecture/overview.md)            |
-| Find code and understand dependencies  | [Repository structure](architecture/repository-structure.md) |
-| Follow a request or OTP email          | [Request flows](architecture/request-flows.md)               |
-| Call an available endpoint             | [API reference](reference/api.md)                            |
-| Configure a service                    | [Configuration reference](reference/configuration.md)        |
-| Assess what exists and what is missing | [Implementation status](operations/implementation-status.md) |
-| Review proposals and upcoming work     | [Future plans](future-plans/README.md)                       |
+| Need                                   | Read                                                                                   |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| Set up and run the project             | [Getting started](development/getting-started.md)                                      |
+| Understand the system                  | [Architecture overview](architecture/overview.md)                                      |
+| Find code and understand dependencies  | [Repository structure](architecture/repository-structure.md)                           |
+| Follow a request or OTP email          | [Request flows](architecture/request-flows.md)                                         |
+| Call an available endpoint             | [API reference](reference/api.md)                                                      |
+| Configure a service                    | [Configuration reference](reference/configuration.md)                                  |
+| Run or style the client                | [Client README](../apps/client/README.md), [design tokens](reference/design-tokens.md) |
+| Assess what exists and what is missing | [Implementation status](operations/implementation-status.md)                           |
+| Review proposals and upcoming work     | [Future plans](future-plans/README.md)                                                 |
 
 ## Documentation map
 
@@ -34,7 +37,8 @@ docs/
 |   `-- technical-design.md        # Current implementation patterns
 |-- reference/                     # Exact current contracts
 |   |-- api.md
-|   `-- configuration.md
+|   |-- configuration.md
+|   `-- design-tokens.md            # Current Tailwind palette, scales, and theme selectors
 |-- development/                   # Contributor guides
 |   |-- getting-started.md
 |   |-- development-guide.md
@@ -84,16 +88,17 @@ Diagrams use Mermaid and render on GitHub or in a Mermaid-enabled Markdown
 preview. Each diagram states whether it describes current source or a proposal.
 Keep diagrams next to the explanation and update both when behavior changes.
 
-| Change                               | Owning documentation                       |
-| ------------------------------------ | ------------------------------------------ |
-| Routes, validation, public errors    | API reference and request flows            |
-| Environment inputs or defaults       | Configuration reference and setup          |
-| Service boundaries or dependencies   | Architecture overview and technical design |
-| Files, aliases, build ownership      | Repository structure and development guide |
-| Prisma schema or indexes             | Database design                            |
-| Packaging, networking, CI            | Deployment and CI                          |
-| Coverage or an unresolved limitation | Testing and implementation status          |
-| A future capability or refactor      | Future plans and its implementation task   |
+| Change                                      | Owning documentation                       |
+| ------------------------------------------- | ------------------------------------------ |
+| Routes, validation, public errors           | API reference and request flows            |
+| Environment inputs or defaults              | Configuration reference and setup          |
+| Client tokens, themes, or responsive scales | Design tokens and client README            |
+| Service boundaries or dependencies          | Architecture overview and technical design |
+| Files, aliases, build ownership             | Repository structure and development guide |
+| Prisma schema or indexes                    | Database design                            |
+| Packaging, networking, CI                   | Deployment and CI                          |
+| Coverage or an unresolved limitation        | Testing and implementation status          |
+| A future capability or refactor             | Future plans and its implementation task   |
 
 Keep current contracts in their owning reference pages and link to them from
 guides. When a proposal ships, update the current docs, record validation, and

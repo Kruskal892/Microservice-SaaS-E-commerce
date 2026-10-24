@@ -2,14 +2,14 @@
 
 [Future plans](../README.md) · [Current architecture](../../architecture/overview.md)
 
-**Status:** Draft target and open decisions. **Reviewed:** 2026-10-22.
+**Status:** Draft target and open decisions. **Reviewed:** 2026-10-25.
 The diagram is a proposed system; it does not describe deployed components.
 
 ## Target system
 
 ```mermaid
 flowchart LR
-    Customer["Customer browser"] -.-> Frontend["Next.js storefront<br/>Not implemented"]
+    Customer["Customer browser"] -.-> Frontend["Next.js storefront<br/>Scaffold and tokens exist; flows planned"]
     Frontend -.-> Gateway["Extend current gateway<br/>Explicit service routing"]
     Gateway -.-> Auth["Complete auth<br/>Verification and sessions"]
     Gateway -.-> Commerce["Commerce owner TBD<br/>Catalog, cart, orders"]
@@ -26,6 +26,10 @@ implementations, including OTP/account creation and login/JWT cookie issuance;
 the full identity lifecycle and commerce flows shown here are unfinished. Logical data ownership
 does not mandate separate physical MongoDB deployments. Do not create a new
 service for every entity without a workflow and ownership reason.
+
+The current client contains its original header and placeholder page with
+[Tailwind design tokens](../../reference/design-tokens.md). The frontend-to-API
+arrows above are future integration; the scaffold makes no backend calls.
 
 ## Proposed request pattern
 
@@ -45,17 +49,17 @@ and business code separate when behavior warrants it; no framework is selected.
 
 ## Decisions to make
 
-| Topic      | Proposed direction                                                   | Decision gate                                                        |
-| ---------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Identity   | Auth owns hashing, verification, session issue/revocation            | Storage, transport, expiry, recovery; CSRF policy for cookies        |
-| Gateway    | Explicit routing and failure policy                                  | Startup validation, proxy topology, 502/504 mapping and retry policy |
-| Access     | Service-level identity and ownership checks                          | Reject spoofed identity and cross-customer resource access           |
-| Data       | MongoDB/Prisma with service-owned collections                        | Connector topology, unique indexes and deployment process            |
-| Money      | Integer minor units and explicit currency; server totals             | Bounds, precision, shipping/tax and rounding                         |
-| Orders     | Durable customer/idempotency-key uniqueness plus request fingerprint | Matching retries reuse order; conflicting key reuse returns 409      |
-| Frontend   | Next.js consuming public APIs                                        | Design system, state/cache choices and full interface states         |
-| Async      | Add messaging only for agreed workflows                              | Schemas, replay, delivery and failure ownership                      |
-| Operations | Readiness, drain, monitored dependencies, recoverable data           | Platform probe/grace periods, backups, logs and rollback             |
+| Topic      | Proposed direction                                                                 | Decision gate                                                                          |
+| ---------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Identity   | Auth owns hashing, verification, session issue/revocation                          | Storage, transport, expiry, recovery; CSRF policy for cookies                          |
+| Gateway    | Explicit routing and failure policy                                                | Startup validation, proxy topology, 502/504 mapping and retry policy                   |
+| Access     | Service-level identity and ownership checks                                        | Reject spoofed identity and cross-customer resource access                             |
+| Data       | MongoDB/Prisma with service-owned collections                                      | Connector topology, unique indexes and deployment process                              |
+| Money      | Integer minor units and explicit currency; server totals                           | Bounds, precision, shipping/tax and rounding                                           |
+| Orders     | Durable customer/idempotency-key uniqueness plus request fingerprint               | Matching retries reuse order; conflicting key reuse returns 409                        |
+| Frontend   | Next.js scaffold and Tailwind tokens exist; consuming public APIs remains proposed | Component system, state/cache choices, identity integration, and full interface states |
+| Async      | Add messaging only for agreed workflows                                            | Schemas, replay, delivery and failure ownership                                        |
+| Operations | Readiness, drain, monitored dependencies, recoverable data                         | Platform probe/grace periods, backups, logs and rollback                               |
 
 Parsed cookies or identity headers alone do not establish a session. Avoid
 client-chosen prices or unfiltered objects in database writes. Define safe

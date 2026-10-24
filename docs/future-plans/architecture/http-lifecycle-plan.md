@@ -2,11 +2,11 @@
 
 [Documentation index](../../README.md) · [Auth-service structure plan](auth-service-structure-plan.md)
 
-**Updated:** 2026-10-21. **Status:** Deferred until deployment needs it.
+**Updated:** 2026-10-25. **Status:** Deferred until deployment needs it.
 
 ## Current implementation
 
-Each application's main.ts starts Express directly with app.listen(). Auth uses
+Each backend application's main.ts starts Express directly with app.listen(). Auth uses
 PORT or 6001; gateway uses PORT or 8080. Listener errors are logged and set a
 nonzero exit code. Normal Node/operating-system behavior handles termination.
 
@@ -15,6 +15,11 @@ receipt timeouts, or signal/drain handlers are present. There are no
 custom readiness checks or graceful resource cleanup at present. Auth GET /
 and gateway GET /gateway-health are local responses, not dependency checks.
 The gateway's ten-second upstream proxy timeout remains separate and unchanged.
+
+The client is a Next.js scaffold with its own framework-managed dev/build/start
+targets, not an Express listener. This plan concerns auth/gateway infrastructure;
+client deployment and readiness policy remain undecided. See
+[current deployment configuration](../../operations/deployment.md).
 
 ## When to implement
 

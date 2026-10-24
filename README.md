@@ -1,8 +1,9 @@
 # Microservice Eshop
 
-An ecommerce backend foundation built with TypeScript, Express, Nx, and npm
+An ecommerce foundation built with TypeScript, Express, Next.js, Nx, and npm
 workspaces. The repository contains an API gateway, an authentication service,
-shared error/database clients, Prisma's MongoDB schema, and HTTP smoke tests.
+shared error/database clients, Prisma's MongoDB schema, HTTP smoke tests, and a
+Next.js client scaffold with Tailwind v4 design tokens.
 
 Registration currently validates input, checks for an existing email, and sends
 an OTP using Redis and SMTP. Registration verification (`POST /api/verify-registration`)
@@ -12,7 +13,8 @@ hashes passwords with bcrypt, and creates user accounts in MongoDB. Login
 Three password-recovery routes are also mounted, but reset still requires no
 verification proof. See the
 [recovery blockers](docs/development/authentication.md#password-recovery-blockers).
-Token verification on protected routes, refresh, logout, the storefront, and
+The client currently renders its original header and placeholder page; storefront
+features and backend integration are not implemented. Token verification on protected routes, refresh, logout, and
 commerce APIs remain unfinished or planned. Live integrations are unverified.
 
 ## Documentation
@@ -26,6 +28,7 @@ work have separate documentation areas.
 | System and code layout      | [Architecture](docs/architecture/overview.md), [repository structure](docs/architecture/repository-structure.md) |
 | Visual request walkthroughs | [HTTP and OTP flows](docs/architecture/request-flows.md)                                                         |
 | Endpoints and environment   | [API](docs/reference/api.md), [configuration](docs/reference/configuration.md)                                   |
+| Client and styling          | [Client setup](apps/client/README.md), [design tokens](docs/reference/design-tokens.md)                          |
 | Contributor workflow        | [Development guide](docs/development/development-guide.md), [testing](docs/development/testing.md)               |
 | Packaging and current gaps  | [Deployment](docs/operations/deployment.md), [implementation status](docs/operations/implementation-status.md)   |
 | Roadmap and draft designs   | [Future plans](docs/future-plans/README.md)                                                                      |
@@ -47,15 +50,26 @@ npx prisma generate
 npm run dev
 ```
 
-Leave `PORT` unset when starting both applications together. Each service reads
+Start the client in a separate terminal:
+
+```sh
+npm run client
+```
+
+The client defaults to `http://localhost:3000` and does not require backend
+credentials for its placeholder page. `npm run dev` starts backend `serve`
+targets; it does not start the client's `dev` target.
+
+Leave `PORT` unset when starting both backend applications together. Each service reads
 the same variable in its own process. See [setup](docs/development/getting-started.md)
 for separate startup, configuration, and database synchronization instructions.
 
-| Application     | Default URL                          | Source-defined response                                 |
-| --------------- | ------------------------------------ | ------------------------------------------------------- |
-| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                            |
-| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`              |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations |
+| Application     | Default URL                          | Source-defined response                                      |
+| --------------- | ------------------------------------ | ------------------------------------------------------------ |
+| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                 |
+| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                   |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations      |
+| Client          | http://localhost:3000/               | Existing header and placeholder page; Tailwind design tokens |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any
@@ -68,6 +82,7 @@ verified by this documentation refresh.
 | ------------------- | ---------------------------------------------------------------------- |
 | Workspace           | Nx 23.3, npm workspaces (`apps/*`, `packages`)                         |
 | Runtime             | Node.js; Express 5; TypeScript 6.0                                     |
+| Frontend            | Next.js 16.1, React 19, Tailwind CSS 4.3 through PostCSS               |
 | HTTP gateway        | express-http-proxy, CORS, Morgan, in-memory IP limiting                |
 | Persistence         | Prisma 6.19, MongoDB users/images schema and user persistence          |
 | Security            | bcryptjs password hashing; jsonwebtoken JWT signing; HTTP-only cookies |
@@ -76,12 +91,12 @@ verified by this documentation refresh.
 | Checks and delivery | Jest/SWC/Axios, ESLint, Prettier, GitHub Actions; auth Dockerfile      |
 
 [Package manifests](package.json) and the [lockfile](package-lock.json) own
-dependency versions. Next.js, Kafka, Socket.IO, Firebase, TensorFlow.js, AWS,
+dependency versions. Kafka, Socket.IO, Firebase, TensorFlow.js, AWS,
 Cloudflare, and an unconfirmed media provider belong to
 [future plans](docs/future-plans/README.md).
 
 ```text
-apps/       # Gateway, auth service, and their E2E projects
+apps/       # Next.js client, gateway, auth service, and backend E2E projects
 packages/   # One shared workspace: errors, Prisma, Redis
 prisma/     # MongoDB schema; root prisma.config.ts configures the CLI
 docs/       # Architecture, references, guides, operations, future plans

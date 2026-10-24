@@ -2,13 +2,24 @@
 
 [Documentation hub](../README.md) · [System architecture](overview.md)
 
-**Status:** Current files and configuration. **Reviewed:** 2026-10-23.
+**Status:** Current files and configuration. **Reviewed:** 2026-10-25.
 
 ## Source layout
 
 ```text
 .
 |-- apps/
+|   |-- client/
+|   |   |-- src/app/layout.tsx          # Global CSS and original header
+|   |   |-- src/app/page.tsx            # Placeholder page
+|   |   |-- src/app/global.css          # Tailwind v4 tokens and theme selectors
+|   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
+|   |   |-- src/components/layout/Header.tsx # Original header component
+|   |   |-- postcss.config.mjs          # @tailwindcss/postcss
+|   |   |-- next.config.js
+|   |   |-- tsconfig.json               # Bundler resolution and @/* client alias
+|   |   |-- package.json                # @microservice-eshop/client
+|   |   `-- README.md
 |   |-- api-gateway/
 |   |   |-- src/main.ts                  # Middleware, local health, proxy, listener
 |   |   |-- webpack.config.js            # Build and @packages alias resolution
@@ -68,6 +79,8 @@ the current generator produces the client consumed through `@prisma/client`.
 flowchart TD
     Root["Root npm workspace<br/>apps/* and packages"] --> Auth["auth-service"]
     Root --> Gateway["api-gateway"]
+    Root --> Client["client<br/>Next.js and Tailwind"]
+    Client --> Next["Next.js build<br/>apps/client/.next"]
     Root --> Shared["shared workspace<br/>packages/"]
     Root --> AuthE2E["auth-service-e2e"]
     Root --> GatewayE2E["api-gateway-e2e"]
@@ -84,6 +97,12 @@ These are configured dependencies, not results of a build. The E2E projects have
 explicit `e2e` targets; the Nx Jest plugin excludes them from `test` inference.
 
 ## Import and ownership rules
+
+The client owns its `@/*` alias into `apps/client/src/*`; its TypeScript config
+uses bundler resolution and replaces the root `paths` map. It has no dependency
+on shared database clients. Keep Prisma/Redis and their aggregate barrels out of
+browser code. [Client setup](../../apps/client/README.md) and the
+[token reference](../reference/design-tokens.md) own frontend conventions.
 
 `@microservice-eshop/shared` is the shared workspace manifest name.
 `@packages/error-handler` and `@packages/libs/prisma` are folder aliases into

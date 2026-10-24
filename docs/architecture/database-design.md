@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Source schema](../../prisma/schema.prisma)
 
 **Status:** Declared Prisma/MongoDB schema; live synchronization and persistence
-are unverified. **Reviewed:** 2026-10-22.
+are unverified. **Reviewed:** 2026-10-25.
 
 ## Current Prisma schema
 
@@ -11,6 +11,11 @@ The datasource uses MongoDB and `DATABASE_URL`. The generator is
 `prisma-client-js`, consumed by the shared wrapper through `@prisma/client`.
 The schema declares two models, `users` and `images`; catalog, cart, orders,
 sessions, and tenancy have no models yet.
+
+The Next.js client is a placeholder and token setup. It has no Prisma access,
+cart/order persistence, seeded catalog, browser credential storage, or commerce
+database models. An external HTML prototype does not add these capabilities to
+the repository. See [implementation status](../operations/implementation-status.md).
 
 ```mermaid
 erDiagram

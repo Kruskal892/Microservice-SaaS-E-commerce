@@ -2,9 +2,14 @@
 
 [Documentation index](../../README.md) · [Auth-service structure plan](auth-service-structure-plan.md)
 
-**Updated:** 2026-10-22. **Status:** Future work, not an implementation claim.
+**Updated:** 2026-10-25. **Status:** Future work, not an implementation claim.
 
 ## Current baseline
+
+This plan concerns backend Redis/runtime behavior. The Next.js scaffold and
+Tailwind design tokens do not introduce Redis usage or a shared configuration
+package. The client starts separately on port 3000 and has no custom API
+environment variables or backend calls; see [configuration](../../reference/configuration.md).
 
 - Keep the existing client: `new Redis(process.env.REDIS_DATABASE_URL!)`.
 - Keep OTP values as strings with a 300-second expiry and a 60-second cooldown.

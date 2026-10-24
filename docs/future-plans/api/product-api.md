@@ -2,7 +2,10 @@
 
 [Future plans](../README.md) · [Current API](../../reference/api.md)
 
-**Status:** Draft; none of these routes are implemented. **Reviewed:** 2026-10-22.
+**Status:** Draft; none of these routes are implemented. **Reviewed:** 2026-10-25.
+
+The Next.js client now has a scaffold and design tokens, but consumes none of
+these APIs. Its `/api/hello` handler is unrelated to the proposed `/v1` contract.
 
 This draft supports the [feature specification](../product/feature-specification.md).
 `/v1` is a proposed public prefix, not an existing route. Requests to these paths

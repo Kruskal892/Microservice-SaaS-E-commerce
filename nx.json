@@ -3,10 +3,7 @@
   "defaultBase": "master",
   "analytics": false,
   "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
       "default",
       "!{projectRoot}/.eslintrc.json",
@@ -17,9 +14,7 @@
       "!{projectRoot}/src/test-setup.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
-    "sharedGlobals": [
-      "{workspaceRoot}/.github/workflows/ci.yml"
-    ]
+    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
   "plugins": [
     {
@@ -47,10 +42,7 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": [
-        "apps/auth-service-e2e/**/*",
-        "apps/api-gateway-e2e/**/*"
-      ]
+      "exclude": ["apps/auth-service-e2e/**/*", "apps/api-gateway-e2e/**/*"]
     },
     {
       "plugin": "@nx/docker",
@@ -89,26 +81,26 @@
   "targetDefaults": {
     "@nx/esbuild:esbuild": {
       "cache": true,
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "inputs": [
         "production",
         "^production",
         {
           "json": "{workspaceRoot}/tsconfig.json",
-          "fields": [
-            "extends",
-            "files",
-            "include"
-          ]
+          "fields": ["extends", "files", "include"]
         }
       ]
     },
     "test": {
-      "dependsOn": [
-        "^build"
-      ]
+      "dependsOn": ["^build"]
+    }
+  },
+  "generators": {
+    "@nx/next": {
+      "application": {
+        "style": "none",
+        "linter": "eslint"
+      }
     }
   }
 }

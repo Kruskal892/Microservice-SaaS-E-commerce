@@ -2,13 +2,15 @@
 
 [Documentation hub](../README.md) · [Future implementation plan](../future-plans/implementation-plan.md)
 
-**Reviewed:** 2026-10-23. This inventory reflects source/configuration inspection.
+**Reviewed:** 2026-10-25. This inventory reflects source/configuration inspection.
 
 ## Capability inventory
 
 | Area                      | Present in source/configuration                                                                                                                     | Remaining work                                                                                                                  |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                    | Verify relevant targets as code changes                                                                                         |
+| Client scaffold           | Next.js App Router, React, original header/page, local hello handler, client alias and Nx dev/build/start configuration                             | Storefront routes/components, backend integration, state, localization, client tests                                            |
+| Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales, named breakpoints                                         | Inter delivery, theme controls/persistence, component styling and accessibility verification                                    |
 | Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                          | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                              |
 | Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                          | Concurrency, partial failures, permanent behavior coverage                                                                      |
 | Verification and identity | Routed verification, Redis OTP check, 3-attempt lock, bcrypt hashing, Prisma user persistence                                                       | Consistent validation/normalization, OTP error contract and concurrency coverage                                                |
@@ -50,7 +52,7 @@
 - Docker uses a floating `node:lts-alpine` base and `npm --omit=dev -f install`.
   No explicit Prisma-generation step or non-root user is configured. Pruned
   runtime dependencies and container startup remain unverified.
-- Each app directly listens and only sets `exitCode` on listener errors; there
+- Each backend app directly listens and only sets `exitCode` on listener errors; there
   are no readiness probes or custom client shutdown handlers.
 
 Detailed behavior belongs in [architecture](../architecture/overview.md),
@@ -58,6 +60,36 @@ Detailed behavior belongs in [architecture](../architecture/overview.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
 
 ## Documentation verification boundary
+
+The 2026-10-25 refresh adds the Tailwind token configuration and synchronizes
+project documentation with the existing Next.js scaffold. The original header,
+page, and layout are retained. No storefront, authentication UI, commerce flow,
+or frontend API integration is implemented. The following checks passed on
+Node.js 22.22.2 locally (CI is configured for Node.js 24):
+
+- Client TypeScript check with
+  `node node_modules/typescript/bin/tsc -p apps/client/tsconfig.json --noEmit`,
+  using a temporary build-info path.
+- Production client build with `node ../../node_modules/next/dist/bin/next build`
+  from `apps/client`. Next.js 16.1.7 compiled `/`, `/_not-found`, and `/api/hello`.
+  It emitted its warning that TypeScript project references are not fully
+  supported and used incremental mode; the build completed successfully.
+- Nx client target inspection confirmed `dev`, `build`, `start`, `serve-static`,
+  `lint`, and dependency targets; no client `test` target was present.
+- A temporary PostCSS/Tailwind check compiled 48 representative token utilities.
+  Headless Edge checked computed background/text values for default light,
+  `data-theme="dark"`, explicit light reset, and `.dark`, plus sample font size,
+  radius, and spacing values.
+- Prettier across 29 Markdown documents and the token CSS; 321 local file/heading
+  links, balanced fences, and 12 JSON examples checked without errors.
+- All 26 Mermaid diagrams rendered with Mermaid 12.2.0 in headless Edge.
+- The original header content and single placeholder page were verified, and
+  `git diff --check` passed.
+
+No backend build, lint, unit/E2E suite, live MongoDB/Redis/SMTP/authentication,
+Docker, remote CI, or deployment check was run for the token change. Browser
+checks above validate CSS values and documentation diagrams, not a storefront
+journey. Historical results below remain separate.
 
 The 2026-10-23 recovery refresh reviews the entire working-tree diff, adds the
 three routed contracts and known blockers to current documentation, and updates

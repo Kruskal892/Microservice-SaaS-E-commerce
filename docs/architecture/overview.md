@@ -2,18 +2,21 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current source. **Reviewed:** 2026-10-23. The system is a backend
-foundation; integrations shown below are wired in code and remain unverified
+**Status:** Current source. **Reviewed:** 2026-10-25. The system is a backend
+foundation plus a Next.js/Tailwind client scaffold; backend integrations shown below are wired in code and remain unverified
 against live services.
 
 ## System context
 
-An HTTP client can call auth directly or use the gateway. No frontend application
-exists. The gateway has one upstream, auth; it does not yet route among multiple
+An HTTP client can call auth directly or use the gateway. `apps/client` contains
+a Next.js App Router scaffold with design tokens, the existing header, a
+placeholder page, and a local hello route. It has no backend integration.
+The gateway has one upstream, auth; it does not yet route among multiple
 business services or authenticate users.
 
 ```mermaid
 flowchart LR
+    Browser["Browser"] --> Frontend["Next.js client :3000<br/>Placeholder UI and Tailwind tokens"]
     Client["HTTP client"] --> Gateway["API gateway<br/>Express :8080"]
     Client --> Auth["Auth service<br/>Express :6001"]
     Gateway -->|"All paths except local health"| Auth
@@ -32,6 +35,7 @@ See [request flows](request-flows.md) for execution order and failure paths.
 | Component      | Current responsibility                                                                                                | Source                                                                                                                  |
 | -------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                             | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
+| Client         | Next.js scaffold, placeholder UI, Tailwind tokens, hello handler; no backend calls                                    | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
 | Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
 | Shared errors  | Error classes and JSON error middleware used by both apps                                                             | [error-handler](../../packages/error-handler/index.ts)                                                                  |
 | Shared clients | Prisma client reuse and a simple ioredis instance                                                                     | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
@@ -50,6 +54,7 @@ those business rules. See [repository structure](repository-structure.md) and
 | -------------------- | --------------------------------------------------------------------------------- |
 | Runtime and HTTP     | Node.js, Express 5, TypeScript; CI selects Node 24                                |
 | Workspace and builds | Nx/npm, auth esbuild, gateway Webpack                                             |
+| Client               | Next.js 16.1, React 19, Tailwind CSS 4.3 via PostCSS                              |
 | Gateway              | express-http-proxy, express-rate-limit, cors, Morgan                              |
 | Persistence          | Prisma 6.19 and MongoDB; email lookup & persistence                               |
 | Security             | bcryptjs password hashing/comparison; jsonwebtoken signing; HTTP-only JWT cookies |

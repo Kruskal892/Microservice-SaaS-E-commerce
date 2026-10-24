@@ -2,7 +2,7 @@
 
 [Documentation index](../../README.md) · [Current authentication flow](../../development/authentication.md)
 
-**Date:** 2026-10-22. **Status:** Proposed refactor; these moves have not been made.
+**Date:** 2026-10-25. **Status:** Proposed refactor; these moves have not been made.
 This plan reorganizes existing ownership without changing public endpoints.
 Advanced Redis and port configuration are deferred; see the
 [Redis and runtime plan](redis-and-runtime-plan.md).
@@ -14,6 +14,11 @@ registration, OTP policy, identity, and activation email presentation. The gatew
 owns public routing, trusted proxies, and its traffic limits. Errors and database clients keep their existing owners. HTTP lifecycle is
 [deferred](http-lifecycle-plan.md); there is no shared HTTP module currently.
 Keep environment reads local and use the existing PORT convention.
+
+The Next.js client is a separate scaffold with Tailwind tokens and the original
+header/page. It does not consume auth yet. Keep server-only Prisma/Redis clients,
+signing secrets, and shared infrastructure barrels outside browser components;
+this refactor does not add frontend authentication.
 
 The current issue is mixed responsibilities: `main.ts` builds and starts Express,
 `auth.helper.ts` combines validation with Redis policy and mail orchestration, and

@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-10-22. Commands describe setup; live integrations have not
+**Reviewed:** 2026-10-25. Commands describe setup; live integrations have not
 been verified by this documentation refresh.
 
 ## Requirements
@@ -12,9 +12,10 @@ Use Node.js 24, matching [CI](../../.github/workflows/ci.yml), and npm. Git is n
 Auth registration requires MongoDB, Redis, and SMTP configuration. Login also
 requires `JWT_ACCESS_TOKEN_SECRET` and `JWT_REFRESH_TOKEN_SECRET`. Importing
 auth also initializes client modules, so configure these before startup.
-Kafka, frontend, and cloud integrations remain [future work](../future-plans/README.md).
+The Next.js client scaffold and Tailwind design tokens can run independently;
+storefront features, Kafka, and cloud integrations remain [future work](../future-plans/README.md).
 Prisma database commands require a reachable MongoDB deployment and valid
-database-user credentials. There is no frontend to start yet.
+database-user credentials. The placeholder client does not require these services.
 
 ## Install
 
@@ -43,7 +44,7 @@ wildcard alias and bundles that source. See
 [shared modules](development-guide.md#adding-shared-modules) before adding a
 consumer in another application.
 
-## Run both applications
+## Run the backend applications
 
 ```sh
 npm run dev
@@ -76,6 +77,29 @@ Or:
 ```sh
 npx nx serve @microservice-eshop/api-gateway
 ```
+
+## Run the client
+
+After the root `npm ci`, use a separate terminal:
+
+```sh
+npm run client
+```
+
+Open `http://localhost:3000`. The root script selects
+`nx dev @microservice-eshop/client`; `npm run dev` selects backend `serve` targets
+and does not start this client. Its current page contains the original header
+and placeholder content. No auth, catalog, cart, checkout, orders, or API wiring
+is present. The client also has a standalone `/api/hello` text handler.
+
+No database, Redis, SMTP, signing secret, or custom client environment variable
+is required for this scaffold. In PowerShell, use `npm.cmd`/`npx.cmd` when script
+execution policy blocks their `.ps1` wrappers.
+
+The [client README](../../apps/client/README.md) owns client commands;
+[design tokens](../reference/design-tokens.md) documents the Tailwind palette,
+light/dark selectors, and named responsive variants. Theme and language controls
+are future UI work.
 
 ## Environment variables
 
@@ -138,7 +162,7 @@ For authentication failures see
 
 ## Browser requests
 
-Both applications allow credentialed CORS requests from `http://localhost:3000`, with `Authorization` and `Content-Type` request headers. That address is an allowed frontend origin, not the auth port; no frontend is implemented yet. CORS does not authenticate clients or restrict non-browser callers.
+Both backend applications allow credentialed CORS requests from `http://localhost:3000`, with `Authorization` and `Content-Type` request headers. This is also the default client origin, but the scaffold makes no backend requests. CORS does not authenticate clients or restrict non-browser callers. A different client port requires a deliberate backend CORS update before integration.
 
 ## Try the auth API documentation
 

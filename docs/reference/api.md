@@ -3,9 +3,15 @@
 [Documentation hub](../README.md) · [Request flow diagrams](../architecture/request-flows.md)
 
 **Status:** Current source contracts; runtime integrations unverified.
-**Reviewed:** 2026-10-23.
+**Reviewed:** 2026-10-25.
 
 ## Available routes
+
+The table below covers the Express backend. The Next.js client separately serves
+`GET http://localhost:3000/api/hello`, returning plain text `Hello, from API!`
+from [route.ts](../../apps/client/src/app/api/hello/route.ts). It is a scaffold
+handler, excluded from auth Swagger, with no auth, database, or gateway wiring.
+The client placeholder page does not call any backend route.
 
 | Method | Path                               | Handler            | Source-defined result                                              |
 | ------ | ---------------------------------- | ------------------ | ------------------------------------------------------------------ |

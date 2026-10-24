@@ -3,7 +3,7 @@
 [Documentation index](../../README.md)
 
 **Priority:** Critical. **Status:** Proposed baseline based on repository direction,
-not an approved business brief. **Reviewed:** 2026-10-22.
+not an approved business brief. **Reviewed:** 2026-10-25.
 
 ## 1. Product context and problem
 
@@ -24,7 +24,7 @@ first increment; multi-tenancy requires a separate product/security decision.
 
 | User                 | Proposed goal                                         | Current availability                                                                          |
 | -------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Visitor              | Browse products and prices/availability               | No storefront/catalog                                                                         |
+| Visitor              | Browse products and prices/availability               | Next.js scaffold and Tailwind tokens only; no storefront/catalog features                     |
 | Customer             | Register, sign in, manage cart, place/view own orders | OTP/account creation and login/JWT issuance in source; identity lifecycle/commerce incomplete |
 | Catalog operator     | Maintain sellable products and stock                  | Role/interface undecided                                                                      |
 | Developer / operator | Run services and deploy safely                        | Local tooling configured; production absent                                                   |
