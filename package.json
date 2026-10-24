@@ -23,7 +23,10 @@
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.12.1",
+    "next": "~16.1.6",
     "nodemailer": "^10.1.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1"
   },
@@ -36,6 +39,7 @@
     "@nx/express": "^23.3.0",
     "@nx/jest": "23.3.0",
     "@nx/js": "23.3.0",
+    "@nx/next": "^23.3.0",
     "@nx/node": "23.3.0",
     "@nx/web": "23.3.0",
     "@nx/webpack": "23.3.0",
