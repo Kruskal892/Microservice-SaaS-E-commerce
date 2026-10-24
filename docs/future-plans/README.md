@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [Current implementation status](../operations/implementation-status.md)
 
-**Status:** Proposed work and draft requirements. **Reviewed:** 2026-10-22.
+**Status:** Proposed work and draft requirements. **Reviewed:** 2026-10-25.
 These documents do not describe available features or approved delivery dates.
 
 ## Roadmap and design index
@@ -20,7 +20,8 @@ These documents do not describe available features or approved delivery dates.
 
 ## Proposed delivery sequence
 
-The current baseline includes OTP delivery/verification, account persistence,
+The current baseline includes a Next.js client scaffold with
+[Tailwind design tokens](../reference/design-tokens.md), OTP delivery/verification, account persistence,
 and login with access/refresh JWT cookies. Completing identity below still means
 consistent validation, protected requests, refresh/rotation, logout/revocation,
 browser security, and meaningful integration coverage. See the
@@ -47,7 +48,10 @@ need their own implementation and validation.
 
 ## Integration direction
 
-Next.js is the proposed storefront. Kafka, Socket.IO, Firebase, TensorFlow.js,
+Next.js is installed as the client scaffold; storefront screens and API
+integration are still proposed. The supplied design palette and scales are
+implemented as Tailwind tokens, not as a completed component library.
+Kafka, Socket.IO, Firebase, TensorFlow.js,
 AWS, and Cloudflare remain directions without implemented integrations.
 The media provider is unconfirmed; earlier notes suggested ImageKit, but no
 adoption decision or configuration is present. Redis is already used for OTP;

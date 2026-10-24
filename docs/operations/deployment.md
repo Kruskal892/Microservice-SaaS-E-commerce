@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current packaging and workflow configuration. **Reviewed:** 2026-10-22.
+**Status:** Current packaging and workflow configuration. **Reviewed:** 2026-10-25.
 Commands below are instructions, not evidence of successful image builds or runs.
 
 ## Build artifacts
@@ -12,14 +12,36 @@ Commands below are instructions, not evidence of successful image builds or runs
 | Auth           | `apps/auth-service/dist/main.js`, CommonJS via esbuild | Templates at `dist/templates`; schema at `dist/prisma/schema.prisma`; production lockfile generation enabled |
 | Gateway        | `apps/api-gateway/dist`, Webpack                       | Assets, generated package metadata; explicit shared-source alias                                             |
 | Shared library | `packages/dist`, TypeScript                            | JavaScript and declarations; one shared workspace manifest                                                   |
+| Client         | `apps/client/.next`, Next.js                           | Next/React runtime and public assets; Tailwind CSS compiled by PostCSS                                       |
 
-Both apps have prune-lockfile and copy-workspace-modules targets. Auth's Docker
+Both backend apps have prune-lockfile and copy-workspace-modules targets. Auth's Docker
 build depends on build/prune. Inspect generated manifests, lockfiles, external
 dependencies, copied workspace modules, and assets before treating dist as
 deployable. Explicit auth dependencies do not list every root-provided runtime
 import (for example dotenv, ioredis, bcryptjs, and jsonwebtoken); generated
 packaging needs verification. JWT type declarations are a root development
 dependency, not a substitute for runtime jsonwebtoken packaging.
+
+## Client build and startup
+
+```sh
+npx nx build @microservice-eshop/client
+npx nx start @microservice-eshop/client
+```
+
+Build before starting the production server. `npm run client` is development
+mode; `npm run dev` starts only backend serve targets. The client is a placeholder
+with tokens, not a production storefront. Its default origin is
+`http://localhost:3000`, matching the backend CORS allowlist, but no API calls
+are wired. No client Dockerfile, static-export setting, deployment integration,
+or standalone output is configured. Do not assume `serve-static` inference makes
+the app a deployable static export.
+
+Theme selectors and scales are compiled from
+[global.css](../../apps/client/src/app/global.css); there is no runtime token
+service, remote font request, or build-time secret needed for styling. See the
+[token reference](../reference/design-tokens.md) and
+[client README](../../apps/client/README.md).
 
 ## Auth Docker image
 
@@ -76,7 +98,7 @@ internal port in `AUTH_SERVICE_URL`; `localhost` refers to each container itself
 No Compose file, gateway Dockerfile, orchestrator, AWS resources, or release
 deployment job is tracked.
 
-Each app reads `PORT`; local defaults are 6001/8080. Apps do not read `HOST` as a
+Each backend app reads `PORT`; local defaults are 6001/8080. Backend apps do not read `HOST` as a
 bind setting. CORS is fixed to `http://localhost:3000`, proxy trust is disabled,
 and gateway limits are per process. See [configuration](../reference/configuration.md).
 

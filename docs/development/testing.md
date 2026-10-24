@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current test files and target configuration. **Reviewed:** 2026-10-23.
+**Status:** Current test files and target configuration. **Reviewed:** 2026-10-25.
 
 ## Existing coverage
 
@@ -11,6 +11,7 @@
 | Auth service | Jest/SWC configuration, `passWithNoTests: true` target option | No unit-test files; a successful empty run would not prove auth behavior |
 | Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`     | Greeting only; no registration or external-service assertions            |
 | Gateway E2E  | Generated Axios `GET /`, expects auth greeting                | Default port 3000 differs from gateway 8080; only gateway is started     |
+| Client       | Next.js scaffold and token configuration                      | No client unit, browser, or E2E suite configured                         |
 
 Source: [auth Jest config](../../apps/auth-service/jest.config.cts),
 [auth E2E spec](../../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts),
@@ -43,6 +44,28 @@ node node_modules/typescript/bin/tsc -b packages/tsconfig.lib.json apps/auth-ser
 
 This focused compiler check passed on 2026-10-22. It does not establish Nx build,
 runtime packaging, or external-service success.
+
+## Client styling checks
+
+From the repository root:
+
+```sh
+node node_modules/typescript/bin/tsc -p apps/client/tsconfig.json --noEmit
+npx nx build @microservice-eshop/client
+```
+
+A client typecheck does not compile Tailwind CSS. Validate token changes through
+the Tailwind/PostCSS pipeline or the Next build as well. Check generated utilities
+against the [token reference](../reference/design-tokens.md): brand/status colors,
+semantic colors, type/radius scales, spacing, named breakpoints, and the custom
+`dark:` selector. Keep checks temporary for a token-only change; no shopping
+behavior or accessibility conformance can be inferred from generated CSS.
+
+For future browser checks, run the client and verify both `.dark` and
+`data-theme="dark"`, light reset, keyboard focus for real components, and widths
+below/at 390px, 768px, and 1440px. The header and page remain placeholders.
+The gateway E2E port-3000 mismatch is especially relevant now that the client
+also defaults to 3000; do not mistake a frontend response for gateway health.
 
 ## Swagger and authentication checks
 
@@ -139,10 +162,17 @@ MongoDB/Redis/SMTP resources for integration checks.
 workspace. The Jest plugin excludes both E2E directories from `test` inference;
 their explicit `e2e` targets are not in that CI command.
 
-The login/Swagger refresh records source and documentation checks in the
+The 2026-10-25 token refresh passed client TypeScript and a direct production
+Next build, 48 generated Tailwind utilities, computed light/dark CSS values,
+documentation formatting/navigation/JSON checks, and rendering of all 26 diagrams.
+Exact commands, counts, the local Node version, and unrun checks are recorded in
+[implementation status](../operations/implementation-status.md#documentation-verification-boundary).
+No client behavior suite or backend/live-service check was run.
+
+The earlier login/Swagger refresh records source and documentation checks in the
 [implementation status](../operations/implementation-status.md#documentation-verification-boundary).
 Application unit/E2E tests, lint, Nx builds, live integrations, Docker, and remote
-CI were not run. Documentation generation and compiler checks do not prove those
+CI were not run during those earlier refreshes. Documentation generation and compiler checks do not prove those
 results. The 2026-10-23 recovery refresh runs documentation generation/formatting
 and static diff inspection only; the historical compiler check was not rerun. See
 [implementation status](../operations/implementation-status.md) for current gaps.

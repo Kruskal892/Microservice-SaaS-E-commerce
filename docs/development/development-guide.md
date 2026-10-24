@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-10-22. See [repository structure](../architecture/repository-structure.md)
+**Reviewed:** 2026-10-25. See [repository structure](../architecture/repository-structure.md)
 for the code tree and dependency diagram, and
 [configuration](../reference/configuration.md) for runtime inputs.
 
@@ -14,35 +14,41 @@ Use the scoped package names as project identifiers. Explicit targets live under
 npx nx show projects
 npx nx show project @microservice-eshop/auth-service
 npx nx show project @microservice-eshop/api-gateway
+npx nx show project @microservice-eshop/client
 npx nx graph
 ```
 
 These inspection commands help resolve which executor and options a task uses. A target need not appear explicitly in the package file to exist.
 
-| Plugin               | Role configured in this workspace                              |
-| -------------------- | -------------------------------------------------------------- |
-| `@nx/js/typescript`  | Type checking and TypeScript build-related tasks               |
-| `@nx/eslint/plugin`  | Lint targets                                                   |
-| `@nx/jest/plugin`    | Test targets; both E2E directories are excluded from inference |
-| `@nx/docker`         | Docker build/run targets                                       |
-| `@nx/webpack/plugin` | Gateway build and related targets                              |
+| Plugin               | Role configured in this workspace                                            |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `@nx/js/typescript`  | Type checking and TypeScript build-related tasks                             |
+| `@nx/eslint/plugin`  | Lint targets                                                                 |
+| `@nx/jest/plugin`    | Test targets; both E2E directories are excluded from inference               |
+| `@nx/docker`         | Docker build/run targets                                                     |
+| `@nx/webpack/plugin` | Gateway build and related targets                                            |
+| `@nx/next/plugin`    | Client `dev`, `build`, `start`, `serve-static`, and build-dependency targets |
 
 Both E2E projects define their own `e2e` executor and dependencies. Nx's default comparison base is `master`.
 
 ## Common tasks
 
-| Goal                   | Command                                             |
-| ---------------------- | --------------------------------------------------- |
-| Serve all applications | `npm run dev`                                       |
-| Serve auth             | `npx nx serve @microservice-eshop/auth-service`     |
-| Serve gateway          | `npx nx serve @microservice-eshop/api-gateway`      |
-| Build auth             | `npx nx build @microservice-eshop/auth-service`     |
-| Build gateway          | `npx nx build @microservice-eshop/api-gateway`      |
-| Check auth types       | `npx nx typecheck @microservice-eshop/auth-service` |
-| Check gateway types    | `npx nx typecheck @microservice-eshop/api-gateway`  |
-| Lint auth              | `npx nx lint @microservice-eshop/auth-service`      |
-| Lint gateway           | `npx nx lint @microservice-eshop/api-gateway`       |
-| Regenerate auth docs   | `npm run auth-docs`                                 |
+| Goal                       | Command                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| Serve backend applications | `npm run dev`                                                                |
+| Develop client             | `npm run client`                                                             |
+| Build client               | `npx nx build @microservice-eshop/client`                                    |
+| Start built client         | `npx nx start @microservice-eshop/client`                                    |
+| Check client types         | `node node_modules/typescript/bin/tsc -p apps/client/tsconfig.json --noEmit` |
+| Serve auth                 | `npx nx serve @microservice-eshop/auth-service`                              |
+| Serve gateway              | `npx nx serve @microservice-eshop/api-gateway`                               |
+| Build auth                 | `npx nx build @microservice-eshop/auth-service`                              |
+| Build gateway              | `npx nx build @microservice-eshop/api-gateway`                               |
+| Check auth types           | `npx nx typecheck @microservice-eshop/auth-service`                          |
+| Check gateway types        | `npx nx typecheck @microservice-eshop/api-gateway`                           |
+| Lint auth                  | `npx nx lint @microservice-eshop/auth-service`                               |
+| Lint gateway               | `npx nx lint @microservice-eshop/api-gateway`                                |
+| Regenerate auth docs       | `npm run auth-docs`                                                          |
 
 Choose builds, lint, and tests that verify the changed behavior, and record
 the commands/results separately from checks that were not run.
@@ -70,10 +76,16 @@ TypeScript configuration is split across:
 - Each application's `tsconfig.json`: project references for that application.
 - Each application's `tsconfig.app.json`: source inclusion, root/output paths, and ambient types.
 - Auth `tsconfig.spec.json`: test compilation settings.
+- Client `tsconfig.json`: Next.js JSX, bundler module resolution, `noEmit`,
+  Next's TypeScript plugin, and `@/*` mapped to client `src/*`.
 - [Shared-package tsconfig.json](../../packages/tsconfig.json):
   references `tsconfig.lib.json`, which loads Node types and emits JavaScript
   and declarations into the package's `dist`. Root and auth project references
   include this library through the root grouping and auth application config, respectively.
+
+The client uses Next.js for runtime output in `apps/client/.next`; it does not
+use a backend `tsconfig.app.json` or esbuild/Webpack service executor. The root
+TypeScript solution also references `apps/client`.
 
 The root npm workspace list includes `apps/*` and `packages` itself. The shared
 TypeScript config maps `@packages/*` to `./packages/*`.
@@ -132,6 +144,25 @@ import { errorMiddleware, NotFoundError } from '@packages/error-handler';
 ```
 
 The shared base enables `emitDeclarationOnly`. Do not assume a standalone `tsc` invocation replaces the configured Nx runtime build. Trace the application's executor and effective compiler settings when diagnosing missing JavaScript.
+
+## Client styling and ownership
+
+Keep client components in `apps/client/src` and use its `@/*` alias. The
+`@packages/*` wildcard is a backend build convention; the client overrides the
+`paths` object and must not import server-only Prisma/Redis infrastructure or
+shared barrels that instantiate those clients.
+
+Tailwind v4 uses [global.css](../../apps/client/src/app/global.css) and
+`@tailwindcss/postcss`, without a `tailwind.config.js`. Add styles using the
+[design token reference](../reference/design-tokens.md): semantic colors,
+`font-sans`, the supplied type/radius scales, and `mobile:/tablet:/desktop:`
+breakpoints. The body consumes background/text/font tokens. Header markup stays
+as the original component; shopping screens and theme controls remain planned.
+Inter is a font preference with system fallbacks, not an installed font asset.
+
+`npm run client` is separate from `npm run dev`: the client uses `dev`, while
+the backend applications use `serve`. Shared browser/auth integration must be
+implemented and checked explicitly; the starter `/api/hello` does not proxy auth.
 
 ## Gateway configuration ownership
 

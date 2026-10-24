@@ -2,7 +2,11 @@
 
 [Future plans](../README.md) · [Current schema](../../architecture/database-design.md)
 
-**Status:** Draft; only users/images exist in the current Prisma schema. **Reviewed:** 2026-10-21.
+**Status:** Draft; only users/images exist in the current Prisma schema. **Reviewed:** 2026-10-25.
+
+The client scaffold and Tailwind tokens introduce no commerce models, catalog
+seed data, or cart/order persistence. The externally supplied prototype's demo
+storage is not a database implementation or a production contract.
 
 ## 1. Ownership and modeling
 

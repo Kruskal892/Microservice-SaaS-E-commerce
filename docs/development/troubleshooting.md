@@ -2,8 +2,28 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-10-22. Configuration defaults belong to the
+**Reviewed:** 2026-10-25. Configuration defaults belong to the
 [configuration reference](../reference/configuration.md).
+
+## Client styles or theme tokens do not appear
+
+Start the frontend with `npm run client`; the backend `npm run dev` script does
+not start its `dev` target. Confirm `layout.tsx` imports `global.css`, which
+imports Tailwind, and `postcss.config.mjs` registers `@tailwindcss/postcss`.
+Install dependencies at the root workspace rather than creating a second lockfile.
+
+Use full class names from the [token reference](../reference/design-tokens.md).
+Semantic colors use `bg-surface`, `text-text`, `text-muted`, and `border-border`.
+The configured viewport prefixes are `mobile:`, `tablet:`, and `desktop:`;
+default `sm/md/lg/xl/2xl` viewport variants were replaced. Dark colors require
+`.dark` or `data-theme="dark"` on `<html>`; there is no theme toggle or preference
+storage. Inter uses a system fallback until font delivery is implemented.
+
+The original header and placeholder page are intentional. A token setup does
+not add catalog, authentication, cart, or checkout screens. Backend CORS still
+allows only `http://localhost:3000`; an occupied port causing Next to choose
+another port matters when API integration is added. Gateway E2E also defaults
+to 3000 incorrectly; keep it separate from client development.
 
 ## Dependency installation fails
 
@@ -45,7 +65,7 @@ The `/gateway-health` route does not call auth. Confirm auth responds at `http:/
 
 ## Browser CORS errors
 
-Only `http://localhost:3000` is allowed as a credentialed browser origin. `http://127.0.0.1:3000` and other ports are different origins. Update the intended allowlist when adding a frontend; do not treat CORS as authentication.
+Only `http://localhost:3000` is allowed as a credentialed browser origin. `http://127.0.0.1:3000` and other ports are different origins. The client scaffold defaults to the allowed origin but makes no backend requests yet. Update the intended allowlist when changing the frontend origin; do not treat CORS as authentication.
 
 ## Registration fails while destructuring email
 

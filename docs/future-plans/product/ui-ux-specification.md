@@ -2,10 +2,17 @@
 
 [Documentation index](../../README.md)
 
-**Priority:** High. **Status:** Proposed; no frontend, routes, components, or design
-assets exist. **Reviewed:** 2026-10-21. Next.js is the documented direction.
+**Priority:** High. **Status:** Proposed storefront screens and flows.
+**Reviewed:** 2026-10-25. A Next.js client scaffold and Tailwind design tokens
+exist; the original header and placeholder page are retained. Shopping routes,
+components, language controls, and theme controls are not implemented.
 
 ## 1. Screens and navigation
+
+The table below proposes future storefront routes. The current client only has
+its placeholder `/` page and `/api/hello` text handler. The externally supplied
+enterprise design spec and README are design references; their prototype
+features and localStorage behavior are not current application functionality.
 
 | Proposed route   | Screen / user            | Content and actions                                   |
 | ---------------- | ------------------------ | ----------------------------------------------------- |
@@ -62,8 +69,11 @@ retry; do not persist passwords in browser storage.
 
 Use one column on narrow screens and expand grids on wider screens without
 changing task order. Keep cart/checkout controls usable without horizontal scroll.
-Breakpoints, colors, typography, and spacing are undecided; reuse the chosen
-frontend design system when introduced.
+Use the implemented [Tailwind design tokens](../../reference/design-tokens.md):
+indigo brand colors, light/dark semantic surfaces, Inter/system font stack,
+12–60px type scale, 4px spacing unit, 8–24px named radii, and
+`mobile/tablet/desktop` breakpoints at 390/768/1440px. The tokens supply styling
+primitives; component variants, theme controls, and responsive screens remain work.
 
 Use semantic headings, labels, visible keyboard focus, meaningful link text and
 image alternatives. Associate field errors, announce async feedback, and avoid
@@ -76,3 +86,10 @@ Format money with currency; distinguish estimated cart totals from final order
 snapshots. Use concise actions: Sign in, Add to cart, Review changes. Checkout copy
 depends on tax/shipping/payment. Branding, imagery, verification/recovery, and guest
 checkout need decisions. [Feature specification](feature-specification.md) owns behavior.
+
+English/Vietnamese, locale-aware formatting, persistent theme/language selection,
+and system-theme preference are intended by the external design brief but are
+not implemented. Prototype USD amounts, free shipping over $100, $12 shipping,
+zero tax, 30-day returns, seeded products, and demo orders remain unapproved
+business assumptions. Do not store real credentials or orders in localStorage;
+production identity, pricing, inventory, ownership, and orders need server APIs.

@@ -2,9 +2,9 @@
 
 [Documentation hub](../README.md) · [Setup](../development/getting-started.md)
 
-**Status:** Inputs read by current source. **Reviewed:** 2026-10-22.
+**Status:** Inputs read by current source. **Reviewed:** 2026-10-25.
 
-Both application entry points import `dotenv/config`. Use a root `.env` based on
+Both backend application entry points import `dotenv/config`. Use a root `.env` based on
 [.env.example](../../.env.example) and run development commands from the root.
 Existing process environment variables take precedence. Prisma CLI also loads
 dotenv through [prisma.config.ts](../../prisma.config.ts).
@@ -13,7 +13,7 @@ dotenv through [prisma.config.ts](../../prisma.config.ts).
 
 | Variable                   | Consumer                       | Default / behavior                                                                                                |
 | -------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `PORT`                     | Each HTTP app                  | Auth `6001`, gateway `8080`; a supplied value passes through `Number()` with no explicit integer/range validation |
+| `PORT`                     | Each backend HTTP app          | Auth `6001`, gateway `8080`; a supplied value passes through `Number()` with no explicit integer/range validation |
 | `AUTH_SERVICE_URL`         | Gateway                        | `http://localhost:6001`; all forwarded paths use this one upstream                                                |
 | `DATABASE_URL`             | Prisma CLI/client              | MongoDB connection string; root example uses local `eshop`; no application fallback                               |
 | `REDIS_DATABASE_URL`       | Auth Redis client              | Passed directly to ioredis; root example uses `redis://127.0.0.1:6379`; no application validation                 |
@@ -41,7 +41,7 @@ logs, screenshots, and PR evidence.
 
 ```mermaid
 flowchart LR
-    Browser["Allowed browser origin<br/>localhost:3000<br/>No frontend app yet"] --> Gateway["Gateway HTTP<br/>:8080"]
+    Browser["Next.js client scaffold<br/>localhost:3000"] -.->|"Allowed CORS origin; API integration planned"| Gateway["Gateway HTTP<br/>:8080"]
     Gateway -->|"AUTH_SERVICE_URL"| Auth["Auth HTTP<br/>:6001"]
     AuthDebug["Nx inspector :9229"] -.-> Auth
     GatewayDebug["Nx inspector :9230"] -.-> Gateway
@@ -58,7 +58,23 @@ host-run gateway. The Dockerfile also sets `HOST=0.0.0.0`, but the app does not
 read `HOST`. See [deployment](../operations/deployment.md) for container network
 and packaging limits.
 
-## Fixed application policy
+## Client configuration
+
+The client has no application-defined API URL, auth, locale, or theme environment
+variables. `npm run client` starts Next.js development on port 3000 by default.
+The framework can accept a different port through its CLI/environment; keep
+backend CORS aligned if adding browser API integration. Avoid a shared `PORT`
+override when launching the backend and client together.
+
+Client dependencies are installed at the root npm workspace. Its
+[Next config](../../apps/client/next.config.js) is a scaffold with no rewrites or
+proxy configuration. [PostCSS](../../apps/client/postcss.config.mjs) loads
+`@tailwindcss/postcss`; [global.css](../../apps/client/src/app/global.css) owns the
+palette/scales. See [design tokens](design-tokens.md) for exact utilities and
+light/dark selectors. Theme choice is explicit CSS selection, without controls,
+system-preference detection, or persistence. Inter is not bundled.
+
+## Fixed backend policy
 
 These settings are currently source constants, not environment variables:
 

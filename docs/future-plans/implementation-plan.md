@@ -3,7 +3,7 @@
 [Documentation index](../README.md)
 
 **Priority:** Critical. **Status:** Proposed backlog, not a committed schedule.
-**Reviewed:** 2026-10-22. Owner columns suggest responsibility; no actual owner
+**Reviewed:** 2026-10-25. Owner columns suggest responsibility; no actual owner
 assignments, estimates, tickets, or dates are supplied.
 
 ## 1. Starting point
@@ -22,6 +22,13 @@ A-02 now includes implemented login/token issuance, and R-01 includes corrected
 `/api` Swagger paths and required request/success examples. Their remaining gates
 include validation/error consistency, cookie/browser policy, token verification
 and lifecycle, detailed error/cookie documentation, and permanent contract tests.
+
+The client scaffold now exists with Next.js/React, Tailwind/PostCSS, the original
+header and placeholder page, and the supplied
+[design tokens](../reference/design-tokens.md). This is partial U-01 foundation,
+not completion: identity/catalog/cart screens, API integration, localization,
+theme controls, responsive component behavior, and client tests remain open.
+The separate `npm run client` command starts its `dev` target.
 
 ## 2. Tasks and acceptance criteria
 
