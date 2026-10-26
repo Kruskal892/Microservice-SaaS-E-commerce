@@ -72,8 +72,9 @@ component imports in Turbopack and Webpack, with no rewrites or proxy configurat
 `@tailwindcss/postcss`; [global.css](../../apps/client/src/app/global.css) imports
 the palette/scales from [packages/ui/theme.css](../../packages/ui/theme.css) and
 registers the shared UI source for Tailwind scanning. See [shared UI](shared-ui.md)
-for additional consuming apps. `apps/client/index.d.ts` references the shared
-SVG component declaration in `packages/assets/svg.d.ts`. Client TypeScript maps
+for additional consuming apps. `apps/client/index.d.ts` imports the shared
+SVG declarations with `import '@packages/assets/svg'`, satisfying the client's
+`@typescript-eslint/triple-slash-reference` rule. Client TypeScript maps
 `@packages/*`, includes shared TSX, and references the shared composite project;
 its declaration outputs must exist for the standalone no-emit check. See [design tokens](design-tokens.md) for exact utilities and
 light/dark selectors. Theme choice is explicit CSS selection, without controls,

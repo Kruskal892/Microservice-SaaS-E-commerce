@@ -99,6 +99,13 @@ Validation for this pass:
 - No lint, build, test suite, browser, backend runtime, or external-service check
   was run. Earlier successful checks below apply to their dated snapshots.
 
+CI follow-up on 2026-10-26: the supplied GitHub Actions log showed 15 successful
+tasks, including the client build, with only client lint failing. Local reproduction
+identified `@typescript-eslint/triple-slash-reference` in `apps/client/index.d.ts`.
+Replacing the path directive with `import '@packages/assets/svg'` fixed the error;
+`npx.cmd nx run @microservice-eshop/client:lint --output-style=static --skip-nx-cache`
+passed locally. The full CI pipeline, builds, and tests were not rerun for this fix.
+
 See the [shared UI contract](../reference/shared-ui.md),
 [assets guide](../../packages/assets/README.md), and
 [testing instructions](../development/testing.md#client-styling-checks).
