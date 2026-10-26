@@ -8,15 +8,24 @@ Future design decisions live in [future plans](../future-plans/README.md).
 ## Implementation ownership
 
 The client is a Next.js App Router scaffold, separate from the Express services.
-Its root layout imports Tailwind global CSS and renders the original header
+Its root layout imports Tailwind global CSS and renders the header with a shared input
 before a placeholder page. `/api/hello` is a local Next route handler. There are
 no browser calls to auth/gateway and no commerce or session state.
 
-Tailwind's CSS-first `@theme` registers brand/status colors, font, spacing,
+The shared `packages/ui/theme.css`, imported by client global CSS, owns the
+Tailwind CSS-first `@theme` that registers brand/status colors, font, spacing,
 type/radius scales, and named breakpoints. `@theme inline` maps semantic colors
 to variables selected by light/dark CSS selectors. Base body styles consume the
 background, text, and font tokens; there is no theme-switching JavaScript.
-See [design tokens](../reference/design-tokens.md) for the exact contract.
+Client CSS explicitly scans `packages/ui`. The header uses the shared native
+`Input` exported from `@packages/ui`. Its flex wrapper owns field styling and
+reacts to native input focus/disabled/invalid state through `:has()` selectors.
+`className`, `inputClassName`, `iconContainerClassName`, and `iconClassName` target
+the wrapper, input, icon area, and named SVG respectively. Start/end ordering
+uses flex order, with no absolute offsets. Raw SVGs are owned by `packages/assets`
+and imported through a typed UI registry using the client's SVGR loaders. There
+is no search backend. See [shared UI](../reference/shared-ui.md) and
+[design tokens](../reference/design-tokens.md) for the exact contracts.
 
 The diagram below covers backend auth ownership.
 

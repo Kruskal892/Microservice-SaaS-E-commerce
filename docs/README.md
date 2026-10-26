@@ -7,22 +7,27 @@ request an email OTP, verify it to create an account, and log in to receive JWT
 cookies. Three recovery routes are mounted but have
 [security blockers](development/authentication.md#password-recovery-blockers).
 Protected routes, refresh, logout, storefront, and commerce remain
-unfinished. The client retains its original header and placeholder page; no
-shopping flows or API integration exist. **Source reviewed: 2026-10-25.** Live integrations are unverified.
+unfinished. The client has a shared input in its header and a placeholder page; no
+shopping flows or API integration exist. **Backend source reviewed: 2026-10-25; shared UI/assets reviewed: 2026-10-26.** Live integrations are unverified.
+
+Shared UI and SVG assets are owned by `packages/ui` and `packages/assets`.
+See the [shared UI contract](reference/shared-ui.md),
+[assets guide](../packages/assets/README.md), and
+[current validation and review findings](operations/implementation-status.md#shared-ui-review-2026-10-26).
 
 ## Start here
 
-| Need                                   | Read                                                                                   |
-| -------------------------------------- | -------------------------------------------------------------------------------------- |
-| Set up and run the project             | [Getting started](development/getting-started.md)                                      |
-| Understand the system                  | [Architecture overview](architecture/overview.md)                                      |
-| Find code and understand dependencies  | [Repository structure](architecture/repository-structure.md)                           |
-| Follow a request or OTP email          | [Request flows](architecture/request-flows.md)                                         |
-| Call an available endpoint             | [API reference](reference/api.md)                                                      |
-| Configure a service                    | [Configuration reference](reference/configuration.md)                                  |
-| Run or style the client                | [Client README](../apps/client/README.md), [design tokens](reference/design-tokens.md) |
-| Assess what exists and what is missing | [Implementation status](operations/implementation-status.md)                           |
-| Review proposals and upcoming work     | [Future plans](future-plans/README.md)                                                 |
+| Need                                   | Read                                                                                                                        |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Set up and run the project             | [Getting started](development/getting-started.md)                                                                           |
+| Understand the system                  | [Architecture overview](architecture/overview.md)                                                                           |
+| Find code and understand dependencies  | [Repository structure](architecture/repository-structure.md)                                                                |
+| Follow a request or OTP email          | [Request flows](architecture/request-flows.md)                                                                              |
+| Call an available endpoint             | [API reference](reference/api.md)                                                                                           |
+| Configure a service                    | [Configuration reference](reference/configuration.md)                                                                       |
+| Run or style the client                | [Client README](../apps/client/README.md), [design tokens](reference/design-tokens.md), [shared UI](reference/shared-ui.md) |
+| Assess what exists and what is missing | [Implementation status](operations/implementation-status.md)                                                                |
+| Review proposals and upcoming work     | [Future plans](future-plans/README.md)                                                                                      |
 
 ## Documentation map
 
@@ -38,7 +43,8 @@ docs/
 |-- reference/                     # Exact current contracts
 |   |-- api.md
 |   |-- configuration.md
-|   `-- design-tokens.md            # Current Tailwind palette, scales, and theme selectors
+|   |-- design-tokens.md            # Shared Tailwind palette, scales, and theme selectors
+|   `-- shared-ui.md                # Shared Input API and cross-app CSS setup
 |-- development/                   # Contributor guides
 |   |-- getting-started.md
 |   |-- development-guide.md

@@ -1,13 +1,15 @@
-# Client design tokens
+# Shared design tokens
 
 [Documentation hub](../README.md) · [Client README](../../apps/client/README.md)
 
 **Status:** Implemented token configuration; storefront UI remains planned.
-**Reviewed:** 2026-10-25.
+**Reviewed:** 2026-10-26.
 
-[global.css](../../apps/client/src/app/global.css) is the source of truth for the
-user-supplied palette and scales. Tailwind v4 loads it through
-`@import 'tailwindcss'`, with `@tailwindcss/postcss` in the client PostCSS config.
+[packages/ui/theme.css](../../packages/ui/theme.css) is the source of truth for
+the user-supplied palette and scales. The client
+[global.css](../../apps/client/src/app/global.css) imports Tailwind v4 and this
+shared theme, and registers `packages/ui` with `@source`. The client PostCSS config
+uses `@tailwindcss/postcss`. See [shared UI](shared-ui.md) for cross-app setup.
 No JavaScript Tailwind configuration or token-generation step is needed.
 The implementation follows Tailwind's [theme variables](https://tailwindcss.com/docs/theme),
 [custom dark variant](https://tailwindcss.com/docs/dark-mode), and
@@ -57,15 +59,18 @@ on the document root rather than combining conflicting selectors.
 toggle, system-preference detection, or saved preference. Semantic classes switch
 automatically with the theme; `dark:*` is available for explicit differences.
 
-The body applies `bg-background font-sans text-text`. The header markup and the
-placeholder page remain unchanged. Individual screens still need their own
-component styling, focus treatment, and accessibility checks.
+The body applies `bg-background font-sans text-text`. The header uses the
+[shared Input](shared-ui.md#input), which consumes the
+surface, text, muted, border, focus, and danger tokens. The placeholder page
+remains unchanged. Individual screens still need their own component styling
+and accessibility checks.
 
 ## Typography
 
 `font-sans` is `Inter, system-ui, sans-serif`. This config sets a preference;
 Inter is not bundled or fetched, so the browser uses its installed font or the
-system fallback. Font delivery is a separate future implementation choice.
+system fallback. The header uses this supplied `font-sans` token. Additional
+font tokens and font delivery are separate future implementation choices.
 
 | Utility     | Size at a 16px root |
 | ----------- | ------------------- |

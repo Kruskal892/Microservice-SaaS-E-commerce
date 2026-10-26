@@ -37,11 +37,19 @@ are wired. No client Dockerfile, static-export setting, deployment integration,
 or standalone output is configured. Do not assume `serve-static` inference makes
 the app a deployable static export.
 
-Theme selectors and scales are compiled from
+Theme selectors and scales live in
+[packages/ui/theme.css](../../packages/ui/theme.css), imported and compiled by
 [global.css](../../apps/client/src/app/global.css); there is no runtime token
 service, remote font request, or build-time secret needed for styling. See the
 [token reference](../reference/design-tokens.md) and
 [client README](../../apps/client/README.md).
+
+SVG assets in `packages/assets/icons` are bundled as React components by the
+client SVGR configuration in both Turbopack and Webpack. They are not public
+URLs. The shared TypeScript build emits JavaScript/declarations without copying
+SVG files or transforming SVG imports; `packages/dist` is not a standalone
+frontend asset package. Consume UI/assets through an application bundler with
+SVG support. The 2026-10-26 input/assets changes have not been production-built.
 
 ## Auth Docker image
 

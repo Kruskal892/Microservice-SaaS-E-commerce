@@ -19,13 +19,17 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@packages": ["../../packages/index.ts"],
+      "@packages/*": ["../../packages/*"]
     },
     "outDir": "dist",
-    "rootDir": ".",
+    "rootDir": "../..",
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
   "include": [
+    "../../packages/ui/**/*.ts",
+    "../../packages/ui/**/*.tsx",
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.js",
@@ -46,5 +50,10 @@
     "eslint.config.js",
     "eslint.config.cjs",
     "eslint.config.mjs"
+  ],
+  "references": [
+    {
+      "path": "../../packages"
+    }
   ]
 }

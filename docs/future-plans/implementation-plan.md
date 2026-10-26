@@ -23,11 +23,12 @@ A-02 now includes implemented login/token issuance, and R-01 includes corrected
 include validation/error consistency, cookie/browser policy, token verification
 and lifecycle, detailed error/cookie documentation, and permanent contract tests.
 
-The client scaffold now exists with Next.js/React, Tailwind/PostCSS, the original
-header and placeholder page, and the supplied
+The client scaffold now exists with Next.js/React, Tailwind/PostCSS, a header
+using the shared Input/icons, a placeholder page, and the supplied
 [design tokens](../reference/design-tokens.md). This is partial U-01 foundation,
 not completion: identity/catalog/cart screens, API integration, localization,
-theme controls, responsive component behavior, and client tests remain open.
+theme controls, responsive component verification, and a runnable client/UI test
+target remain open. There are currently no shared UI rendering specs.
 The separate `npm run client` command starts its `dev` target.
 
 ## 2. Tasks and acceptance criteria
