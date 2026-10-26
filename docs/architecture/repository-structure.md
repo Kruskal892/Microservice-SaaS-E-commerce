@@ -10,14 +10,14 @@
 .
 |-- apps/
 |   |-- client/
-|   |   |-- src/app/layout.tsx          # Global CSS and original header
+|   |   |-- src/app/layout.tsx          # Global CSS and header with shared Input
 |   |   |-- src/app/page.tsx            # Placeholder page
-|   |   |-- src/app/global.css          # Tailwind v4 tokens and theme selectors
+|   |   |-- src/app/global.css          # Tailwind, shared theme import/source, body styles
 |   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
-|   |   |-- src/components/layout/Header.tsx # Original header component
+|   |   |-- src/components/layout/Header.tsx # Header with shared search Input
 |   |   |-- postcss.config.mjs          # @tailwindcss/postcss
 |   |   |-- next.config.js
-|   |   |-- tsconfig.json               # Bundler resolution and @/* client alias
+|   |   |-- tsconfig.json               # Bundler resolution, aliases, shared-source inclusion/reference
 |   |   |-- package.json                # @microservice-eshop/client
 |   |   `-- README.md
 |   |-- api-gateway/
@@ -52,10 +52,20 @@
 |   |-- error-handler/
 |   |   |-- index.ts                    # Error classes and middleware export
 |   |   `-- error-middleware.ts
-|   `-- libs/
-|       |-- index.ts
-|       |-- prisma/index.ts             # Shared Prisma client
-|       `-- redis/index.ts              # Shared ioredis client
+|   |-- libs/
+|   |   |-- index.ts
+|   |   |-- prisma/index.ts             # Shared Prisma client
+|   |   `-- redis/index.ts              # Shared ioredis client
+|   |-- assets/
+|   |   |-- index.ts                    # @packages/assets exports
+|   |   |-- svg.d.ts                    # SVG component import declarations
+|   |   `-- icons/                     # Repo-wide SVG files and exports
+|   `-- ui/
+|       |-- index.ts                    # Browser-safe @packages/ui exports
+|       |-- icons/                      # Typed registry and React Icon component
+|       |-- utils.ts                    # clsx + tailwind-merge helper
+|       |-- theme.css                   # Shared tokens and theme selectors
+|       `-- common/Input/Input.tsx      # Native React input with token defaults
 |-- prisma/schema.prisma
 |-- prisma.config.ts                    # CLI schema path, dotenv, DATABASE_URL
 |-- docs/                               # See the documentation hub for its tree
@@ -84,6 +94,7 @@ flowchart TD
     Root --> Shared["shared workspace<br/>packages/"]
     Root --> AuthE2E["auth-service-e2e"]
     Root --> GatewayE2E["api-gateway-e2e"]
+    Client -->|"TypeScript reference and browser source imports"| Shared
     Auth -->|"TypeScript reference and bundled aliases"| Shared
     Gateway -->|"TypeScript reference and Webpack aliases"| Shared
     AuthE2E -->|"build and serve dependencies"| Auth
@@ -101,7 +112,9 @@ explicit `e2e` targets; the Nx Jest plugin excludes them from `test` inference.
 The client owns its `@/*` alias into `apps/client/src/*`; its TypeScript config
 uses bundler resolution and replaces the root `paths` map. It has no dependency
 on shared database clients. Keep Prisma/Redis and their aggregate barrels out of
-browser code. [Client setup](../../apps/client/README.md) and the
+browser code. Use `@packages/ui` for shared browser components; see
+[shared UI](../reference/shared-ui.md) for token imports and Tailwind scanning.
+[Client setup](../../apps/client/README.md) and the
 [token reference](../reference/design-tokens.md) own frontend conventions.
 
 `@microservice-eshop/shared` is the shared workspace manifest name.
@@ -112,7 +125,10 @@ need their own resolution if they execute these imports directly.
 
 Import the specific module you need. The aggregate
 [packages/index.ts](../../packages/index.ts) re-exports clients that instantiate
-Prisma/Redis at import time; importing it can pull infrastructure into a consumer.
+Prisma/Redis at import time and now also re-exports UI with SVG imports.
+Importing it can pull infrastructure into a browser or frontend assets into a
+Node consumer. Use the specific `@packages/ui`, `@packages/assets/icons`,
+`@packages/error-handler`, or `@packages/libs/...` entry instead.
 The new recovery helper imports Prisma through `@packages/libs`, whose barrel
 also re-exports Redis; other client imports in the applications target their
 specific modules.

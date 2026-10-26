@@ -2,15 +2,18 @@
 
 [Documentation hub](../README.md) · [Future implementation plan](../future-plans/implementation-plan.md)
 
-**Reviewed:** 2026-10-25. This inventory reflects source/configuration inspection.
+**Reviewed:** Backend snapshot 2026-10-25; shared UI/assets 2026-10-26.
+This inventory reflects source/configuration inspection, not full runtime verification.
 
 ## Capability inventory
 
 | Area                      | Present in source/configuration                                                                                                                     | Remaining work                                                                                                                  |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                    | Verify relevant targets as code changes                                                                                         |
-| Client scaffold           | Next.js App Router, React, original header/page, local hello handler, client alias and Nx dev/build/start configuration                             | Storefront routes/components, backend integration, state, localization, client tests                                            |
+| Client scaffold           | Next.js App Router, React, header with shared Input, placeholder page, local hello handler, client alias and Nx dev/build/start configuration       | Storefront routes/components, backend integration, state, localization, client tests                                            |
 | Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales, named breakpoints                                         | Inter delivery, theme controls/persistence, component styling and accessibility verification                                    |
+| Shared UI                 | `@packages/ui` flex Input, native refs/props, four styling hooks, typed start/end SVG icons, shared theme/source                                    | Browser/state/accessibility verification and adoption checks in additional apps                                                 |
+| Shared assets             | Repo-wide SVG files and exports in `packages/assets`, typed SVG declarations, client SVGR rules for both bundlers                                   | Additional-app bundler adoption and production validation                                                                       |
 | Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                          | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                              |
 | Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                          | Concurrency, partial failures, permanent behavior coverage                                                                      |
 | Verification and identity | Routed verification, Redis OTP check, 3-attempt lock, bcrypt hashing, Prisma user persistence                                                       | Consistent validation/normalization, OTP error contract and concurrency coverage                                                |
@@ -58,6 +61,54 @@
 Detailed behavior belongs in [architecture](../architecture/overview.md),
 [request flows](../architecture/request-flows.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
+
+## Shared UI review: 2026-10-26
+
+The current source adds a reusable flex Input, named decorative start/end icons,
+repo-wide SVG assets, shared Tailwind theme imports, `cn` dependencies, client
+aliases/source inclusion, SVG typings, and SVGR configuration for Turbopack and
+Webpack. `className` styles the field wrapper, `inputClassName` the input,
+`iconContainerClassName` the icon area, and `iconClassName` the registered SVG.
+There is currently no shared UI rendering spec or configured UI test target.
+
+This pass reviewed the complete working diff, including existing configuration
+edits. `nx.json` changes are formatting only, while `next-env.d.ts` points at the
+dev-generated route declarations. Those files were preserved. The root shared
+barrel now also exports UI; browser and Node consumers should use specific
+folder entries to avoid mixing infrastructure with SVG/React dependencies.
+
+Review comments addressed in source:
+
+- The shared `Icon` merges a `size-5` default before caller classes. Input forwards
+  `iconClassName` without duplicating the default, so custom sizes can override it.
+- The header uses `bg-surface`, preserving contrast with inherited themed text.
+  Its undefined Poppins class was replaced with the supplied `font-sans` token.
+- Documentation now reflects the absence of rendering specs and removes the
+  obsolete parent SVG size-selector restriction. Automated UI coverage remains
+  unimplemented.
+
+Validation for this pass:
+
+- The standalone no-emit client typecheck was attempted with its cache directed
+  to a temporary file. It stopped at `TS6305` for missing shared-library
+  declaration output; this is not a successful typecheck of the implementation.
+- Documentation formatting, JavaScript config syntax, and whitespace checks
+  passed. All 357 local documentation links resolve to existing files; eight JSON
+  configs/manifests parse, and shared dependency versions match the lockfile.
+  These checks do not prove generated CSS or browser behavior.
+- No lint, build, test suite, browser, backend runtime, or external-service check
+  was run. Earlier successful checks below apply to their dated snapshots.
+
+CI follow-up on 2026-10-26: the supplied GitHub Actions log showed 15 successful
+tasks, including the client build, with only client lint failing. Local reproduction
+identified `@typescript-eslint/triple-slash-reference` in `apps/client/index.d.ts`.
+Replacing the path directive with `import '@packages/assets/svg'` fixed the error;
+`npx.cmd nx run @microservice-eshop/client:lint --output-style=static --skip-nx-cache`
+passed locally. The full CI pipeline, builds, and tests were not rerun for this fix.
+
+See the [shared UI contract](../reference/shared-ui.md),
+[assets guide](../../packages/assets/README.md), and
+[testing instructions](../development/testing.md#client-styling-checks).
 
 ## Documentation verification boundary
 

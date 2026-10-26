@@ -9,7 +9,7 @@ against live services.
 ## System context
 
 An HTTP client can call auth directly or use the gateway. `apps/client` contains
-a Next.js App Router scaffold with design tokens, the existing header, a
+a Next.js App Router scaffold with shared design tokens, a header search Input, a
 placeholder page, and a local hello route. It has no backend integration.
 The gateway has one upstream, auth; it does not yet route among multiple
 business services or authenticate users.
@@ -35,12 +35,16 @@ See [request flows](request-flows.md) for execution order and failure paths.
 | Component      | Current responsibility                                                                                                | Source                                                                                                                  |
 | -------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                             | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
-| Client         | Next.js scaffold, placeholder UI, Tailwind tokens, hello handler; no backend calls                                    | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
+| Client         | Next.js scaffold, shared Input/icons/theme, placeholder UI, hello handler; no backend calls                           | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
 | Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
 | Shared errors  | Error classes and JSON error middleware used by both apps                                                             | [error-handler](../../packages/error-handler/index.ts)                                                                  |
 | Shared clients | Prisma client reuse and a simple ioredis instance                                                                     | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
 | MongoDB schema | Identity fields and optional avatar relation                                                                          | [schema.prisma](../../prisma/schema.prisma)                                                                             |
 | Nx/npm         | Workspace dependency graph, builds, serve, and checks                                                                 | [nx.json](../../nx.json), [package.json](../../package.json)                                                            |
+
+Shared UI and repo-wide SVG assets live in `packages/ui` and `packages/assets`.
+Their contracts and current review limitations are in
+[shared UI](../reference/shared-ui.md).
 
 Shared infrastructure lives in one npm workspace; `@packages/*` names are
 TypeScript/build aliases. They are not individual published packages. Auth owns

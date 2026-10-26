@@ -27,7 +27,7 @@ the full identity lifecycle and commerce flows shown here are unfinished. Logica
 does not mandate separate physical MongoDB deployments. Do not create a new
 service for every entity without a workflow and ownership reason.
 
-The current client contains its original header and placeholder page with
+The current client contains a header with the shared Input/icons and a placeholder page with
 [Tailwind design tokens](../../reference/design-tokens.md). The frontend-to-API
 arrows above are future integration; the scaffold makes no backend calls.
 

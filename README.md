@@ -13,7 +13,7 @@ hashes passwords with bcrypt, and creates user accounts in MongoDB. Login
 Three password-recovery routes are also mounted, but reset still requires no
 verification proof. See the
 [recovery blockers](docs/development/authentication.md#password-recovery-blockers).
-The client currently renders its original header and placeholder page; storefront
+The client currently renders its header with a shared search input and placeholder page; storefront
 features and backend integration are not implemented. Token verification on protected routes, refresh, logout, and
 commerce APIs remain unfinished or planned. Live integrations are unverified.
 
@@ -22,16 +22,16 @@ commerce APIs remain unfinished or planned. Live integrations are unverified.
 Start with the [documentation hub](docs/README.md). Current behavior and proposed
 work have separate documentation areas.
 
-| Topic                       | Guide                                                                                                            |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Setup                       | [Getting started](docs/development/getting-started.md)                                                           |
-| System and code layout      | [Architecture](docs/architecture/overview.md), [repository structure](docs/architecture/repository-structure.md) |
-| Visual request walkthroughs | [HTTP and OTP flows](docs/architecture/request-flows.md)                                                         |
-| Endpoints and environment   | [API](docs/reference/api.md), [configuration](docs/reference/configuration.md)                                   |
-| Client and styling          | [Client setup](apps/client/README.md), [design tokens](docs/reference/design-tokens.md)                          |
-| Contributor workflow        | [Development guide](docs/development/development-guide.md), [testing](docs/development/testing.md)               |
-| Packaging and current gaps  | [Deployment](docs/operations/deployment.md), [implementation status](docs/operations/implementation-status.md)   |
-| Roadmap and draft designs   | [Future plans](docs/future-plans/README.md)                                                                      |
+| Topic                       | Guide                                                                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Setup                       | [Getting started](docs/development/getting-started.md)                                                                            |
+| System and code layout      | [Architecture](docs/architecture/overview.md), [repository structure](docs/architecture/repository-structure.md)                  |
+| Visual request walkthroughs | [HTTP and OTP flows](docs/architecture/request-flows.md)                                                                          |
+| Endpoints and environment   | [API](docs/reference/api.md), [configuration](docs/reference/configuration.md)                                                    |
+| Client and styling          | [Client setup](apps/client/README.md), [design tokens](docs/reference/design-tokens.md), [shared UI](docs/reference/shared-ui.md) |
+| Contributor workflow        | [Development guide](docs/development/development-guide.md), [testing](docs/development/testing.md)                                |
+| Packaging and current gaps  | [Deployment](docs/operations/deployment.md), [implementation status](docs/operations/implementation-status.md)                    |
+| Roadmap and draft designs   | [Future plans](docs/future-plans/README.md)                                                                                       |
 
 ## Quick start
 
@@ -64,12 +64,12 @@ Leave `PORT` unset when starting both backend applications together. Each servic
 the same variable in its own process. See [setup](docs/development/getting-started.md)
 for separate startup, configuration, and database synchronization instructions.
 
-| Application     | Default URL                          | Source-defined response                                      |
-| --------------- | ------------------------------------ | ------------------------------------------------------------ |
-| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                 |
-| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                   |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations      |
-| Client          | http://localhost:3000/               | Existing header and placeholder page; Tailwind design tokens |
+| Application     | Default URL                          | Source-defined response                                         |
+| --------------- | ------------------------------------ | --------------------------------------------------------------- |
+| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                    |
+| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                      |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations         |
+| Client          | http://localhost:3000/               | Header with shared Input/icons, placeholder page, shared tokens |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any

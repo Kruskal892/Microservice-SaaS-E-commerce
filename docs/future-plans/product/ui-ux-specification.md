@@ -4,7 +4,8 @@
 
 **Priority:** High. **Status:** Proposed storefront screens and flows.
 **Reviewed:** 2026-10-25. A Next.js client scaffold and Tailwind design tokens
-exist; the original header and placeholder page are retained. Shopping routes,
+exist; the header uses the [shared Input and icons](../../reference/shared-ui.md)
+and the page remains a placeholder. Shopping routes,
 components, language controls, and theme controls are not implemented.
 
 ## 1. Screens and navigation

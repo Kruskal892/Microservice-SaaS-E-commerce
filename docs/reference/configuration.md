@@ -67,10 +67,16 @@ backend CORS aligned if adding browser API integration. Avoid a shared `PORT`
 override when launching the backend and client together.
 
 Client dependencies are installed at the root npm workspace. Its
-[Next config](../../apps/client/next.config.js) is a scaffold with no rewrites or
-proxy configuration. [PostCSS](../../apps/client/postcss.config.mjs) loads
-`@tailwindcss/postcss`; [global.css](../../apps/client/src/app/global.css) owns the
-palette/scales. See [design tokens](design-tokens.md) for exact utilities and
+[Next config](../../apps/client/next.config.js) configures `@svgr/webpack` for SVG
+component imports in Turbopack and Webpack, with no rewrites or proxy configuration. [PostCSS](../../apps/client/postcss.config.mjs) loads
+`@tailwindcss/postcss`; [global.css](../../apps/client/src/app/global.css) imports
+the palette/scales from [packages/ui/theme.css](../../packages/ui/theme.css) and
+registers the shared UI source for Tailwind scanning. See [shared UI](shared-ui.md)
+for additional consuming apps. `apps/client/index.d.ts` imports the shared
+SVG declarations with `import '@packages/assets/svg'`, satisfying the client's
+`@typescript-eslint/triple-slash-reference` rule. Client TypeScript maps
+`@packages/*`, includes shared TSX, and references the shared composite project;
+its declaration outputs must exist for the standalone no-emit check. See [design tokens](design-tokens.md) for exact utilities and
 light/dark selectors. Theme choice is explicit CSS selection, without controls,
 system-preference detection, or persistence. Inter is not bundled.
 
