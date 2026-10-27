@@ -12,7 +12,7 @@ This inventory reflects source/configuration inspection, not full runtime verifi
 | Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                    | Verify relevant targets as code changes                                                                                         |
 | Client scaffold           | Next.js App Router, Header folder with search/account/wishlist/cart links, placeholder page, local hello handler, client aliases                    | Storefront routes/components, backend integration, state, localization, client tests                                            |
 | Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales, named breakpoints                                         | Theme controls/persistence, component styling, font/browser and accessibility verification                                      |
-| Shared UI                 | `@packages/ui` flex Input, native refs/props, four styling hooks, typed start/end SVG icons, shared theme/source                                    | Browser/state/accessibility verification and adoption checks in additional apps                                                 |
+| Shared UI                 | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, Storybook states and play checks                                             | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps                   |
 | Shared assets             | Repo-wide SVG files and exports in `packages/assets`, typed SVG declarations, client SVGR rules for both bundlers                                   | Additional-app bundler adoption and production validation                                                                       |
 | Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                          | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                              |
 | Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                          | Concurrency, partial failures, permanent behavior coverage                                                                      |
@@ -62,6 +62,30 @@ Detailed behavior belongs in [architecture](../architecture/overview.md),
 [request flows](../architecture/request-flows.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
 
+## Common component library: 2026-10-27
+
+Added Button, Badge, Card, Field/Label, Textarea, Checkbox, Switch, Select,
+DropdownMenu, Modal, Tabs and Tooltip to the existing UI folder. Native props,
+refs, class overrides and Radix controlled/uncontrolled APIs are preserved.
+Shared action/foreground/overlay tokens are additive; app typography stays local.
+
+Storybook uses React/Vite, Tailwind, SVG transforms, autodocs, controls,
+accessibility tools, theme/RTL switches and Button pseudo-state previews.
+Permanent play checks are authored but were not run. The Storybook index lists
+56 stories and 16 autodocs pages; local documentation links and manifest/lockfile
+consistency checks pass. Focused Storybook
+TypeScript checking passed and the local development server started. No lint,
+production build or test suite was run. Browser/accessibility conformance and
+full application integration remain unverified. Figma quota blocked the reserved
+cover/token sheets and post-fix visual checks; Code Connect is unavailable for
+the current plan/seat. The design document records those limitations.
+
+See [design and Figma](../design/shared-ui-system.md),
+[component recipes](../reference/common-components.md) and
+[Storybook workflow](../development/storybook.md). The workspace advisory check
+still reports existing framework/tooling vulnerabilities; no unrelated dependency
+upgrade or automatic audit fix was applied.
+
 ## Client and conflict resolution: 2026-10-27
 
 Resolved the stash conflicts by keeping the Header folder move, new SVG exports,
@@ -97,7 +121,8 @@ repo-wide SVG assets, shared Tailwind theme imports, `cn` dependencies, client
 aliases/source inclusion, SVG typings, and SVGR configuration for Turbopack and
 Webpack. `className` styles the field wrapper, `inputClassName` the input,
 `iconContainerClassName` the icon area, and `iconClassName` the registered SVG.
-There is currently no shared UI rendering spec or configured UI test target.
+At the time of this dated review, there was no shared UI rendering spec or
+configured UI test target. The later common-component section records Storybook.
 
 This pass reviewed the complete working diff, including existing configuration
 edits. `nx.json` changes are formatting only, while `next-env.d.ts` points at the

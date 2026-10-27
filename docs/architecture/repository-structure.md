@@ -70,10 +70,15 @@
 |       |-- icons/                      # Typed registry and React Icon component
 |       |-- utils.ts                    # clsx + tailwind-merge helper
 |       |-- theme.css                   # Shared tokens and theme selectors
-|       `-- common/Input/Input.tsx      # Native React input with token defaults
+|       |-- README.md                   # Library entry and developer links
+|       |-- Overview.stories.tsx         # Storybook getting started
+|       |-- Theme.stories.tsx            # Token specimens
+|       `-- common/                     # Input, Button, forms, overlays, layout
+|           `-- <Component>/            # Implementation, barrel and stories
 |-- prisma/schema.prisma
 |-- prisma.config.ts                    # CLI schema path, dotenv, DATABASE_URL
 |-- docs/                               # See the documentation hub for its tree
+|-- .storybook/                        # React/Vite host and shared CSS configuration
 |-- .github/workflows/ci.yml
 |-- .vscode/                            # Debugger, Prisma, formatter settings
 |-- .env.example                        # Placeholder environment configuration

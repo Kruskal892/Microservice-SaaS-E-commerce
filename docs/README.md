@@ -15,6 +15,13 @@ See the [shared UI contract](reference/shared-ui.md),
 [assets guide](../packages/assets/README.md), and
 [current validation and review findings](operations/implementation-status.md#client-and-conflict-resolution-2026-10-27).
 
+## Shared component library
+
+Use the [common component recipes](reference/common-components.md),
+[design contract](design/shared-ui-system.md), and
+[Storybook workflow](development/storybook.md) for reusable React controls.
+[Figma library](https://www.figma.com/design/SXjnKoIBg4Laj7RqjVgQHo?node-id=7-110).
+
 ## Start here
 
 | Need                                   | Read                                                                                                                        |
@@ -44,13 +51,17 @@ docs/
 |   |-- api.md
 |   |-- configuration.md
 |   |-- design-tokens.md            # Shared Tailwind palette, scales, and theme selectors
-|   `-- shared-ui.md                # Shared Input API and cross-app CSS setup
+|   |-- shared-ui.md                # Shared Input API and cross-app CSS setup
+|   `-- common-components.md        # Common control APIs and composition recipes
 |-- development/                   # Contributor guides
 |   |-- getting-started.md
 |   |-- development-guide.md
 |   |-- authentication.md
 |   |-- testing.md
+|   |-- storybook.md                # Isolated component development
 |   `-- troubleshooting.md
+|-- design/                        # UI design contract and Figma status
+|   `-- shared-ui-system.md
 |-- operations/                    # Packaging, CI, and current delivery status
 |   |-- deployment.md
 |   `-- implementation-status.md

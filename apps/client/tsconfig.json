@@ -47,6 +47,8 @@
     "jest.config.cts",
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
+    "../../packages/ui/**/*.stories.tsx",
+    "../../packages/ui/**/*.test.tsx",
     "eslint.config.js",
     "eslint.config.cjs",
     "eslint.config.mjs"

@@ -13,6 +13,11 @@
   --color-danger: #dc2626;
   --color-focus: #818cf8;
 
+  --color-on-action: #ffffff;
+  --color-danger-action: #b91c1c;
+  --color-danger-hover: #991b1b;
+  --color-danger-active: #7f1d1d;
+
   --font-sans: 'Inter', system-ui, sans-serif;
 
   --text-*: initial;
@@ -46,6 +51,13 @@
 :root,
 [data-theme='light'] {
   color-scheme: light;
+  --action: #4f46e5;
+  --action-hover: #4338ca;
+  --action-active: #3730a3;
+  --success-foreground: #15803d;
+  --warning-foreground: #92400e;
+  --danger-foreground: #b91c1c;
+  --overlay: rgb(15 23 42 / 60%);
   --background: #f8fafc;
   --surface: #ffffff;
   --surface-alt: #f1f5f9;
@@ -57,6 +69,13 @@
 .dark,
 [data-theme='dark'] {
   color-scheme: dark;
+  --action: #4f46e5;
+  --action-hover: #4338ca;
+  --action-active: #3730a3;
+  --success-foreground: #4ade80;
+  --warning-foreground: #fbbf24;
+  --danger-foreground: #f87171;
+  --overlay: rgb(0 0 0 / 70%);
   --background: #090d18;
   --surface: #121827;
   --surface-alt: #1b2435;
@@ -67,6 +86,13 @@
 
 /* Inline aliases resolve at the styled element so semantic utilities follow its theme. */
 @theme inline {
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-active: var(--action-active);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-overlay: var(--overlay);
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-alt: var(--surface-alt);

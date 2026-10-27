@@ -43,6 +43,16 @@ See the [complete token reference](../../docs/reference/design-tokens.md) for
 colors, type, spacing, radii, breakpoints, and utility examples. Use the client
 `@/*` alias for `src/*`; keep server-only Prisma/Redis modules out of client code.
 
+## Reusable components and Storybook
+
+The shared UI library now includes common buttons, form controls, menus, modals,
+tabs, tooltips, badges and cards. Import from `@packages/ui`; the client does
+not automatically mount these components. Run `npm run storybook` from the
+repository root and open port 6006 for examples, state previews and controls.
+See [component recipes](../../docs/reference/common-components.md),
+[design contract](../../docs/design/shared-ui-system.md), and
+[Storybook workflow](../../docs/development/storybook.md).
+
 ## Shared input
 
 Import `Input` from `@packages/ui`; it supports native input props and React 19

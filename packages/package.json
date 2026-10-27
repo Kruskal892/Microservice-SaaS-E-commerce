@@ -14,10 +14,13 @@
   "dependencies": {
     "@prisma/client": "^6.19.0",
     "clsx": "^2.1.1",
+    "radix-ui": "^1.8.1",
     "tailwind-merge": "^3.7.0",
     "tslib": "^2.3.0"
   },
   "peerDependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }

@@ -52,6 +52,10 @@ default before caller classes, so `iconClassName="size-8"` can replace it. Raw
 SVG imports do not receive that default; set their size at the call site. Asset files
 and registry entries alone do not change application bundler configuration.
 
+Storybook uses `vite-plugin-svgr` for these same default SVG component imports;
+the existing Next.js loader configuration is unchanged. See the
+[Storybook guide](../../docs/development/storybook.md).
+
 Keep accessible names on meaningful icons or their enclosing controls; direct
 SVG imports do not add accessibility attributes automatically. See the
 [shared UI guide](../../docs/reference/shared-ui.md#svg-icon-library) for named
