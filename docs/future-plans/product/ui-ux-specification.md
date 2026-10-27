@@ -4,7 +4,8 @@
 
 **Priority:** High. **Status:** Proposed storefront screens and flows.
 **Reviewed:** 2026-10-25. A Next.js client scaffold and Tailwind design tokens
-exist; the original header and placeholder page are retained. Shopping routes,
+exist; the header uses the [shared Input and icons](../../reference/shared-ui.md)
+and the page remains a placeholder. Shopping routes,
 components, language controls, and theme controls are not implemented.
 
 ## 1. Screens and navigation
@@ -70,7 +71,7 @@ retry; do not persist passwords in browser storage.
 Use one column on narrow screens and expand grids on wider screens without
 changing task order. Keep cart/checkout controls usable without horizontal scroll.
 Use the implemented [Tailwind design tokens](../../reference/design-tokens.md):
-indigo brand colors, light/dark semantic surfaces, Inter/system font stack,
+indigo brand colors, light/dark semantic surfaces, client Roboto/Poppins fonts (shared Inter/system fallback),
 12–60px type scale, 4px spacing unit, 8–24px named radii, and
 `mobile/tablet/desktop` breakpoints at 390/768/1440px. The tokens supply styling
 primitives; component variants, theme controls, and responsive screens remain work.

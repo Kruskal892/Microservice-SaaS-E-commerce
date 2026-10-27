@@ -54,6 +54,11 @@ node node_modules/typescript/bin/tsc -p apps/client/tsconfig.json --noEmit
 npx nx build @microservice-eshop/client
 ```
 
+The 2026-10-26 no-emit client check stopped at `TS6305` because referenced
+shared-library declarations were missing. No shared-library build was run.
+The standalone command requires those outputs first; its failure is not a
+successful check of the input implementation.
+
 A client typecheck does not compile Tailwind CSS. Validate token changes through
 the Tailwind/PostCSS pipeline or the Next build as well. Check generated utilities
 against the [token reference](../reference/design-tokens.md): brand/status colors,
@@ -63,7 +68,31 @@ behavior or accessibility conformance can be inferred from generated CSS.
 
 For future browser checks, run the client and verify both `.dark` and
 `data-theme="dark"`, light reset, keyboard focus for real components, and widths
-below/at 390px, 768px, and 1440px. The header and page remain placeholders.
+below/at 390px, 768px, and 1440px. The header contains the shared search input and the page remains a placeholder.
+Also check Roboto body/Poppins input fonts, header overflow, and dark contrast
+for the new black SVGs. Sign-in/wishlist/cart currently lead to missing routes;
+counts remain static zeros. Check link accessible names: wishlist/cart currently
+expose only their count. `HeaderBottom` is not mounted. These are suggested
+manual checks, not checks completed for the 2026-10-27 change.
+For the input, check light/dark colors, keyboard focus, disabled and
+`aria-invalid` states, label/error associations, native props and React 19 refs,
+controlled/uncontrolled values, file selection, and `className` overrides. Repeat
+the CSS import/source setup in another app before claiming cross-app verification.
+These checks are instructions; no input build, lint, tests, or browser checks
+were run for the 2026-10-26 change.
+
+There is currently no shared UI rendering spec or configured shared UI Jest
+runner. Do not infer automated coverage from the source implementation. Future
+coverage should exercise named/default and custom SVG sizing, start/end flex
+ordering, independent wrapper/input/icon-container styling, native attributes,
+and fields without icons. SVG imports need mocks or an SVG transformer.
+
+For manual browser checks, compare default named icons with `iconClassName="size-8"`,
+check start/end alignment in LTR and RTL, and verify the header's light/dark
+surface contrast. Also check wider icon containers, focus, disabled/invalid
+states, custom input heights, and accessible field names. These steps have not
+been executed for this change.
+
 The gateway E2E port-3000 mismatch is especially relevant now that the client
 also defaults to 3000; do not mistake a frontend response for gateway health.
 

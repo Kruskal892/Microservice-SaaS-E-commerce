@@ -88,8 +88,8 @@ npm run client
 
 Open `http://localhost:3000`. The root script selects
 `nx dev @microservice-eshop/client`; `npm run dev` selects backend `serve` targets
-and does not start this client. Its current page contains the original header
-and placeholder content. No auth, catalog, cart, checkout, orders, or API wiring
+and does not start this client. Its current page contains the header with a shared input
+and placeholder content. See [shared UI](../reference/shared-ui.md) for reuse in other apps. No auth, catalog, cart, checkout, orders, or API wiring
 is present. The client also has a standalone `/api/hello` text handler.
 
 No database, Redis, SMTP, signing secret, or custom client environment variable

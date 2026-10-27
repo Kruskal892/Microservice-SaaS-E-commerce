@@ -6,7 +6,7 @@
 These diagrams explain code behavior, not a successful end-to-end run.
 
 These are backend execution paths. The Next.js client currently renders its
-original header and placeholder page with [Tailwind tokens](../reference/design-tokens.md).
+header with the shared search input and placeholder page with [Tailwind tokens](../reference/design-tokens.md).
 It does not initiate these auth/commerce flows. Its local `/api/hello` text route
 is independent of the gateway and is described in the [API reference](../reference/api.md).
 

@@ -77,9 +77,12 @@ TypeScript configuration is split across:
 - Each application's `tsconfig.app.json`: source inclusion, root/output paths, and ambient types.
 - Auth `tsconfig.spec.json`: test compilation settings.
 - Client `tsconfig.json`: Next.js JSX, bundler module resolution, `noEmit`,
-  Next's TypeScript plugin, and `@/*` mapped to client `src/*`.
+  Next's TypeScript plugin, `@/*` mapped to client `src/*`, and `@packages/*`
+  mapped to shared source. It widens `rootDir` to the repository, includes shared
+  UI TS/TSX, and references `packages`; no-emit checks need its declaration output.
 - [Shared-package tsconfig.json](../../packages/tsconfig.json):
-  references `tsconfig.lib.json`, which loads Node types and emits JavaScript
+  references `tsconfig.lib.json`, which loads Node types, enables `react-jsx`,
+  includes TS and TSX, and emits JavaScript
   and declarations into the package's `dist`. Root and auth project references
   include this library through the root grouping and auth application config, respectively.
 
@@ -108,7 +111,7 @@ Add folders directly inside `packages/` with an `index.ts` exporting their
 public APIs. Import them as `@packages/<folder-name>`; the wildcard
 also supports individual files and nested folders, such as
 `@packages/error-handler/error-middleware` and `@packages/libs/prisma`,
-without per-folder updates. The library includes `**/*.ts` and excludes `dist`
+without per-folder updates. The library includes `**/*.ts` and `**/*.tsx` and excludes `dist`
 and `node_modules`, so new module folders need no package manifest or TypeScript
 configuration. Another application needs the shared TypeScript project
 references and a build/runtime that resolves aliases.
@@ -147,18 +150,34 @@ The shared base enables `emitDeclarationOnly`. Do not assume a standalone `tsc` 
 
 ## Client styling and ownership
 
-Keep client components in `apps/client/src` and use its `@/*` alias. The
-`@packages/*` wildcard is a backend build convention; the client overrides the
-`paths` object and must not import server-only Prisma/Redis infrastructure or
-shared barrels that instantiate those clients.
+Keep client components in `apps/client/src` and use its `@/*` alias. The client
+also maps `@packages/*` for shared source. Import browser components
+from `@packages/ui`; do not import server-only Prisma/Redis infrastructure or
+the root aggregate barrel that instantiates those clients.
 
 Tailwind v4 uses [global.css](../../apps/client/src/app/global.css) and
-`@tailwindcss/postcss`, without a `tailwind.config.js`. Add styles using the
+`@tailwindcss/postcss`, without a `tailwind.config.js`. Global CSS imports
+`packages/ui/theme.css` and registers `packages/ui` with `@source`. See
+[shared UI](../reference/shared-ui.md) for input usage and setup in another app.
+Add styles using the
 [design token reference](../reference/design-tokens.md): semantic colors,
 `font-sans`, the supplied type/radius scales, and `mobile:/tablet:/desktop:`
-breakpoints. The body consumes background/text/font tokens. Header markup stays
-as the original component; shopping screens and theme controls remain planned.
-Inter is a font preference with system fallbacks, not an installed font asset.
+breakpoints. The body consumes background/text/font tokens. The header uses the
+shared native input with an accessible search name; shopping screens and theme
+controls remain planned.
+Use `className` for the field wrapper, `inputClassName` for native input
+padding, `iconContainerClassName` for icon-area styling, and `iconClassName` for
+a registered SVG. The shared `Icon` defaults to `size-5`; named icon size
+overrides merge after that default.
+Raw icons belong in `packages/assets/icons`; SVG consumers need SVGR or an
+equivalent loader, while `packages/assets/icons/index.ts` exports define the typed name registry
+consumed automatically by `packages/ui/icons/Icon.tsx`.
+The existing `clsx` and `tailwind-merge` dependencies in the shared manifest
+support `cn`; no separate UI/assets package manifest is required.
+The shared `font-sans` retains its Inter/system fallback. The client loads
+Roboto and Poppins with `next/font/google`; `font-roboto` styles the body and
+`font-poppins` overrides the header input font. The header uses `bg-surface`.
+Keep these app-local font mappings in client CSS.
 
 `npm run client` is separate from `npm run dev`: the client uses `dev`, while
 the backend applications use `serve`. Shared browser/auth integration must be
