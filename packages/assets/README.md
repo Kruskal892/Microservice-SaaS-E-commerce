@@ -11,7 +11,10 @@ packages/assets/
 `-- icons/
     |-- index.ts
     |-- search.svg
-    `-- lock.svg
+    |-- lock.svg
+    |-- profileIcon.svg
+    |-- heartIcon.svg
+    `-- cartIcon.svg
 ```
 
 Any React app with the monorepo `@packages/*` alias and SVG-to-React loader can
@@ -35,9 +38,13 @@ can use the raw `.svg` files with their own asset pipeline; this folder does not
 publish URLs or copy files into each app's public directory.
 
 To add an icon, put the SVG in `icons/` and export it from `icons/index.ts`.
-Use `currentColor` for themeable fills/strokes. For named UI usage such as
-`<Input icon="searchIcon" />`, also register it in
-[`packages/ui/icons/Icon.tsx`](../ui/icons/Icon.tsx).
+Use `currentColor` for themeable fills/strokes. The current profile, heart, and
+cart SVGs hardcode black, so text-color utilities do not recolor them. Every export is automatically
+available for named UI usage such as `<Input icon="SearchIcon" />` or
+`<Icon name="ProfileIcon" />`; no separate UI registry entry is needed. Available names are `SearchIcon`,
+`LockIcon`, `ProfileIcon`, `HeartIcon`, and `CartIcon`. Names are case-sensitive;
+the earlier lowercase `searchIcon`/`lockIcon` names are no longer supported.
+Keep the barrel limited to SVG React components.
 
 For named input icons, `iconContainerClassName` styles the flex icon area and
 `iconClassName` styles the SVG. The shared `Icon` component merges its `size-5`

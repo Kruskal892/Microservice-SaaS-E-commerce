@@ -170,11 +170,14 @@ padding, `iconContainerClassName` for icon-area styling, and `iconClassName` for
 a registered SVG. The shared `Icon` defaults to `size-5`; named icon size
 overrides merge after that default.
 Raw icons belong in `packages/assets/icons`; SVG consumers need SVGR or an
-equivalent loader, while the typed name registry belongs in `packages/ui/icons`.
+equivalent loader, while `packages/assets/icons/index.ts` exports define the typed name registry
+consumed automatically by `packages/ui/icons/Icon.tsx`.
 The existing `clsx` and `tailwind-merge` dependencies in the shared manifest
 support `cn`; no separate UI/assets package manifest is required.
-Inter is a font preference with system fallbacks, not an installed font asset.
-The header uses the supplied `font-sans` and themed `bg-surface` utilities.
+The shared `font-sans` retains its Inter/system fallback. The client loads
+Roboto and Poppins with `next/font/google`; `font-roboto` styles the body and
+`font-poppins` overrides the header input font. The header uses `bg-surface`.
+Keep these app-local font mappings in client CSS.
 
 `npm run client` is separate from `npm run dev`: the client uses `dev`, while
 the backend applications use `serve`. Shared browser/auth integration must be

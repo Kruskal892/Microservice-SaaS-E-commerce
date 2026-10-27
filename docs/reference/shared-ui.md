@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Design tokens](design-tokens.md)
 
 **Status:** Shared React input and theme source implemented; review comments addressed; browser verification pending.
-**Reviewed:** 2026-10-26.
+**Reviewed:** 2026-10-27 (source only).
 
 ## Use in another application
 
@@ -55,8 +55,8 @@ Supported names are inferred from the shared registry for editor autocomplete.
 Other strings are rejected by TypeScript.
 
 ```tsx
-<Input type="search" aria-label="Search products" icon="searchIcon" />
-<Input type="password" aria-label="Password" icon="lockIcon" />
+<Input type="search" aria-label="Search products" icon="SearchIcon" />
+<Input type="password" aria-label="Password" icon="LockIcon" />
 <Input aria-label="Custom icon" icon={<CustomIcon />} />
 <Input name="email" type="email" />
 ```
@@ -77,7 +77,7 @@ The native input uses `flex-1 min-w-0`; it fills the remaining width.
 ```tsx
 <Input
   aria-label="Search products"
-  icon="searchIcon"
+  icon="SearchIcon"
   iconPosition="end"
   className="h-14 border-2 border-brand-500"
   inputClassName="px-4"
@@ -107,16 +107,23 @@ visibility toggle needs a separate accessible button and client-owned state;
 
 ### SVG icon library
 
-Store SVG files in `packages/assets/icons/` and register their imports in
-`packages/ui/icons/Icon.tsx`. The registry currently provides `searchIcon` and
-`lockIcon`. Adding a registry entry automatically extends the exported `IconName`
-type; simply adding a file does not register a name. Prefer `currentColor` for
-SVG fills/strokes so container colors such as `text-white` work.
+Store SVG files in `packages/assets/icons/` and export them from
+`packages/assets/icons/index.ts`. Those exports are the registry, currently
+providing `SearchIcon`, `LockIcon`, `ProfileIcon`, `HeartIcon`, and `CartIcon`. Each export automatically
+extends the exported `IconName` type; no change to `Icon.tsx` is needed.
+Simply adding a file does not register a name. Names are case-sensitive:
+`searchIcon` and `lockIcon` have been replaced by `SearchIcon` and `LockIcon`.
+Current consumers use the new names. Keep the barrel limited to SVG React
+components because `Icon` renders any selected export as a component.
+
+Prefer `currentColor` for themeable fills/strokes. The new profile, heart, and
+cart SVGs hardcode black; text-color utilities cannot recolor them, and
+dark-mode contrast remains unresolved.
 
 Assets belong to the repo-wide `packages/assets` folder, independently of UI.
 Apps can also import `{ SearchIcon, LockIcon }` from `@packages/assets/icons`
 or `@packages/assets`. Export new SVGs from `packages/assets/icons/index.ts`
-before registering them for named UI usage. See the
+to make them available for named UI usage. See the
 [assets README](../../packages/assets/README.md) for ownership and setup.
 
 For standalone use:
@@ -124,7 +131,7 @@ For standalone use:
 ```tsx
 import { Icon } from '@packages/ui';
 
-<Icon name="searchIcon" className="size-5 text-muted" />;
+<Icon name="SearchIcon" className="size-5 text-muted" />;
 ```
 
 Icons are decorative by default. A standalone meaningful icon needs an
@@ -137,7 +144,7 @@ their bundler's SVG-to-React support with a default component export and include
 `packages/assets/svg.d.ts` for SVG types. This setup treats JavaScript/TypeScript SVG
 imports as components, rather than image URLs. The SVG files are bundled assets;
 no public-folder copying or runtime fetch is required. Jest consumers need SVG
-mocks or an SVG transformer; the input spec includes mocks for registered icons.
+mocks or an SVG transformer. No shared UI rendering spec currently exists.
 
 ```tsx
 import { Input } from '@packages/ui';
@@ -191,9 +198,9 @@ change. A no-emit client typecheck was attempted on 2026-10-26 and stopped at
 
 The sizing and dark-mode comments have been addressed in source. Named SVGs
 receive an overridable default size from the shared `Icon`, and the header uses
-`bg-surface` and `font-sans`. The outdated parent size-selector restriction and
+`bg-surface` and the client-local `font-poppins` backed by `next/font/google`. The outdated parent size-selector restriction and
 claims of rendering specs have been removed. No shared UI rendering spec or
 UI test runner is currently present. Runtime and browser validation remain open.
 
-See [current validation](../operations/implementation-status.md#shared-ui-review-2026-10-26)
+See [current validation](../operations/implementation-status.md#client-and-conflict-resolution-2026-10-27)
 for the full review boundary.

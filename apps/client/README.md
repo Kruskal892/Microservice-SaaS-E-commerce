@@ -34,8 +34,10 @@ Tailwind source. The root layout imports it; [postcss.config.mjs](postcss.config
 Use semantic utilities such as `bg-background`, `bg-surface`, `text-text`,
 `text-muted`, and `border-border`. They follow `.dark` or `data-theme="dark"`
 on the document; the default is light. Theme selection and persistence are not
-implemented. Inter is the preferred font family, with a system fallback; no font
-file is bundled or downloaded.
+implemented. The root layout loads Roboto and Poppins with `next/font/google`.
+The body uses `font-roboto`; the header input uses `font-poppins`. These app-local
+utilities map to font variables in `global.css`. Builds need network access for
+Google font downloads.
 
 See the [complete token reference](../../docs/reference/design-tokens.md) for
 colors, type, spacing, radii, breakpoints, and utility examples. Use the client
@@ -51,8 +53,8 @@ container; `iconClassName` styles registered SVG icons. The header uses
 it for an accessible search field; search behavior is not implemented. See
 [shared UI](../../docs/reference/shared-ui.md) for examples and setup in other apps.
 
-Shared SVG files live in `packages/assets/icons/`; use `icon="searchIcon"` or
-`icon="lockIcon"`, or render `<Icon name="searchIcon" />`. The Next config uses
+Shared SVG files live in `packages/assets/icons/`; use `icon="SearchIcon"` or
+`icon="LockIcon"`, or render `<Icon name="SearchIcon" />`. The Next config uses
 the installed SVGR loader in Turbopack and Webpack. Restart development after
 config changes; see the shared UI guide to register more icons.
 
@@ -60,6 +62,22 @@ The current standalone client typecheck stops at `TS6305` when shared-library
 declaration output is missing. This source-only review did not build it. The
 shared `Icon` now supplies an overridable `size-5` default; see
 [review status](../../docs/reference/shared-ui.md#review-status).
+
+## Header structure and current behavior
+
+The root layout renders the default export from `components/layout/Header`.
+Its folder contains `Header.tsx`, the named `HeaderBottom` placeholder, and an
+extensionless `index.ts` barrel. `HeaderBottom` is exported but not rendered.
+The layout and top-level component barrels also expose a named `Header` export.
+
+The header links to `/login`, `/wishlist`, and `/cart`; these routes do not exist
+and return the not-found page. Wishlist/cart counters are static `0` values.
+Search has an editable field without submission or API calls. The page remains
+a placeholder. Metadata uses MicroShop; the visible header brand remains Eshop.
+
+Before release, verify narrow widths and dark mode. The header has no responsive
+layout variants, its wishlist/cart links lack meaningful accessible names, and
+the new profile/heart/cart SVGs hardcode black fills or strokes.
 
 ## Routes
 

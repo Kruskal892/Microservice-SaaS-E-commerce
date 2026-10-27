@@ -24,7 +24,11 @@ reacts to native input focus/disabled/invalid state through `:has()` selectors.
 the wrapper, input, icon area, and named SVG respectively. Start/end ordering
 uses flex order, with no absolute offsets. Raw SVGs are owned by `packages/assets`
 and imported through a typed UI registry using the client's SVGR loaders. There
-is no search backend. See [shared UI](../reference/shared-ui.md) and
+is no search backend. The Header folder also exports an unrendered
+`HeaderBottom` placeholder. Sign-in, wishlist, and cart links target missing
+routes; counts are static. Roboto and Poppins load via `next/font/google` in the
+root layout, which sets MicroShop metadata. The body uses Roboto; the search
+input uses Poppins. See [shared UI](../reference/shared-ui.md) and
 [design tokens](../reference/design-tokens.md) for the exact contracts.
 
 The diagram below covers backend auth ownership.

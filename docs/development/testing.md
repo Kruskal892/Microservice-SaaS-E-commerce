@@ -69,6 +69,11 @@ behavior or accessibility conformance can be inferred from generated CSS.
 For future browser checks, run the client and verify both `.dark` and
 `data-theme="dark"`, light reset, keyboard focus for real components, and widths
 below/at 390px, 768px, and 1440px. The header contains the shared search input and the page remains a placeholder.
+Also check Roboto body/Poppins input fonts, header overflow, and dark contrast
+for the new black SVGs. Sign-in/wishlist/cart currently lead to missing routes;
+counts remain static zeros. Check link accessible names: wishlist/cart currently
+expose only their count. `HeaderBottom` is not mounted. These are suggested
+manual checks, not checks completed for the 2026-10-27 change.
 For the input, check light/dark colors, keyboard focus, disabled and
 `aria-invalid` states, label/error associations, native props and React 19 refs,
 controlled/uncontrolled values, file selection, and `className` overrides. Repeat

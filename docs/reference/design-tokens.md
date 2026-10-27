@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Client README](../../apps/client/README.md)
 
 **Status:** Implemented token configuration; storefront UI remains planned.
-**Reviewed:** 2026-10-26.
+**Reviewed:** 2026-10-27 (font/header source; browser checks not rerun).
 
 [packages/ui/theme.css](../../packages/ui/theme.css) is the source of truth for
 the user-supplied palette and scales. The client
@@ -42,7 +42,7 @@ The implementation follows Tailwind's [theme variables](https://tailwindcss.com/
 The starter aliases remain available: `primary` maps to `brand-600` and
 `secondary` maps to `muted`. Brand and status colors are the same in both modes.
 Tailwind's default palette remains available for existing classes such as the
-placeholder page's `bg-red-500`.
+header badges' `bg-red-500`; the page no longer has a red background.
 
 ## Theme selection
 
@@ -59,7 +59,7 @@ on the document root rather than combining conflicting selectors.
 toggle, system-preference detection, or saved preference. Semantic classes switch
 automatically with the theme; `dark:*` is available for explicit differences.
 
-The body applies `bg-background font-sans text-text`. The header uses the
+The body applies `bg-background font-roboto text-text`. The header uses the
 [shared Input](shared-ui.md#input), which consumes the
 surface, text, muted, border, focus, and danger tokens. The placeholder page
 remains unchanged. Individual screens still need their own component styling
@@ -67,10 +67,14 @@ and accessibility checks.
 
 ## Typography
 
-`font-sans` is `Inter, system-ui, sans-serif`. This config sets a preference;
-Inter is not bundled or fetched, so the browser uses its installed font or the
-system fallback. The header uses this supplied `font-sans` token. Additional
-font tokens and font delivery are separate future implementation choices.
+The shared `font-sans` remains `Inter, system-ui, sans-serif`; Inter is not
+bundled. The client loads Roboto and Poppins through `next/font/google` in
+`layout.tsx`. Its `global.css` maps `--font-roboto-next` and
+`--font-poppins-next` to `font-roboto` and `font-poppins` with `@theme inline`.
+The body uses Roboto; the header overrides Input's `font-sans` with Poppins.
+Poppins weights 100 through 700 are configured. These font choices belong to
+the client. Builds need network access to fetch the Google fonts, which are
+self-hosted in the generated application.
 
 | Utility     | Size at a 16px root |
 | ----------- | ------------------- |

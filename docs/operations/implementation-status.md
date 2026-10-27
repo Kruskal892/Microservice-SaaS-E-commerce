@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [Future implementation plan](../future-plans/implementation-plan.md)
 
-**Reviewed:** Backend snapshot 2026-10-25; shared UI/assets 2026-10-26.
+**Reviewed:** Backend snapshot 2026-10-25; client/shared UI/assets source 2026-10-27.
 This inventory reflects source/configuration inspection, not full runtime verification.
 
 ## Capability inventory
@@ -10,8 +10,8 @@ This inventory reflects source/configuration inspection, not full runtime verifi
 | Area                      | Present in source/configuration                                                                                                                     | Remaining work                                                                                                                  |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                    | Verify relevant targets as code changes                                                                                         |
-| Client scaffold           | Next.js App Router, React, header with shared Input, placeholder page, local hello handler, client alias and Nx dev/build/start configuration       | Storefront routes/components, backend integration, state, localization, client tests                                            |
-| Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales, named breakpoints                                         | Inter delivery, theme controls/persistence, component styling and accessibility verification                                    |
+| Client scaffold           | Next.js App Router, Header folder with search/account/wishlist/cart links, placeholder page, local hello handler, client aliases                    | Storefront routes/components, backend integration, state, localization, client tests                                            |
+| Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales, named breakpoints                                         | Theme controls/persistence, component styling, font/browser and accessibility verification                                      |
 | Shared UI                 | `@packages/ui` flex Input, native refs/props, four styling hooks, typed start/end SVG icons, shared theme/source                                    | Browser/state/accessibility verification and adoption checks in additional apps                                                 |
 | Shared assets             | Repo-wide SVG files and exports in `packages/assets`, typed SVG declarations, client SVGR rules for both bundlers                                   | Additional-app bundler adoption and production validation                                                                       |
 | Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                          | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                              |
@@ -61,6 +61,34 @@ This inventory reflects source/configuration inspection, not full runtime verifi
 Detailed behavior belongs in [architecture](../architecture/overview.md),
 [request flows](../architecture/request-flows.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
+
+## Client and conflict resolution: 2026-10-27
+
+Resolved the stash conflicts by keeping the Header folder move, new SVG exports,
+and automatic icon registry. Restored shared Input, `cn`, theme, SVG types,
+SVGR rules, client aliases, shared TSX configuration, and manifest/lockfile
+entries from the existing shared-UI commit. Removed the duplicate old Header.
+Header barrels use extensionless exports; the layout barrel explicitly forwards
+a named Header. The body uses Roboto, the header input uses Poppins, and metadata
+uses MicroShop. `HeaderBottom` is exported but not rendered.
+
+Remaining source findings:
+
+- `/login`, `/wishlist`, and `/cart` are links only; route pages do not exist.
+  Counts are static zeros and search has no submit handler or API.
+- Wishlist/cart links expose only `0` as accessible text because icons are
+  decorative; they need meaningful labels before release.
+- New profile/heart/cart SVGs hardcode black, so text-color utilities cannot
+  recolor them for dark mode.
+- The header has no responsive layout variants. Narrow widths need browser
+  verification.
+
+Static verification: no unmerged Git index entries or conflict markers remain;
+Git whitespace checks pass. All 31 documentation files were checked for local
+file links (none missing); changed JSON parses and shared manifest dependency
+versions match the lockfile. No lint, builds, typechecks, tests, or browser checks
+were run for this refresh. Historical validation below applies only to its dated
+snapshot.
 
 ## Shared UI review: 2026-10-26
 

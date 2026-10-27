@@ -8,12 +8,12 @@ cookies. Three recovery routes are mounted but have
 [security blockers](development/authentication.md#password-recovery-blockers).
 Protected routes, refresh, logout, storefront, and commerce remain
 unfinished. The client has a shared input in its header and a placeholder page; no
-shopping flows or API integration exist. **Backend source reviewed: 2026-10-25; shared UI/assets reviewed: 2026-10-26.** Live integrations are unverified.
+shopping flows or API integration exist. **Backend source reviewed: 2026-10-25; client/shared UI/assets source reviewed: 2026-10-27.** Live integrations are unverified.
 
 Shared UI and SVG assets are owned by `packages/ui` and `packages/assets`.
 See the [shared UI contract](reference/shared-ui.md),
 [assets guide](../packages/assets/README.md), and
-[current validation and review findings](operations/implementation-status.md#shared-ui-review-2026-10-26).
+[current validation and review findings](operations/implementation-status.md#client-and-conflict-resolution-2026-10-27).
 
 ## Start here
 

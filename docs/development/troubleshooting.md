@@ -11,13 +11,18 @@
 `iconContainerClassName` for icon-area background/padding, and `iconClassName`
 for a registered SVG. Named icons get an overridable `size-5` default from
 the shared `Icon`; give custom React elements their own SVG size. The header
-uses `bg-surface` and `font-sans` so it follows the supplied theme. See
+uses `bg-surface` and the client-local `font-poppins` override. See
 [review status](../reference/shared-ui.md#review-status).
 
 If a no-emit client check reports `TS6305` for shared UI declarations, the
 referenced shared project outputs are missing or stale. A normal shared build
 is a prerequisite; changing font/icon classes does not resolve that diagnostic.
 No build was performed during the 2026-10-26 source review.
+
+For TS5097 on a local import/export, omit `.ts`/`.tsx` suffixes, for example
+`export { default } from './Header'`. `export *` does not forward a default
+export; re-export it explicitly. The Header folder exports its default component
+and the named `HeaderBottom` placeholder.
 
 ## Client styles or theme tokens do not appear
 
@@ -33,7 +38,9 @@ Semantic colors use `bg-surface`, `text-text`, `text-muted`, and `border-border`
 The configured viewport prefixes are `mobile:`, `tablet:`, and `desktop:`;
 default `sm/md/lg/xl/2xl` viewport variants were replaced. Dark colors require
 `.dark` or `data-theme="dark"` on `<html>`; there is no theme toggle or preference
-storage. Inter uses a system fallback until font delivery is implemented.
+storage. Roboto and Poppins load through `next/font/google`. If a build cannot
+fetch Google fonts, check build-time network access; the shared `font-sans`
+Inter/system stack is a separate fallback token.
 
 The header search input and placeholder page are intentional; product search is not implemented. A token setup does
 not add catalog, authentication, cart, or checkout screens. Backend CORS still

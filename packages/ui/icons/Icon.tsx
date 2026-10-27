@@ -1,11 +1,6 @@
 import type { ComponentProps } from 'react';
-import { LockIcon, SearchIcon } from '../../assets/icons';
+import * as icons from '../../assets/icons';
 import { cn } from '../utils';
-
-const icons = {
-  searchIcon: SearchIcon,
-  lockIcon: LockIcon,
-};
 
 type IconName = keyof typeof icons;
 

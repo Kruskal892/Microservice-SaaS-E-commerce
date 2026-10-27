@@ -78,7 +78,11 @@ SVG declarations with `import '@packages/assets/svg'`, satisfying the client's
 `@packages/*`, includes shared TSX, and references the shared composite project;
 its declaration outputs must exist for the standalone no-emit check. See [design tokens](design-tokens.md) for exact utilities and
 light/dark selectors. Theme choice is explicit CSS selection, without controls,
-system-preference detection, or persistence. Inter is not bundled.
+system-preference detection, or persistence. The root layout loads Roboto and
+Poppins through `next/font/google`; client CSS exposes `font-roboto` and
+`font-poppins`. The body uses Roboto and the header input uses Poppins. Inter
+remains an unbundled shared fallback preference. Builds require network access
+for Google font downloads.
 
 ## Fixed backend policy
 

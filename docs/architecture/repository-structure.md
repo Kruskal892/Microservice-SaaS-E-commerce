@@ -14,7 +14,12 @@
 |   |   |-- src/app/page.tsx            # Placeholder page
 |   |   |-- src/app/global.css          # Tailwind, shared theme import/source, body styles
 |   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
-|   |   |-- src/components/layout/Header.tsx # Header with shared search Input
+|   |   |-- src/components/index.ts     # Layout exports
+|   |   |-- src/components/layout/index.ts # Named Header and HeaderBottom
+|   |   |-- src/components/layout/Header/
+|   |   |   |-- Header.tsx             # Search, sign-in, wishlist/cart links
+|   |   |   |-- HeaderBottom.tsx       # Exported placeholder, not rendered
+|   |   |   `-- index.ts               # Default Header and named HeaderBottom
 |   |   |-- postcss.config.mjs          # @tailwindcss/postcss
 |   |   |-- next.config.js
 |   |   |-- tsconfig.json               # Bundler resolution, aliases, shared-source inclusion/reference
@@ -125,9 +130,9 @@ need their own resolution if they execute these imports directly.
 
 Import the specific module you need. The aggregate
 [packages/index.ts](../../packages/index.ts) re-exports clients that instantiate
-Prisma/Redis at import time and now also re-exports UI with SVG imports.
-Importing it can pull infrastructure into a browser or frontend assets into a
-Node consumer. Use the specific `@packages/ui`, `@packages/assets/icons`,
+Prisma/Redis at import time. UI is exposed through its own folder entry.
+Importing the aggregate can pull infrastructure into a browser.
+Use the specific `@packages/ui`, `@packages/assets/icons`,
 `@packages/error-handler`, or `@packages/libs/...` entry instead.
 The new recovery helper imports Prisma through `@packages/libs`, whose barrel
 also re-exports Redis; other client imports in the applications target their
