@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+@import '../packages/ui/theme.css';
+
+@source '../packages/ui';
+@source './preview.tsx';
+
+@layer base {
+  body {
+    @apply bg-background font-sans text-text;
+  }
+}

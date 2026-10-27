@@ -65,6 +65,14 @@ surface, text, muted, border, focus, and danger tokens. The placeholder page
 remains unchanged. Individual screens still need their own component styling
 and accessibility checks.
 
+## Common control tokens
+
+The component library adds semantic action, action-hover, action-active,
+on-action, danger-action/hover/active, overlay and status-foreground roles.
+See the [design contract token table](../design/shared-ui-system.md#tokens-and-visual-behavior)
+for values and usage. Existing palette and type scales are unchanged.
+Button states and theme specimens are available in Storybook.
+
 ## Typography
 
 The shared `font-sans` remains `Inter, system-ui, sans-serif`; Inter is not

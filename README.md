@@ -17,6 +17,11 @@ The client currently renders its header with a shared search input and placehold
 features and backend integration are not implemented. Token verification on protected routes, refresh, logout, and
 commerce APIs remain unfinished or planned. Live integrations are unverified.
 
+The reusable component library includes Button, form controls, DropdownMenu,
+Modal, Tabs, Tooltip, Badge and Card. Run `npm run storybook` for usage/state
+examples at port 6006. See the [component guide](docs/reference/common-components.md)
+and [design contract](docs/design/shared-ui-system.md).
+
 ## Documentation
 
 Start with the [documentation hub](docs/README.md). Current behavior and proposed

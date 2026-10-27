@@ -28,7 +28,8 @@ using the shared Input/icons, a placeholder page, and the supplied
 [design tokens](../reference/design-tokens.md). This is partial U-01 foundation,
 not completion: identity/catalog/cart screens, API integration, localization,
 theme controls, responsive component verification, and a runnable client/UI test
-target remain open. There are currently no shared UI rendering specs.
+target remain open. Shared common components and Storybook examples/play checks
+are now implemented; interaction and accessibility verification remain open.
 The separate `npm run client` command starts its `dev` target.
 
 ## 2. Tasks and acceptance criteria

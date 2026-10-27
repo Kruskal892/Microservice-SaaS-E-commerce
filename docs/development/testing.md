@@ -81,8 +81,8 @@ the CSS import/source setup in another app before claiming cross-app verificatio
 These checks are instructions; no input build, lint, tests, or browser checks
 were run for the 2026-10-26 change.
 
-There is currently no shared UI rendering spec or configured shared UI Jest
-runner. Do not infer automated coverage from the source implementation. Future
+There is no shared UI Jest runner. Storybook examples and play checks are
+authored; see the Storybook workflow for their unrun validation boundary. Do not infer automated coverage from the source implementation. Future
 coverage should exercise named/default and custom SVG sizing, start/end flex
 ordering, independent wrapper/input/icon-container styling, native attributes,
 and fields without icons. SVG imports need mocks or an SVG transformer.
@@ -95,6 +95,15 @@ been executed for this change.
 
 The gateway E2E port-3000 mismatch is especially relevant now that the client
 also defaults to 3000; do not mistake a frontend response for gateway health.
+
+## Shared component stories
+
+Storybook now contains colocated stories and permanent play checks for the
+shared UI library. See [Storybook workflow](storybook.md) for the configuration,
+manual review and explicit-request validation policy. Its separate TypeScript
+check avoids the standalone client's missing composite-output limitation.
+Storybook is a component documentation host; no headless test runner is wired
+into CI yet. Existing dated validation records are historical.
 
 ## Swagger and authentication checks
 

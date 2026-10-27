@@ -2,8 +2,19 @@
 
 [Documentation hub](../README.md) · [Design tokens](design-tokens.md)
 
-**Status:** Shared React input and theme source implemented; review comments addressed; browser verification pending.
+**Status:** Shared component library and Storybook implemented; runtime accessibility and interaction verification pending.
 **Reviewed:** 2026-10-27 (source only).
+
+## Common component library
+
+The library now includes Button, Textarea, Field/Label, Checkbox, Switch,
+Select, DropdownMenu, Modal, Tabs, Tooltip, Badge and Card alongside Input/Icon.
+See [component recipes](common-components.md), the
+[design contract](../design/shared-ui-system.md), and the
+[Storybook workflow](../development/storybook.md). Run `npm run storybook` at
+the repository root and open port 6006. The
+[Figma library](https://www.figma.com/design/SXjnKoIBg4Laj7RqjVgQHo?node-id=7-110) mirrors tokens
+and component states. Stories are authored; play checks have not been run.
 
 ## Use in another application
 
@@ -12,7 +23,7 @@ barrel in browser code: it also exports Prisma and Redis clients.
 
 The UI lives inside the existing `packages` workspace, not a separate npm package.
 React 19, Tailwind v4, and the shared workspace dependencies (`clsx` and
-`tailwind-merge`) must be available. The consuming app must resolve
+`tailwind-merge`, plus `radix-ui` for interactive controls) must be available. The consuming app must resolve
 `@packages/*` to the repository's `packages/*` source through its TypeScript and
 bundler configuration. If the app overrides `compilerOptions.paths`, include
 this mapping alongside its local aliases. Follow the client compiler setup for
@@ -199,8 +210,8 @@ change. A no-emit client typecheck was attempted on 2026-10-26 and stopped at
 The sizing and dark-mode comments have been addressed in source. Named SVGs
 receive an overridable default size from the shared `Icon`, and the header uses
 `bg-surface` and the client-local `font-poppins` backed by `next/font/google`. The outdated parent size-selector restriction and
-claims of rendering specs have been removed. No shared UI rendering spec or
-UI test runner is currently present. Runtime and browser validation remain open.
+claims of rendering specs have been removed. Storybook now contains examples and permanent play checks. No headless UI test
+runner is configured; these checks have not been run. Runtime and browser validation remain open.
 
-See [current validation](../operations/implementation-status.md#client-and-conflict-resolution-2026-10-27)
+See [current validation](../operations/implementation-status.md#common-component-library-2026-10-27)
 for the full review boundary.
