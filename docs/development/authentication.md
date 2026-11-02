@@ -3,13 +3,15 @@
 [Documentation hub](../README.md) · [Registration & verification sequence diagrams](../architecture/request-flows.md#registration-and-otp-delivery)
 
 **Status:** Source implementation, not a verified live integration.
-**Reviewed:** 2026-10-25.
+**Reviewed:** 2026-11-02.
 
-The Next.js client currently provides only a placeholder UI and design tokens.
-No login/register forms, credential requests, session handling, cookie consumer,
-or recovery UI are implemented there. The backend contracts below remain
-independent of the client scaffold. Use the [client README](../../apps/client/README.md)
-for frontend setup; tokens do not establish authentication functionality.
+The Next.js client now includes a `/login` route (`apps/client/src/app/(routes)/login/page.tsx`)
+with a `GoogleButton` UI component, email/password fields, remember-me checkbox,
+and client-side validation via `react-hook-form` and `zod` (`loginSchema`).
+However, `onSubmit` and Google sign-in are currently UI placeholders with no backend
+API requests, session handling, cookie consumer, registration page, or recovery UI.
+The backend contracts below remain independent of the client UI. Use the
+[client README](../../apps/client/README.md) for frontend setup.
 
 ## Current registration behavior
 
@@ -171,6 +173,7 @@ The current Dockerfile has no explicit Prisma-generation step; inspect the
 With registration, verification, and login/token issuance present in source, the remaining authentication
 capabilities include:
 
+- Connect the client `/login` form and future registration/recovery screens to the backend auth endpoints.
 - Consistent input validation/normalization and generic login credential failures.
 - JWT verification middleware, protected routes, and current-user lookup.
 - Refresh-token validation/rotation and persisted revocation policy.

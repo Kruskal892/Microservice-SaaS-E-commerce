@@ -1,8 +1,11 @@
 # Client
 
-Next.js App Router scaffold with React and Tailwind CSS v4. The current UI is the
-`Header` with the shared search input and a placeholder page. Storefront screens, authentication UI,
-commerce flows, API integration, localization, and theme controls are not
+Next.js App Router scaffold with React and Tailwind CSS v4. The current UI
+includes `Header` (with `HeaderBottom` sticky navigation, search input, and
+account/wishlist/cart links), a placeholder home page, and a `/login` route
+built with shared `@packages/ui` controls, `GoogleButton`, React Hook Form, and
+Zod validation. Storefront screens, backend API integration, authentication
+submission handlers, commerce flows, localization, and theme controls are not
 implemented.
 
 ## Run and check
@@ -35,7 +38,7 @@ Use semantic utilities such as `bg-background`, `bg-surface`, `text-text`,
 `text-muted`, and `border-border`. They follow `.dark` or `data-theme="dark"`
 on the document; the default is light. Theme selection and persistence are not
 implemented. The root layout loads Roboto and Poppins with `next/font/google`.
-The body uses `font-roboto`; the header input uses `font-poppins`. These app-local
+The body uses `font-roboto`; the header input and headings use `font-poppins`. These app-local
 utilities map to font variables in `global.css`. Builds need network access for
 Google font downloads.
 
@@ -45,59 +48,67 @@ colors, type, spacing, radii, breakpoints, and utility examples. Use the client
 
 ## Reusable components and Storybook
 
-The shared UI library now includes common buttons, form controls, menus, modals,
-tabs, tooltips, badges and cards. Import from `@packages/ui`; the client does
-not automatically mount these components. Run `npm run storybook` from the
+The shared UI library includes common buttons, form controls, menus, modals,
+tabs, tooltips, badges and cards. Import from `@packages/ui`. App-level common
+components live in `src/components/common` (such as `GoogleButton`, exported
+through `@/components`). Run `npm run storybook` from the
 repository root and open port 6006 for examples, state previews and controls.
 See [component recipes](../../docs/reference/common-components.md),
 [design contract](../../docs/design/shared-ui-system.md), and
 [Storybook workflow](../../docs/development/storybook.md).
 
-## Shared input
+## Shared input and form validation
 
-Import `Input` from `@packages/ui`; it supports native input props and React 19
-refs and token-based light/dark defaults. `className` styles the flex field
-wrapper; `inputClassName` styles the native input. Optional icons occupy their
-own flex space at the start or end. `iconContainerClassName` styles the icon
-container; `iconClassName` styles registered SVG icons. The header uses
-it for an accessible search field; search behavior is not implemented. See
-[shared UI](../../docs/reference/shared-ui.md) for examples and setup in other apps.
+Import `Input`, `Field`, `Label`, `FieldError`, and `Checkbox` from `@packages/ui`.
+`Input` supports native input props, React 19 refs, and token-based light/dark
+defaults. `className` styles the flex field wrapper; `inputClassName` styles the
+native input. Optional icons occupy their own flex space at the start or end.
+`iconContainerClassName` styles the icon container; `iconClassName` styles
+registered SVG icons. The header uses it for an accessible search field; search
+behavior is not implemented. See [shared UI](../../docs/reference/shared-ui.md)
+for examples and setup in other apps.
 
-Shared SVG files live in `packages/assets/icons/`; use `icon="SearchIcon"` or
-`icon="LockIcon"`, or render `<Icon name="SearchIcon" />`. The Next config uses
+Client form schemas live in `src/schemas/` (such as `loginSchema` in
+[auth.schema.ts](src/schemas/auth.schema.ts)) using `zod`, paired with the local
+[`zodResolver`](src/utils/zod-resolver.ts) for `react-hook-form`.
+
+Shared SVG files live in `packages/assets/icons/`; use `icon="SearchIcon"`,
+`icon="LockIcon"`, or render `<Icon name="GoogleIcon" />`. The Next config uses
 the installed SVGR loader in Turbopack and Webpack. Restart development after
 config changes; see the shared UI guide to register more icons.
 
 The current standalone client typecheck stops at `TS6305` when shared-library
 declaration output is missing. This source-only review did not build it. The
-shared `Icon` now supplies an overridable `size-5` default; see
+shared `Icon` supplies an overridable `size-5` default; see
 [review status](../../docs/reference/shared-ui.md#review-status).
 
-## Header structure and current behavior
+## Header and common components
 
 The root layout renders the default export from `components/layout/Header`.
-Its folder contains `Header.tsx`, the named `HeaderBottom` placeholder, and an
-extensionless `index.ts` barrel. `HeaderBottom` is exported but not rendered.
-The layout and top-level component barrels also expose a named `Header` export.
+Its folder contains `Header.tsx`, `HeaderBottom.tsx` (sticky navigation bar with
+departments button, desktop navigation links from `src/app/constants/navigation-menu.ts`,
+and mobile `<details>` menu), and an extensionless `index.ts` barrel.
+`components/common/GoogleButton` provides a reusable Google sign-in UI button
+combining `@packages/ui` `Button` and `<Icon name="GoogleIcon" />`. Both
+`common` and `layout` are re-exported from `src/components/index.ts`.
 
-The header links to `/login`, `/wishlist`, and `/cart`; these routes do not exist
-and return the not-found page. Wishlist/cart counters are static `0` values.
-Search has an editable field without submission or API calls. The page remains
-a placeholder. Metadata uses MicroShop; the visible header brand remains Eshop.
-
-Before release, verify narrow widths and dark mode. The header has no responsive
-layout variants, its wishlist/cart links lack meaningful accessible names, and
-the new profile/heart/cart SVGs hardcode black fills or strokes.
+The header links to `/login`, `/wishlist`, and `/cart`. `/login` renders the
+login form UI; `/wishlist`, `/cart`, `/sign-up`, and `/forgot-password` do not
+exist yet and return the not-found page. Wishlist/cart counters are static `0`
+values. Search has an editable field without submission or API calls. Metadata
+uses MicroShop; the visible header brand remains Eshop.
 
 ## Routes
 
-| Route        | Current response                                           |
-| ------------ | ---------------------------------------------------------- |
-| `/`          | Placeholder page with the existing header                  |
-| `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler |
+| Route        | Current response                                                                                      |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| `/`          | Placeholder page with the header and sticky `HeaderBottom` navigation                                 |
+| `/login`     | Login card UI with `GoogleButton`, email/password `Field`/`Input`, `Checkbox`, and Zod/RHF validation |
+| `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler                                            |
 
-The hello handler is separate from the Express gateway and auth endpoints. It
-does not proxy requests or verify identity.
+The `/login` form `onSubmit` handler is currently a no-op placeholder and does
+not call the backend `/api/login` endpoint. The hello handler is separate from
+the Express gateway and auth endpoints.
 
 Project-wide setup, architecture, checks, and limitations live in the
 [documentation hub](../../docs/README.md).

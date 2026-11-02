@@ -3,7 +3,7 @@
 An ecommerce foundation built with TypeScript, Express, Next.js, Nx, and npm
 workspaces. The repository contains an API gateway, an authentication service,
 shared error/database clients, Prisma's MongoDB schema, HTTP smoke tests, and a
-Next.js client scaffold with Tailwind v4 design tokens.
+Next.js client with Tailwind v4 design tokens and shared UI components.
 
 Registration currently validates input, checks for an existing email, and sends
 an OTP using Redis and SMTP. Registration verification (`POST /api/verify-registration`)
@@ -13,8 +13,10 @@ hashes passwords with bcrypt, and creates user accounts in MongoDB. Login
 Three password-recovery routes are also mounted, but reset still requires no
 verification proof. See the
 [recovery blockers](docs/development/authentication.md#password-recovery-blockers).
-The client currently renders its header with a shared search input and placeholder page; storefront
-features and backend integration are not implemented. Token verification on protected routes, refresh, logout, and
+The client renders its header (with sticky navigation and search input), a placeholder
+home page, and a `/login` route UI with `GoogleButton` and React Hook Form + Zod
+validation; storefront features and backend API integration are not implemented.
+Token verification on protected routes, refresh, logout, and
 commerce APIs remain unfinished or planned. Live integrations are unverified.
 
 The reusable component library includes Button, form controls, DropdownMenu,
@@ -62,19 +64,19 @@ npm run client
 ```
 
 The client defaults to `http://localhost:3000` and does not require backend
-credentials for its placeholder page. `npm run dev` starts backend `serve`
+credentials for its placeholder and `/login` UI pages. `npm run dev` starts backend `serve`
 targets; it does not start the client's `dev` target.
 
 Leave `PORT` unset when starting both backend applications together. Each service reads
 the same variable in its own process. See [setup](docs/development/getting-started.md)
 for separate startup, configuration, and database synchronization instructions.
 
-| Application     | Default URL                          | Source-defined response                                         |
-| --------------- | ------------------------------------ | --------------------------------------------------------------- |
-| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                    |
-| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                      |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations         |
-| Client          | http://localhost:3000/               | Header with shared Input/icons, placeholder page, shared tokens |
+| Application     | Default URL                          | Source-defined response                                                    |
+| --------------- | ------------------------------------ | -------------------------------------------------------------------------- |
+| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                               |
+| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                                 |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations                    |
+| Client          | http://localhost:3000/               | Header with shared Input/icons, `/login` UI, placeholder page, shared tokens |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any
@@ -83,17 +85,17 @@ verified by this documentation refresh.
 
 ## Technology and repository
 
-| Area                | Present configuration                                                  |
-| ------------------- | ---------------------------------------------------------------------- |
-| Workspace           | Nx 23.3, npm workspaces (`apps/*`, `packages`)                         |
-| Runtime             | Node.js; Express 5; TypeScript 6.0                                     |
-| Frontend            | Next.js 16.1, React 19, Tailwind CSS 4.3 through PostCSS               |
-| HTTP gateway        | express-http-proxy, CORS, Morgan, in-memory IP limiting                |
-| Persistence         | Prisma 6.19, MongoDB users/images schema and user persistence          |
-| Security            | bcryptjs password hashing; jsonwebtoken JWT signing; HTTP-only cookies |
-| OTP and mail        | ioredis, Node crypto, Nodemailer, EJS                                  |
-| API documentation   | Swagger 2.0 JSON and Swagger UI; `npm run auth-docs` generator         |
-| Checks and delivery | Jest/SWC/Axios, ESLint, Prettier, GitHub Actions; auth Dockerfile      |
+| Area                | Present configuration                                                              |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| Workspace           | Nx 23.3, npm workspaces (`apps/*`, `packages`)                                     |
+| Runtime             | Node.js; Express 5; TypeScript 6.0                                                 |
+| Frontend            | Next.js 16.4, React 19, Tailwind CSS 4.3, React Hook Form 7.91, Zod 4.6, TanStack Query 5 |
+| HTTP gateway        | express-http-proxy, CORS, Morgan, in-memory IP limiting                            |
+| Persistence         | Prisma 6.19, MongoDB users/images schema and user persistence                      |
+| Security            | bcryptjs password hashing; jsonwebtoken JWT signing; HTTP-only cookies             |
+| OTP and mail        | ioredis, Node crypto, Nodemailer, EJS                                              |
+| API documentation   | Swagger 2.0 JSON and Swagger UI; `npm run auth-docs` generator                     |
+| Checks and delivery | Jest/SWC/Axios, ESLint, Prettier, GitHub Actions; auth Dockerfile                  |
 
 [Package manifests](package.json) and the [lockfile](package-lock.json) own
 dependency versions. Kafka, Socket.IO, Firebase, TensorFlow.js, AWS,
@@ -102,7 +104,7 @@ Cloudflare, and an unconfirmed media provider belong to
 
 ```text
 apps/       # Next.js client, gateway, auth service, and backend E2E projects
-packages/   # One shared workspace: errors, Prisma, Redis
+packages/   # One shared workspace: errors, Prisma, Redis, UI, assets
 prisma/     # MongoDB schema; root prisma.config.ts configures the CLI
 docs/       # Architecture, references, guides, operations, future plans
 ```

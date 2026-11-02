@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Design tokens](design-tokens.md)
 
 **Status:** Shared component library and Storybook implemented; runtime accessibility and interaction verification pending.
-**Reviewed:** 2026-10-27 (source only).
+**Reviewed:** 2026-11-02 (source only).
 
 ## Common component library
 
@@ -120,16 +120,17 @@ visibility toggle needs a separate accessible button and client-owned state;
 
 Store SVG files in `packages/assets/icons/` and export them from
 `packages/assets/icons/index.ts`. Those exports are the registry, currently
-providing `SearchIcon`, `LockIcon`, `ProfileIcon`, `HeartIcon`, and `CartIcon`. Each export automatically
+providing `SearchIcon`, `LockIcon`, `ProfileIcon`, `HeartIcon`, `CartIcon`,
+`AlignLeftMenuIcon`, `ChevronDownIcon`, and `GoogleIcon`. Each export automatically
 extends the exported `IconName` type; no change to `Icon.tsx` is needed.
 Simply adding a file does not register a name. Names are case-sensitive:
 `searchIcon` and `lockIcon` have been replaced by `SearchIcon` and `LockIcon`.
 Current consumers use the new names. Keep the barrel limited to SVG React
 components because `Icon` renders any selected export as a component.
 
-Prefer `currentColor` for themeable fills/strokes. The new profile, heart, and
-cart SVGs hardcode black; text-color utilities cannot recolor them, and
-dark-mode contrast remains unresolved.
+Prefer `currentColor` for themeable fills/strokes. The profile, heart, and
+cart SVGs hardcode black, and the Google SVG uses official multi-color brand fills; text-color utilities cannot recolor them, and
+dark-mode contrast for hardcoded black icons remains unresolved.
 
 Assets belong to the repo-wide `packages/assets` folder, independently of UI.
 Apps can also import `{ SearchIcon, LockIcon }` from `@packages/assets/icons`
