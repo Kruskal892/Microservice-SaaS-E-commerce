@@ -16,17 +16,12 @@ import {
   Label,
 } from '@packages/ui';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 const Login = () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [serverError, setServerError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const router = useRouter();
 
   const {
     register,
@@ -41,6 +36,7 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    setServerError(null);
     console.log('Form submitted:', data);
   };
 
