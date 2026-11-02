@@ -1,6 +1,6 @@
 # Shared UI design
 
-**Status:** Implemented v1 source and Storybook configuration, 2026-10-27.
+**Status:** Implemented v1 source and Storybook configuration, 2026-11-02.
 **Owners:** `packages/ui` owns React components and tokens; `packages/assets`
 owns SVG source. Apps own business behavior, fonts, routing, data and forms.
 
@@ -102,7 +102,9 @@ Button heights are 32/40/48px; icon size is 40px. Radius `sm` is 8px and `md` is
 12px. Small controls may need larger surrounding hit areas for touch contexts.
 Focus is visible through `focus-visible` rings. Transitions and the loading
 spinner respect reduced motion. Disabled/loading buttons use the native
-disabled attribute, 50% opacity, and cannot activate. Loading sets `aria-busy`
+disabled attribute, `disabled:pointer-events-none`, 50% opacity, and cannot activate.
+Button variants use `hover:bg-*` and `active:bg-*` so consumer `hover:bg-*` and
+`active:bg-*` overrides merge cleanly through `cn`. Loading sets `aria-busy`
 without replacing the accessible label. Icon-only loading visually hides its
 icon to keep the spinner within the fixed control size. Apps may announce long operations with
 a separate live status region. Hover/active are CSS states, not component props.
@@ -160,7 +162,7 @@ strokes, radii and spacing bind to variables; repeated text uses shared styles.
 
 Button sizes are separate sets so each variant/state matrix stays below 30
 variants. The medium state sheet shows all variants/states as instances; icon
-buttons expose an instance-swap icon property. Component implementations live in `packages/ui/common/<Component>/`.  Usage descriptions are present on component families. Main components sit outside the
+buttons expose an instance-swap icon property. Component implementations live in `packages/ui/common/<Component>/`. Usage descriptions are present on component families. Main components sit outside the
 review sheets. Figma states describe appearance; runtime behavior belongs to
 the actual component and its Storybook examples.
 

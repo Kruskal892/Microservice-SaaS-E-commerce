@@ -15,6 +15,7 @@
   "private": true,
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "@tanstack/react-query": "^5.105.1",
     "axios": "^1.20.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
@@ -31,8 +32,10 @@
     "nodemailer": "^10.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.91.0",
     "swagger-autogen": "^2.23.7",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",

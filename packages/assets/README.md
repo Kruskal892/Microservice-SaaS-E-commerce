@@ -14,7 +14,10 @@ packages/assets/
     |-- lock.svg
     |-- profileIcon.svg
     |-- heartIcon.svg
-    `-- cartIcon.svg
+    |-- cartIcon.svg
+    |-- align-left-menu-icon.svg
+    |-- chevron-down-icon.svg
+    `-- google-icon.svg
 ```
 
 Any React app with the monorepo `@packages/*` alias and SVG-to-React loader can
@@ -39,10 +42,10 @@ publish URLs or copy files into each app's public directory.
 
 To add an icon, put the SVG in `icons/` and export it from `icons/index.ts`.
 Use `currentColor` for themeable fills/strokes. The current profile, heart, and
-cart SVGs hardcode black, so text-color utilities do not recolor them. Every export is automatically
+cart SVGs hardcode black, and the Google SVG uses official multi-color brand fills, so text-color utilities do not recolor them. Every export is automatically
 available for named UI usage such as `<Input icon="SearchIcon" />` or
 `<Icon name="ProfileIcon" />`; no separate UI registry entry is needed. Available names are `SearchIcon`,
-`LockIcon`, `ProfileIcon`, `HeartIcon`, and `CartIcon`. Names are case-sensitive;
+`LockIcon`, `ProfileIcon`, `HeartIcon`, `CartIcon`, `AlignLeftMenuIcon`, `ChevronDownIcon`, and `GoogleIcon`. Names are case-sensitive;
 the earlier lowercase `searchIcon`/`lockIcon` names are no longer supported.
 Keep the barrel limited to SVG React components.
 

@@ -36,7 +36,7 @@ import { Button, Icon } from '@packages/ui';
 lg, icon. `loading` sets native disabled and `aria-busy`; keep a meaningful
 label. Icon-only loading hides the icon visually so the spinner fits without
 overflow, while retaining the accessible label. Default `type` is button, so forms must explicitly use submit. Native
-disabled, hover, focus-visible, active and `aria-pressed` states are styled.
+disabled (`disabled:pointer-events-none`), hover (`hover:bg-*`), focus-visible, active (`active:bg-*`) and `aria-pressed` states are styled so caller `hover:bg-*` and `active:bg-*` overrides merge cleanly through `cn`.
 For navigation use a link rather than nesting links inside Button.
 
 ## Fields and multiline input

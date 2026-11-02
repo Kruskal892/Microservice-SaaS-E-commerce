@@ -2,18 +2,19 @@
 
 Microservice Eshop is an Nx/npm TypeScript monorepo with an Express API gateway,
 an authentication service, shared infrastructure modules, and a Next.js client
-scaffold with Tailwind v4 design tokens. Registration can
+with Tailwind v4 design tokens. Registration can
 request an email OTP, verify it to create an account, and log in to receive JWT
 cookies. Three recovery routes are mounted but have
 [security blockers](development/authentication.md#password-recovery-blockers).
 Protected routes, refresh, logout, storefront, and commerce remain
-unfinished. The client has a shared input in its header and a placeholder page; no
-shopping flows or API integration exist. **Backend source reviewed: 2026-10-25; client/shared UI/assets source reviewed: 2026-10-27.** Live integrations are unverified.
+unfinished. The client renders a header with sticky navigation, a placeholder home
+page, and a `/login` route with `GoogleButton` and Zod/React Hook Form validation;
+no shopping flows or backend API integration exist yet. **Backend source reviewed: 2026-10-25; client/shared UI/assets source reviewed: 2026-11-02.** Live integrations are unverified.
 
 Shared UI and SVG assets are owned by `packages/ui` and `packages/assets`.
 See the [shared UI contract](reference/shared-ui.md),
 [assets guide](../packages/assets/README.md), and
-[current validation and review findings](operations/implementation-status.md#client-and-conflict-resolution-2026-10-27).
+[current validation and review findings](operations/implementation-status.md#client-login-ui-and-button-hover-override-fix-2026-11-02).
 
 ## Shared component library
 

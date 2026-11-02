@@ -3,13 +3,13 @@ import { cn } from '../../utils';
 
 const variants = {
   primary:
-    'bg-action text-on-action enabled:hover:bg-action-hover enabled:active:bg-action-active aria-pressed:bg-action-active',
+    'bg-action text-on-action hover:bg-action-hover active:bg-action-active aria-pressed:bg-action-active',
   secondary:
-    'border border-border bg-surface text-text enabled:hover:bg-surface-alt enabled:active:bg-border aria-pressed:bg-border',
+    'border border-border bg-surface text-text hover:bg-surface-alt active:bg-border aria-pressed:bg-border',
   ghost:
-    'text-text enabled:hover:bg-surface-alt enabled:active:bg-border aria-pressed:bg-border',
+    'text-text hover:bg-surface-alt active:bg-border aria-pressed:bg-border',
   danger:
-    'bg-danger-action text-on-action enabled:hover:bg-danger-hover enabled:active:bg-danger-active aria-pressed:bg-danger-active',
+    'bg-danger-action text-on-action hover:bg-danger-hover active:bg-danger-active aria-pressed:bg-danger-active',
 };
 const sizes = {
   sm: 'h-8 gap-2 px-3 text-sm',
@@ -42,7 +42,7 @@ function Button({
       aria-busy={loading || undefined}
       data-slot="button"
       className={cn(
-        'inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-sm font-sans font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [&_svg]:shrink-0',
+        'inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-sm font-sans font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [&_svg]:shrink-0',
         variants[variant],
         sizes[size],
         className,

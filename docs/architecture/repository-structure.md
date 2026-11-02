@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [System architecture](overview.md)
 
-**Status:** Current files and configuration. **Reviewed:** 2026-10-25.
+**Status:** Current files and configuration. **Reviewed:** 2026-11-02.
 
 ## Source layout
 
@@ -10,16 +10,21 @@
 .
 |-- apps/
 |   |-- client/
-|   |   |-- src/app/layout.tsx          # Global CSS and header with shared Input
+|   |   |-- src/app/layout.tsx          # Global CSS and Header
 |   |   |-- src/app/page.tsx            # Placeholder page
 |   |   |-- src/app/global.css          # Tailwind, shared theme import/source, body styles
+|   |   |-- src/app/(routes)/login/page.tsx # Login page UI with RHF + Zod validation
+|   |   |-- src/app/constants/navigation-menu.ts # Header navigation items
 |   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
-|   |   |-- src/components/index.ts     # Layout exports
+|   |   |-- src/components/index.ts     # Common and layout exports
+|   |   |-- src/components/common/      # Reusable client components (GoogleButton)
 |   |   |-- src/components/layout/index.ts # Named Header and HeaderBottom
 |   |   |-- src/components/layout/Header/
-|   |   |   |-- Header.tsx             # Search, sign-in, wishlist/cart links
-|   |   |   |-- HeaderBottom.tsx       # Exported placeholder, not rendered
+|   |   |   |-- Header.tsx             # Search, sign-in, wishlist/cart links, HeaderBottom
+|   |   |   |-- HeaderBottom.tsx       # Sticky navigation bar and mobile menu
 |   |   |   `-- index.ts               # Default Header and named HeaderBottom
+|   |   |-- src/schemas/                # Client Zod validation schemas (auth.schema.ts)
+|   |   |-- src/utils/zod-resolver.ts   # Zod v4 resolver adapter for react-hook-form
 |   |   |-- postcss.config.mjs          # @tailwindcss/postcss
 |   |   |-- next.config.js
 |   |   |-- tsconfig.json               # Bundler resolution, aliases, shared-source inclusion/reference
