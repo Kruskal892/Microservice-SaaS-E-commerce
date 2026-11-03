@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Design tokens](design-tokens.md)
 
 **Status:** Shared component library and Storybook implemented; runtime accessibility and interaction verification pending.
-**Reviewed:** 2026-11-02 (source only).
+**Reviewed:** 2026-11-03 (source only).
 
 ## Common component library
 
@@ -116,21 +116,32 @@ Keep icon content decorative: do not pass buttons or links to `icon`. A password
 visibility toggle needs a separate accessible button and client-owned state;
 `icon` does not change the input type or provide toggle behavior.
 
+The client composes a separate
+[`PasswordInput`](../../apps/client/src/components/common/PasswordInput/PasswordInput.tsx)
+around `Input` with a sibling, accessible eye/eye-off button. Its native input
+preserves props and refs and hides Edge's `::-ms-reveal` control locally.
+`AuthCard` and the `next-themes`-backed `ThemeToggle` are also app-owned; they are
+not part of the framework-independent `@packages/ui` API. See the
+[client guide](../../apps/client/README.md) for those contracts.
+
 ### SVG icon library
 
 Store SVG files in `packages/assets/icons/` and export them from
 `packages/assets/icons/index.ts`. Those exports are the registry, currently
 providing `SearchIcon`, `LockIcon`, `ProfileIcon`, `HeartIcon`, `CartIcon`,
-`AlignLeftMenuIcon`, `ChevronDownIcon`, and `GoogleIcon`. Each export automatically
-extends the exported `IconName` type; no change to `Icon.tsx` is needed.
-Simply adding a file does not register a name. Names are case-sensitive:
-`searchIcon` and `lockIcon` have been replaced by `SearchIcon` and `LockIcon`.
-Current consumers use the new names. Keep the barrel limited to SVG React
-components because `Icon` renders any selected export as a component.
+`AlignLeftMenuIcon`, `ChevronDownIcon`, `GoogleIcon`, `SunIcon`, `MoonIcon`,
+`EyeIcon`, and `EyeOffIcon`.
+Each export automatically extends the exported `IconName` type; no change to
+`Icon.tsx` is needed. Simply adding a file does not register a name. Names are
+case-sensitive: `searchIcon` and `lockIcon` have been replaced by `SearchIcon`
+and `LockIcon`. Current consumers use the new names. Keep the barrel limited to
+SVG React components because `Icon` renders any selected export as a component.
 
-Prefer `currentColor` for themeable fills/strokes. The profile, heart, and
-cart SVGs hardcode black, and the Google SVG uses official multi-color brand fills; text-color utilities cannot recolor them, and
-dark-mode contrast for hardcoded black icons remains unresolved.
+Prefer `currentColor` for themeable fills/strokes. Monochrome icons (`SearchIcon`,
+`LockIcon`, `ProfileIcon`, `HeartIcon`, `CartIcon`, `AlignLeftMenuIcon`,
+`ChevronDownIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, and `EyeOffIcon`) use `currentColor` so text-color
+utilities and light/dark themes recolor them automatically; `GoogleIcon` uses
+official multi-color brand fills.
 
 Assets belong to the repo-wide `packages/assets` folder, independently of UI.
 Apps can also import `{ SearchIcon, LockIcon }` from `@packages/assets/icons`
@@ -209,10 +220,14 @@ change. A no-emit client typecheck was attempted on 2026-10-26 and stopped at
 ## Review status
 
 The sizing and dark-mode comments have been addressed in source. Named SVGs
-receive an overridable default size from the shared `Icon`, and the header uses
-`bg-surface` and the client-local `font-poppins` backed by `next/font/google`. The outdated parent size-selector restriction and
-claims of rendering specs have been removed. Storybook now contains examples and permanent play checks. No headless UI test
-runner is configured; these checks have not been run. Runtime and browser validation remain open.
+receive an overridable default size from the shared `Icon`, monochrome icons
+use `currentColor`, and the header uses `bg-surface`, `ThemeToggle`, and the
+client-local Roboto/Poppins fonts backed by `next/font/google`. Header search
+uses Roboto; branding and auth headings use Poppins. The outdated parent
+size-selector restriction and claims of rendering specs have been removed.
+Storybook now contains examples and permanent play checks. No headless UI test
+runner is configured; these checks have not been run. Runtime and browser
+validation remain open.
 
 See [current validation](../operations/implementation-status.md#common-component-library-2026-10-27)
 for the full review boundary.

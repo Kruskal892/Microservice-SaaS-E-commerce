@@ -2,19 +2,25 @@
 
 Microservice Eshop is an Nx/npm TypeScript monorepo with an Express API gateway,
 an authentication service, shared infrastructure modules, and a Next.js client
-with Tailwind v4 design tokens. Registration can
+with Tailwind v4 design tokens and `next-themes` light/dark switching. Registration can
 request an email OTP, verify it to create an account, and log in to receive JWT
 cookies. Three recovery routes are mounted but have
 [security blockers](development/authentication.md#password-recovery-blockers).
 Protected routes, refresh, logout, storefront, and commerce remain
-unfinished. The client renders a header with sticky navigation, a placeholder home
-page, and a `/login` route with `GoogleButton` and Zod/React Hook Form validation;
-no shopping flows or backend API integration exist yet. **Backend source reviewed: 2026-10-25; client/shared UI/assets source reviewed: 2026-11-02.** Live integrations are unverified.
+unfinished. The client renders a header with sticky navigation and `ThemeToggle`,
+a placeholder `/` page, and `/login` and `/sign-up` form scaffolds with shared
+controls and Zod/React Hook Form validation; no shopping flows or backend API integration
+exist yet. **Backend source reviewed: 2026-10-25; client/shared UI/assets source reviewed: 2026-11-03.** Live integrations are unverified.
+
+The [client guide](../apps/client/README.md) owns the current `ThemeProvider`
+configuration, mounted switch behavior, auth form limits, password reveal
+controls, and responsive header behavior. Source and documentation checks are
+separate from browser, accessibility, test, and production-build validation.
 
 Shared UI and SVG assets are owned by `packages/ui` and `packages/assets`.
 See the [shared UI contract](reference/shared-ui.md),
 [assets guide](../packages/assets/README.md), and
-[current validation and review findings](operations/implementation-status.md#client-login-ui-and-button-hover-override-fix-2026-11-02).
+[current validation and review findings](operations/implementation-status.md#client-theme-toggle-and-dark-mode-uiux-improvements-2026-11-03).
 
 ## Shared component library
 

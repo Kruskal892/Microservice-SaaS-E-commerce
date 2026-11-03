@@ -22,6 +22,11 @@ classes. Consumers configure `@packages/*` and SVG component imports; use the
 barrels out of browser code. State and handlers belong to client components;
 the library has no routing, fetching or validation engine.
 
+The client owns `AuthCard`, `PasswordInput`, `GoogleButton`, `ThemeToggle`, and
+its `next-themes` provider. These compose the shared controls without adding
+Next.js or form-validation dependencies to this library. See the
+[client guide](../../apps/client/README.md) for application usage and limitations.
+
 Run `npm run storybook` from the repository root, then open port 6006. Use the
 theme/direction toolbar, controls, state stories and accessibility panel.
 

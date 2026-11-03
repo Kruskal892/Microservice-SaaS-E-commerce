@@ -21,11 +21,18 @@ These documents do not describe available features or approved delivery dates.
 ## Proposed delivery sequence
 
 The current baseline includes a Next.js client scaffold with
-[Tailwind design tokens](../reference/design-tokens.md), OTP delivery/verification, account persistence,
+[Tailwind design tokens](../reference/design-tokens.md), `next-themes` switching,
+responsive header navigation, `/login` and `/sign-up` form scaffolds, and backend
+OTP delivery/verification, account persistence,
 and login with access/refresh JWT cookies. Completing identity below still means
 consistent validation, protected requests, refresh/rotation, logout/revocation,
 browser security, and meaningful integration coverage. See the
 [current login contract](../reference/api.md#login-and-jwt-cookies).
+
+Auth page validation and password visibility controls are present in the client;
+auth submission, Google sign-in, session/cookie consumption, and recovery UI are
+not integrated. These source-level additions do not complete the proposed
+identity journey or its browser verification gates.
 
 ```mermaid
 flowchart TD

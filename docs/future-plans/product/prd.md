@@ -16,6 +16,11 @@ Protected requests, refresh/logout, and the customer purchase journey remain
 unfinished; live identity integrations are unverified. See
 [current implementation status](../../operations/implementation-status.md).
 
+The client now has `/login` and `/sign-up` form scaffolds, local validation,
+password visibility controls, a responsive header, and persisted `next-themes`
+switching. Those forms do not submit to backend auth, and Google sign-in is
+disabled. This is frontend foundation work, not a completed identity flow.
+
 The repository name includes SaaS, but tenant isolation, subscriptions, merchant
 onboarding, and billing are undefined. This draft assumes one storefront for the
 first increment; multi-tenancy requires a separate product/security decision.

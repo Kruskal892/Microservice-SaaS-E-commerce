@@ -17,6 +17,12 @@ does not start Next.js, auth, gateway, Redis or MongoDB. No environment secrets
 or Google font downloads are needed. Use a supported Node version for Vite
 (`20.19+` or `22.12+`; repository CI uses Node 24).
 
+The configured story glob includes `packages/ui` only. Client `AuthCard`,
+`PasswordInput`, `ThemeToggle`, and header components are not covered by these
+stories. The preview toolbar sets its own document theme for isolated controls;
+the Next.js app's `next-themes` provider and hydration behavior need separate
+[client browser checks](testing.md#client-styling-checks).
+
 Commands available on explicit request:
 
 ```sh
@@ -87,9 +93,9 @@ session. Lint, production builds, application tests and story play checks were
 not run. Startup and source typing do not prove browser rendering, touch/RTL
 interaction, screen-reader behavior or accessibility conformance.
 
-The original profile/heart/cart SVGs still hardcode black. Icon stories document
-this existing dark-mode limitation; this component library does not change the
-storefront Header or missing app routes.
+Monochrome SVGs (`SearchIcon`, `LockIcon`, `ProfileIcon`, `HeartIcon`, `CartIcon`,
+`AlignLeftMenuIcon`, `ChevronDownIcon`, `SunIcon`, and `MoonIcon`) use
+`currentColor`; `GoogleIcon` uses official multi-color brand fills.
 
 The installation advisory check reported 31 workspace vulnerabilities, including
 an existing critical Next.js advisory. The reported entries concern existing

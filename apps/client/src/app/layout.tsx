@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import './global.css';
 import { Poppins, Roboto } from 'next/font/google';
 import Header from '@/components/layout/Header';
+import { ThemeProvider } from 'next-themes';
 
 export const metadata = {
   title: 'MicroShop',
@@ -21,10 +22,12 @@ const poppins = Poppins({
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${roboto.variable} ${poppins.variable}`}>
-        <Header />
-        {children}
+        <ThemeProvider attribute="data-theme" defaultTheme="system">
+          <Header />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

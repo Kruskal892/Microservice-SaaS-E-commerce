@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current source. **Reviewed:** 2026-11-02. The system is a backend
+**Status:** Current source. **Reviewed:** 2026-11-03. The system is a backend
 foundation plus a Next.js/Tailwind client scaffold; backend integrations shown below are wired in code and remain unverified
 against live services.
 
@@ -10,15 +10,17 @@ against live services.
 
 An HTTP client can call auth directly or use the gateway. `apps/client` contains
 a Next.js App Router scaffold with shared design tokens, a header with sticky
-navigation and search Input, a `/login` route with `GoogleButton` and Zod/React
-Hook Form validation, a placeholder home page, and a local hello route. It has
-no backend API integration yet.
+navigation, search Input, and a `next-themes`-backed light/dark switch, `/login`
+and `/sign-up` forms sharing `AuthCard` and `PasswordInput`, a placeholder `/`
+page, and a local hello route. The forms use Zod/React Hook Form validation and
+show unavailable feedback instead of submitting credentials. Google sign-in is
+disabled, and no frontend/backend API integration exists yet.
 The gateway has one upstream, auth; it does not yet route among multiple
 business services or authenticate users.
 
 ```mermaid
 flowchart LR
-    Browser["Browser"] --> Frontend["Next.js client :3000<br/>Header, /login UI, and Tailwind tokens"]
+    Browser["Browser"] --> Frontend["Next.js client :3000<br/>Header, ThemeToggle, /login UI, and Tailwind tokens"]
     Client["HTTP client"] --> Gateway["API gateway<br/>Express :8080"]
     Client --> Auth["Auth service<br/>Express :6001"]
     Gateway -->|"All paths except local health"| Auth
@@ -34,15 +36,15 @@ See [request flows](request-flows.md) for execution order and failure paths.
 
 ## Boundaries and responsibilities
 
-| Component      | Current responsibility                                                                                                | Source                                                                                                                  |
-| -------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                             | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
-| Client         | Next.js App Router, shared UI/icons/theme, Header, `/login` form UI (RHF + Zod), hello handler; no backend calls      | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
-| Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
-| Shared errors  | Error classes and JSON error middleware used by both apps                                                             | [error-handler](../../packages/error-handler/index.ts)                                                                  |
-| Shared clients | Prisma client reuse and a simple ioredis instance                                                                     | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
-| MongoDB schema | Identity fields and optional avatar relation                                                                          | [schema.prisma](../../prisma/schema.prisma)                                                                             |
-| Nx/npm         | Workspace dependency graph, builds, serve, and checks                                                                 | [nx.json](../../nx.json), [package.json](../../package.json)                                                            |
+| Component      | Current responsibility                                                                                                          | Source                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                                       | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
+| Client         | Next.js App Router, shared UI/icons/theme, Header, `ThemeToggle`, `/login` form UI (RHF + Zod), hello handler; no backend calls | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
+| Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies           | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
+| Shared errors  | Error classes and JSON error middleware used by both apps                                                                       | [error-handler](../../packages/error-handler/index.ts)                                                                  |
+| Shared clients | Prisma client reuse and a simple ioredis instance                                                                               | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
+| MongoDB schema | Identity fields and optional avatar relation                                                                                    | [schema.prisma](../../prisma/schema.prisma)                                                                             |
+| Nx/npm         | Workspace dependency graph, builds, serve, and checks                                                                           | [nx.json](../../nx.json), [package.json](../../package.json)                                                            |
 
 Shared UI and repo-wide SVG assets live in `packages/ui` and `packages/assets`.
 Their contracts and current review limitations are in
@@ -56,19 +58,19 @@ those business rules. See [repository structure](repository-structure.md) and
 
 ## Technology in use
 
-| Area                 | Current choice                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| Runtime and HTTP     | Node.js, Express 5, TypeScript; CI selects Node 24                                    |
-| Workspace and builds | Nx/npm, auth esbuild, gateway Webpack                                                 |
-| Client               | Next.js 16.4, React 19, Tailwind CSS 4.3 via PostCSS, React Hook Form 7.91, Zod 4.6  |
-| Gateway              | express-http-proxy, express-rate-limit, cors, Morgan                                  |
-| Persistence          | Prisma 6.19 and MongoDB; email lookup & persistence                                   |
-| Security             | bcryptjs password hashing/comparison; jsonwebtoken signing; HTTP-only JWT cookies     |
-| Transient data       | ioredis with string OTPs, counters, cooldowns                                         |
-| Email                | Nodemailer transport and EJS activation template                                      |
-| API discovery        | Committed Swagger 2.0 JSON, swagger-ui-express                                        |
-| Validation tooling   | Jest/SWC/Axios, ESLint, Prettier, strict TypeScript                                   |
-| Delivery tooling     | GitHub Actions checks and an auth-service Dockerfile                                  |
+| Area                 | Current choice                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| Runtime and HTTP     | Node.js, Express 5, TypeScript; CI selects Node 24                                  |
+| Workspace and builds | Nx/npm, auth esbuild, gateway Webpack                                               |
+| Client               | Next.js 16.4, React 19, Tailwind CSS 4.3 via PostCSS, React Hook Form 7.91, Zod 4.6 |
+| Gateway              | express-http-proxy, express-rate-limit, cors, Morgan                                |
+| Persistence          | Prisma 6.19 and MongoDB; email lookup & persistence                                 |
+| Security             | bcryptjs password hashing/comparison; jsonwebtoken signing; HTTP-only JWT cookies   |
+| Transient data       | ioredis with string OTPs, counters, cooldowns                                       |
+| Email                | Nodemailer transport and EJS activation template                                    |
+| API discovery        | Committed Swagger 2.0 JSON, swagger-ui-express                                      |
+| Validation tooling   | Jest/SWC/Axios, ESLint, Prettier, strict TypeScript                                 |
+| Delivery tooling     | GitHub Actions checks and an auth-service Dockerfile                                |
 
 The [root manifest](../../package.json) and [lockfile](../../package-lock.json)
 own versions. A dependency being installed does not imply an active feature;

@@ -1,6 +1,7 @@
 # Shared UI design
 
-**Status:** Implemented v1 source and Storybook configuration, 2026-11-02.
+**Status:** Implemented v1 source and Storybook configuration; app composition
+documentation updated 2026-11-03. Browser/accessibility verification remains open.
 **Owners:** `packages/ui` owns React components and tokens; `packages/assets`
 owns SVG source. Apps own business behavior, fonts, routing, data and forms.
 
@@ -47,6 +48,13 @@ Use the existing `cn` (`clsx` + `tailwind-merge`) to merge caller classes after
 defaults. Small typed maps handle Button variants/sizes and Badge tones; another
 variant dependency is unnecessary. Static structure and behavior stay in JSX.
 There is no new provider, theme engine or package manifest for the library.
+
+The Next.js client separately owns a `next-themes` provider and composes
+`AuthCard`, `PasswordInput`, `GoogleButton`, and `ThemeToggle` from shared
+controls. Header actions are shared inside the app. This keeps Next.js routing,
+theme persistence, React Hook Form/Zod validation, and password reveal behavior
+out of the framework-independent library. See the
+[client guide](../../apps/client/README.md) for those APIs and current limits.
 
 Interactive primitive wrappers declare `use client`. Native presentation
 components can render on the server. An application that adds handlers or
