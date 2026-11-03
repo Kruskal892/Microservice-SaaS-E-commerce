@@ -49,14 +49,19 @@ defaults. Small typed maps handle Button variants/sizes and Badge tones; another
 variant dependency is unnecessary. Static structure and behavior stay in JSX.
 There is no new provider, theme engine or package manifest for the library.
 
+Shared `Input` owns password visibility state and automatically adds an
+accessible eye/eye-off button for `type="password"`. The native input, optional
+decorative icons, and reveal button stay in normal flex flow. Native props,
+refs, values, and disabled behavior remain intact.
+
 The Next.js client separately owns a `next-themes` provider and composes
-`AuthCard`, `PasswordInput`, `GoogleButton`, and `ThemeToggle` from shared
+`AuthCard`, `GoogleButton`, and `ThemeToggle` from shared
 controls. Header actions are shared inside the app. This keeps Next.js routing,
-theme persistence, React Hook Form/Zod validation, and password reveal behavior
+theme persistence and React Hook Form/Zod validation
 out of the framework-independent library. See the
 [client guide](../../apps/client/README.md) for those APIs and current limits.
 
-Interactive primitive wrappers declare `use client`. Native presentation
+Interactive primitive wrappers and password-enabled `Input` declare `use client`. Native presentation
 components can render on the server. An application that adds handlers or
 controlled React state owns the client boundary. Imports use `@packages/ui` or a
 specific common component folder, never the infrastructure `@packages` barrel.

@@ -18,7 +18,7 @@
 |   |   |-- src/app/constants/navigation-menu.ts # Header navigation items
 |   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
 |   |   |-- src/components/index.ts     # Common and layout exports
-|   |   |-- src/components/common/      # AuthCard, PasswordInput, GoogleButton, ThemeToggle
+|   |   |-- src/components/common/      # AuthCard, GoogleButton, ThemeToggle
 |   |   |-- src/components/layout/index.ts # Named Header and HeaderBottom
 |   |   |-- src/components/layout/Header/
 |   |   |   |-- Header.tsx             # Brand/search row and sibling HeaderBottom

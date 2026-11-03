@@ -112,15 +112,25 @@ selectors must account for the wrapper even when no icon is supplied. Native
 search-clear controls and password-manager affordances still need browser
 verification alongside end icons.
 
-Keep icon content decorative: do not pass buttons or links to `icon`. A password
-visibility toggle needs a separate accessible button and client-owned state;
-`icon` does not change the input type or provide toggle behavior.
+Keep icon content decorative: do not pass buttons or links to `icon`. Setting
+`type="password"` on shared
+[`Input`](../../packages/ui/common/Input/Input.tsx) automatically adds a separate
+eye/eye-off button at the end of its flex layout. Existing start/end icons can
+coexist with it without absolute positioning or input-padding offsets.
 
-The client composes a separate
-[`PasswordInput`](../../apps/client/src/components/common/PasswordInput/PasswordInput.tsx)
-around `Input` with a sibling, accessible eye/eye-off button. Its native input
-preserves props and refs and hides Edge's `::-ms-reveal` control locally.
-`AuthCard` and the `next-themes`-backed `ThemeToggle` are also app-owned; they are
+The native input preserves props and refs. The reveal button has an accessible
+action label and `aria-controls`, uses `type="button"`, and follows `disabled`.
+A stable input ID is generated for password fields when none is supplied.
+Password fields hide Edge's `::-ms-reveal` control to avoid duplicate eye icons;
+other input types do not receive that override. Visibility changes preserve the
+field value. Read-only fields can still reveal their value.
+
+Autofilled fields use `surface-alt` across the wrapper, native input, and eye
+area. An inset shadow covers the browser's autofill background, while text and
+caret use the theme's text color. Saved credentials remain supported. Actual
+browser autofill rendering, including light/dark modes, still needs verification.
+
+`AuthCard` and the `next-themes`-backed `ThemeToggle` remain app-owned; they are
 not part of the framework-independent `@packages/ui` API. See the
 [client guide](../../apps/client/README.md) for those contracts.
 
@@ -207,7 +217,8 @@ Provide a visible label or an accessible name. For an error, set `aria-invalid`
 and connect an error message with `aria-describedby`; the input only styles the
 state and does not render messages or validate values. Controlled values, event
 handlers, and imperative refs belong in a client component in Next.js. The shared
-input itself needs no client boundary. For checkbox, radio, range, or other
+input declares its own client boundary for password visibility state. Static
+props can still be passed from server components. For checkbox, radio, range, or other
 specialized native controls, supply appropriate overrides or a dedicated control;
 the defaults target text-like inputs and file inputs.
 

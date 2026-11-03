@@ -67,8 +67,14 @@ Detailed behavior belongs in [architecture](../architecture/overview.md),
 
 ## Client theme toggle and dark-mode UI/UX improvements: 2026-11-03
 
-The auth pages now share `AuthCard` and a reusable `PasswordInput` with
-eye/eye-off controls. `/sign-up` validates name, email, password length, and
+The auth pages now share `AuthCard` and use shared `Input type="password"` with
+built-in eye/eye-off controls. The app-specific password wrapper and barrel were
+removed. Password fields use normal flex flow, keep native props/refs and values,
+follow disabled state, and suppress the native Edge reveal button. Permanent
+Password and DisabledPassword Storybook play checks were added but not run.
+The focused Storybook no-emit TypeScript check passed for this shared Input
+migration; it does not run interaction checks or typecheck the entire client.
+`/sign-up` validates name, email, password length, and
 password confirmation using `signUpSchema`; a focused Node schema test was
 added but not run. Login no longer logs form credentials. Both forms show an
 unavailable status on valid submission, and Google sign-in is disabled until

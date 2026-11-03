@@ -6,7 +6,7 @@
 **Backend snapshot:** 2026-11-02. **Client UI updated:** 2026-11-03.
 
 The Next.js client includes `/login` and `/sign-up` form scaffolds with a shared
-`AuthCard`, accessible eye/eye-off `PasswordInput`, and React Hook Form + Zod
+`AuthCard`, shared `Input type="password"` eye/eye-off controls, and React Hook Form + Zod
 validation (`loginSchema` and `signUpSchema`). Login includes a remember-me
 checkbox; sign-up collects name, email, password, and password confirmation.
 Both forms show unavailable feedback after valid submission and do not send or

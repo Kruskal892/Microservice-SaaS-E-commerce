@@ -11,7 +11,7 @@ against live services.
 An HTTP client can call auth directly or use the gateway. `apps/client` contains
 a Next.js App Router scaffold with shared design tokens, a header with sticky
 navigation, search Input, and a `next-themes`-backed light/dark switch, `/login`
-and `/sign-up` forms sharing `AuthCard` and `PasswordInput`, a placeholder `/`
+and `/sign-up` forms sharing `AuthCard` and the shared password-enabled `Input`, a placeholder `/`
 page, and a local hello route. The forms use Zod/React Hook Form validation and
 show unavailable feedback instead of submitting credentials. Google sign-in is
 disabled, and no frontend/backend API integration exists yet.

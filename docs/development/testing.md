@@ -89,6 +89,12 @@ The following browser checks are suggested, not completed for this change:
 4. Check password eye/eye-off controls by pointer and keyboard. In Edge, typing
    should show only the custom reveal button. Inspect password-manager overlays
    and confirm that toggling visibility never submits the form.
+   Shared `Input` should preserve native refs, controlled/uncontrolled values,
+   and existing start/end icons alongside the built-in reveal button. Non-password
+   types should retain their existing rendering.
+   With browser-saved credentials, verify that autofilled email/password fields
+   and the eye area share the themed surface in both light and dark modes,
+   including hover, focus, and password visibility changes.
 5. Check widths below/at 390px, 768px, and 1440px, including 320px. Inspect header
    overflow, CSS-sticky positioning, compact actions, active navigation, mobile
    wishlist access, and menu closing after selection.
@@ -121,9 +127,14 @@ also defaults to 3000; do not mistake a frontend response for gateway health.
 ## Shared component stories
 
 Storybook now contains colocated stories and permanent play checks for the
-shared UI library. See [Storybook workflow](storybook.md) for the configuration,
+shared UI library, including shared Input password visibility/value-preservation
+and disabled-password checks added for this change. Those checks have not been
+run. See [Storybook workflow](storybook.md) for the configuration,
 manual review and explicit-request validation policy. Its separate TypeScript
 check avoids the standalone client's missing composite-output limitation.
+For the shared Input password migration, `tsc -p .storybook/tsconfig.json --noEmit`
+passed. This is source typing evidence only; no story play functions, lint,
+production build, or browser checks were run.
 Storybook is a component documentation host; no headless test runner is wired
 into CI yet. Existing dated validation records are historical.
 

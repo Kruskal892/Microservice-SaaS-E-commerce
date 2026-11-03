@@ -17,9 +17,11 @@ does not start Next.js, auth, gateway, Redis or MongoDB. No environment secrets
 or Google font downloads are needed. Use a supported Node version for Vite
 (`20.19+` or `22.12+`; repository CI uses Node 24).
 
-The configured story glob includes `packages/ui` only. Client `AuthCard`,
-`PasswordInput`, `ThemeToggle`, and header components are not covered by these
-stories. The preview toolbar sets its own document theme for isolated controls;
+The configured story glob includes `packages/ui` only. Shared `Input` includes
+Password and DisabledPassword stories with permanent play checks for visibility,
+value preservation, accessible controls, and disabled behavior; these checks
+have not been run for this change. Client `AuthCard`, `ThemeToggle`, and header
+components are not covered by these stories. The preview toolbar sets its own document theme for isolated controls;
 the Next.js app's `next-themes` provider and hydration behavior need separate
 [client browser checks](testing.md#client-styling-checks).
 

@@ -43,9 +43,10 @@ links target missing routes; `/sign-up` is a validated form scaffold. Empty coun
 badges are omitted, and cart data remains unwired.
 Roboto and Poppins load via `next/font/google` in the root layout, which sets
 MicroShop metadata. The body, header search, and auth controls use Roboto; the
-brand and auth headings use Poppins. App-owned `PasswordInput` adds an accessible
-eye/eye-off button and scoped `::-ms-reveal` suppression without changing the
-generic shared `Input`. See [shared UI](../reference/shared-ui.md) and
+brand and auth headings use Poppins. Shared `Input` adds an accessible eye/eye-off
+button automatically for `type="password"`, with flex positioning and scoped
+`::-ms-reveal` suppression. Its visibility state lives inside its client boundary.
+See [shared UI](../reference/shared-ui.md) and
 [design tokens](../reference/design-tokens.md) for the exact contracts.
 
 The diagram below covers backend auth ownership.

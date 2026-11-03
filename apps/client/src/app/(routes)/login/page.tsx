@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthCard, PasswordInput } from '@/components';
+import { AuthCard } from '@/components';
 import { type LoginFormValues, loginSchema } from '@/schemas';
 import { zodResolver } from '@/utils/zod-resolver';
 import {
@@ -67,10 +67,11 @@ export default function Login() {
 
         <Field className="font-roboto">
           <Label htmlFor="password">Password</Label>
-          <PasswordInput
+          <Input
             id="password"
+            type="password"
             placeholder="Enter your password"
-            autoComplete="current-password"
+            // autoComplete="current-password"
             required
             className="h-12 rounded-lg font-roboto"
             aria-invalid={Boolean(errors.password)}

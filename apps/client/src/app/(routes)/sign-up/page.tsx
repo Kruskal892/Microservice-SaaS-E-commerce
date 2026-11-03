@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthCard, PasswordInput } from '@/components';
+import { AuthCard } from '@/components';
 import { type SignUpFormValues, signUpSchema } from '@/schemas';
 import { zodResolver } from '@/utils/zod-resolver';
 import {
@@ -87,8 +87,9 @@ export default function SignUpPage() {
 
         <Field className="font-roboto">
           <Label htmlFor="password">Password</Label>
-          <PasswordInput
+          <Input
             id="password"
+            type="password"
             placeholder="Create a password"
             autoComplete="new-password"
             required
@@ -112,8 +113,9 @@ export default function SignUpPage() {
 
         <Field className="font-roboto">
           <Label htmlFor="confirm-password">Confirm password</Label>
-          <PasswordInput
+          <Input
             id="confirm-password"
+            type="password"
             placeholder="Repeat your password"
             autoComplete="new-password"
             required

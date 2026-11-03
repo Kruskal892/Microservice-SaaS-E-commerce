@@ -12,8 +12,8 @@ handlers are supplied by the consuming application.
 
 ## Client composition
 
-`apps/client/src/components/common` owns `AuthCard`, `PasswordInput`,
-`GoogleButton`, and `ThemeToggle`, exported through `@/components`. These compose
+`apps/client/src/components/common` owns `AuthCard`, `GoogleButton`, and
+`ThemeToggle`, exported through `@/components`. These compose
 the primitives below and are not exported by `@packages/ui`. `HeaderActions`
 belongs to the client header folder and shares account/cart/theme controls
 between its top and sticky rows. The app's `next-themes` provider belongs in the
@@ -21,6 +21,11 @@ root layout; the generic shared `Switch` does not manage global themes.
 
 See the [client guide](../../apps/client/README.md) for validation, password
 reveal behavior, theme mounting/persistence, and remaining backend limitations.
+
+Use shared `Input` with `type="password"` for a password field with built-in
+eye/eye-off controls. No app wrapper is required. Native props, refs, and existing
+icon/style hooks remain available; the reveal button is a separate flex item and
+uses `type="button"` so it does not submit the surrounding form.
 
 ## Button
 

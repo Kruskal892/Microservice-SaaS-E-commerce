@@ -183,8 +183,10 @@ Roboto and Poppins with `next/font/google`; `font-roboto` styles the body and
 controls use Roboto. The header uses `bg-surface`.
 Keep these app-local font mappings in client CSS.
 
-Auth page composition lives in client `AuthCard` and `PasswordInput` components;
-schemas remain in `src/schemas/auth.schema.ts` and use the local Zod resolver.
+Auth page composition uses client `AuthCard` and the shared password-enabled
+`Input`. Password visibility state and its accessible flex button belong to
+`packages/ui/common/Input`; no app wrapper is needed. Schemas remain in
+`src/schemas/auth.schema.ts` and use the local Zod resolver.
 Keep permanent regression tests. Remove only temporary debugging artifacts
 after their verification is complete, and do not run lint, builds, or tests
 unless explicitly requested.

@@ -22,7 +22,12 @@ classes. Consumers configure `@packages/*` and SVG component imports; use the
 barrels out of browser code. State and handlers belong to client components;
 the library has no routing, fetching or validation engine.
 
-The client owns `AuthCard`, `PasswordInput`, `GoogleButton`, `ThemeToggle`, and
+`Input` provides an accessible eye/eye-off button automatically for
+`type="password"`. The button participates in the flex layout, preserves native
+input props/refs, and follows the field's disabled state. The component declares
+its own client boundary for visibility state.
+
+The client owns `AuthCard`, `GoogleButton`, `ThemeToggle`, and
 its `next-themes` provider. These compose the shared controls without adding
 Next.js or form-validation dependencies to this library. See the
 [client guide](../../apps/client/README.md) for application usage and limitations.

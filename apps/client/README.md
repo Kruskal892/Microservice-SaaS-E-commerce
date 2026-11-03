@@ -4,7 +4,7 @@ Next.js App Router scaffold with React and Tailwind CSS v4. The current UI
 includes `Header` (with `HeaderBottom` sticky navigation, search input,
 account/wishlist/cart links, and a light/dark `ThemeToggle`), a placeholder `/`
 page, and `/login` and `/sign-up` forms built with shared `@packages/ui`
-controls, `AuthCard`, `PasswordInput`, React Hook Form, and Zod validation. Storefront
+controls, `AuthCard`, React Hook Form, and Zod validation. Storefront
 screens, backend API integration, authentication submission handlers, commerce
 flows, and localization are not implemented.
 
@@ -65,7 +65,7 @@ colors, type, spacing, radii, breakpoints, and utility examples. Use the client
 
 The shared UI library includes common buttons, form controls, menus, modals,
 tabs, tooltips, badges and cards. Import from `@packages/ui`. App-level common
-components live in `src/components/common` (`AuthCard`, `PasswordInput`, `GoogleButton`, and `ThemeToggle`,
+components live in `src/components/common` (`AuthCard`, `GoogleButton`, and `ThemeToggle`,
 exported through `@/components`). Run `npm run storybook` from the
 repository root and open port 6006 for examples, state previews and controls.
 See [component recipes](../../docs/reference/common-components.md),
@@ -132,8 +132,9 @@ brand remains Eshop.
 
 Both auth forms validate locally and show an unavailable status on valid
 submission; no credentials are logged or sent. Google sign-in is visibly
-unavailable. `AuthCard` shares the page shell, and `PasswordInput` retains native
-input props and refs while adding an accessible `EyeIcon`/`EyeOffIcon` button.
+unavailable. `AuthCard` shares the page shell. Both pages use the shared
+`<Input type="password" />`, which retains native input props and refs while
+adding an accessible `EyeIcon`/`EyeOffIcon` button in the field's flex layout.
 Sign-up enforces matching passwords and the backend's name, email, and password
 length limits.
 
@@ -142,10 +143,11 @@ email of at most 254 characters, and accepts passwords of 8–128 characters.
 Confirmation must match the password; password whitespace is preserved.
 Client validation is scaffolding and does not replace backend validation.
 
-`PasswordInput` suppresses Edge's native `::-ms-reveal` button inside the native
-input so it does not duplicate the custom eye control. This override is scoped
-to `PasswordInput`; the generic shared `Input` stays unchanged. Keyboard access,
-password-manager overlays, and rendering still need browser verification.
+For password fields, shared `Input` suppresses Edge's native `::-ms-reveal`
+button so it does not duplicate the custom eye control. Other input types keep
+their existing rendering. The reveal button follows `disabled` and never submits
+the form. Keyboard access, password-manager overlays, and rendering still need
+browser verification. The app-specific password wrapper has been removed.
 
 A permanent focused schema test is available but has not been run for this change:
 
