@@ -67,6 +67,31 @@ Detailed behavior belongs in [architecture](../architecture/overview.md),
 
 ## Client theme toggle and dark-mode UI/UX improvements: 2026-11-03
 
+The sign-up OTP preview now uses shared `OtpInput`, exported from `@packages/ui`.
+It wraps the `input-otp` primitive with one visual box per digit, active-slot
+styling, and a caret, while preserving one accessible underlying control.
+It supports numeric filtering, configurable length, controlled/uncontrolled
+string values, autocomplete, keyboard editing, paste, and native form/refs.
+The page no longer manages digit arrays, input refs, or
+focus/Backspace handlers. Unused resend/timer/user-data state was removed;
+delivery, verification, and resend API integration remain unimplemented, and the
+page retains its current OTP-preview flag. The page now has a four-digit-guarded
+Verify code submit button and a Resend code button with a 60-second wall-clock
+countdown, cleanup, and tab-visibility catch-up. Both actions show explicit
+unavailable feedback while backend calls remain unwired. Permanent schema
+checks for four-digit OTP submission were added but not run. Permanent Storybook checks were
+added but not run.
+
+For the OTP submit/resend change, the client/shared UI source typecheck passed
+with project references disabled in memory and no emitted files. The normal
+client project check remains blocked by `TS6305` for missing generated
+`OtpInput` declarations. No build was run to generate them. Schema tests,
+countdown behavior, browser rendering, and backend integration remain unverified.
+
+The focused Storybook no-emit TypeScript check passed after adding `OtpInput`.
+Formatting and Git whitespace checks passed. This does not verify story play
+functions, browser autofill, real-device keyboards, or the full signup flow.
+
 The auth pages now share `AuthCard` and use shared `Input type="password"` with
 built-in eye/eye-off controls. The app-specific password wrapper and barrel were
 removed. Password fields use normal flex flow, keep native props/refs and values,

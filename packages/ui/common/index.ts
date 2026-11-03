@@ -1,4 +1,5 @@
 export * from './Input';
+export * from './OtpInput';
 export * from './Button';
 export * from './Badge';
 export * from './Card';

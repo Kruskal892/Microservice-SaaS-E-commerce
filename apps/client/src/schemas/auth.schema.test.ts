@@ -1,7 +1,7 @@
 // Run explicitly: node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { signUpSchema } from './auth.schema.ts';
+import { otpCodeSchema, signUpSchema } from './auth.schema.ts';
 
 const valid = {
   name: ' Alex Smith ',
@@ -9,6 +9,13 @@ const valid = {
   password: ' a safe password ',
   confirmPassword: ' a safe password ',
 };
+
+test('OTP submission requires exactly four digits and preserves leading zeros', () => {
+  assert.equal(otpCodeSchema.parse('0012'), '0012');
+  for (const code of ['', '123', '12345', '12a4', ' 1234', '1234\n']) {
+    assert.equal(otpCodeSchema.safeParse(code).success, false);
+  }
+});
 
 test('sign-up trims contact fields and preserves passwords', () => {
   const result = signUpSchema.parse(valid);

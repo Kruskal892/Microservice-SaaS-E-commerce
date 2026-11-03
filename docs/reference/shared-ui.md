@@ -230,6 +230,13 @@ change. A no-emit client typecheck was attempted on 2026-10-26 and stopped at
 
 ## Review status
 
+Shared `OtpInput` uses `input-otp` to render one box per digit, with an active
+slot and caret. It forwards native form/ARIA props and refs, supports controlled
+or uncontrolled string values, and manages keyboard editing and paste. The
+page needs no per-digit focus handlers. Group and box styles are customizable.
+See the
+[OTP recipe](common-components.md#otp-input) for its API and validation limits.
+
 The sizing and dark-mode comments have been addressed in source. Named SVGs
 receive an overridable default size from the shared `Icon`, monochrome icons
 use `currentColor`, and the header uses `bg-surface`, `ThemeToggle`, and the

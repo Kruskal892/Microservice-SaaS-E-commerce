@@ -74,6 +74,20 @@ See [component recipes](../../docs/reference/common-components.md),
 
 ## Shared input and form validation
 
+`OtpInput` is exported from `@packages/ui` and displays one box per digit, with
+active-slot highlighting and a caret. Its `input-otp` primitive owns keyboard
+editing, selection, paste, and one-time-code autocomplete. The
+sign-up page uses `value={otp}` and `onValueChange={setOtp}` with a single string;
+it no longer keeps an array of digits, input refs, or focus/Backspace handlers.
+The current `showOTP` flag is still initialized to `true` for the OTP preview.
+The OTP form has a Verify code submit button enabled only for four numeric
+digits. Resend code is disabled during a 60-second countdown and restarts the
+cooldown when activated. The countdown uses a wall-clock deadline and catches
+up on tab visibility changes. Delivery/verification/resend API calls are not
+wired: both actions display explicit unavailable feedback. No email delivery or
+verification success is claimed. The timer is UI feedback, not server rate limiting.
+See the [OTP recipe](../../docs/reference/common-components.md#otp-input).
+
 Import `Input`, `Field`, `Label`, `FieldError`, and `Checkbox` from `@packages/ui`.
 `Input` supports native input props, React 19 refs, and token-based light/dark
 defaults. `className` styles the flex field wrapper; `inputClassName` styles the

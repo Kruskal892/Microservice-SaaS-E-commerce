@@ -12,7 +12,7 @@ import { Button, Input, Field, Label } from '@packages/ui';
 </Field>;
 ```
 
-Available families: Button, Input, Textarea, Field/Label, Checkbox, Switch,
+Available families: Button, Input, OtpInput, Textarea, Field/Label, Checkbox, Switch,
 Select, DropdownMenu, Modal, Tabs, Tooltip, Badge, Card and Icon. Each family
 exports its composable pieces from the root UI entry and its own folder.
 
@@ -26,6 +26,14 @@ the library has no routing, fetching or validation engine.
 `type="password"`. The button participates in the flex layout, preserves native
 input props/refs, and follows the field's disabled state. The component declares
 its own client boundary for visibility state.
+
+`OtpInput` uses `input-otp` to show one box per digit (four by default), with
+active-digit styling and a caret. One accessible native control underlies the
+boxes, preserving selection, keyboard editing, paste, leading zeros, and
+`one-time-code` autocomplete. Use `value`/`onValueChange` or `defaultValue`.
+`className` styles the group, `slotClassName` styles each box, and `inputClassName`
+targets the underlying input. Native refs and form/ARIA attributes are forwarded.
+Verification, resend requests, and timers stay in the consuming application.
 
 The client owns `AuthCard`, `GoogleButton`, `ThemeToggle`, and
 its `next-themes` provider. These compose the shared controls without adding
