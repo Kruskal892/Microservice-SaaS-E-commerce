@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Typed asset registry, decorative by default. Label the surrounding control. Profile/heart/cart currently hardcode black; text-color overrides cannot recolor those SVGs.',
+          'Typed asset registry, decorative by default. Label the surrounding control. Monochrome icons use currentColor; GoogleIcon uses official multi-color brand fills.',
       },
     },
   },

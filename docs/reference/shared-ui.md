@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Design tokens](design-tokens.md)
 
 **Status:** Shared component library and Storybook implemented; runtime accessibility and interaction verification pending.
-**Reviewed:** 2026-11-02 (source only).
+**Reviewed:** 2026-11-03 (source only).
 
 ## Common component library
 
@@ -112,25 +112,46 @@ selectors must account for the wrapper even when no icon is supplied. Native
 search-clear controls and password-manager affordances still need browser
 verification alongside end icons.
 
-Keep icon content decorative: do not pass buttons or links to `icon`. A password
-visibility toggle needs a separate accessible button and client-owned state;
-`icon` does not change the input type or provide toggle behavior.
+Keep icon content decorative: do not pass buttons or links to `icon`. Setting
+`type="password"` on shared
+[`Input`](../../packages/ui/common/Input/Input.tsx) automatically adds a separate
+eye/eye-off button at the end of its flex layout. Existing start/end icons can
+coexist with it without absolute positioning or input-padding offsets.
+
+The native input preserves props and refs. The reveal button has an accessible
+action label and `aria-controls`, uses `type="button"`, and follows `disabled`.
+A stable input ID is generated for password fields when none is supplied.
+Password fields hide Edge's `::-ms-reveal` control to avoid duplicate eye icons;
+other input types do not receive that override. Visibility changes preserve the
+field value. Read-only fields can still reveal their value.
+
+Autofilled fields use `surface-alt` across the wrapper, native input, and eye
+area. An inset shadow covers the browser's autofill background, while text and
+caret use the theme's text color. Saved credentials remain supported. Actual
+browser autofill rendering, including light/dark modes, still needs verification.
+
+`AuthCard` and the `next-themes`-backed `ThemeToggle` remain app-owned; they are
+not part of the framework-independent `@packages/ui` API. See the
+[client guide](../../apps/client/README.md) for those contracts.
 
 ### SVG icon library
 
 Store SVG files in `packages/assets/icons/` and export them from
 `packages/assets/icons/index.ts`. Those exports are the registry, currently
 providing `SearchIcon`, `LockIcon`, `ProfileIcon`, `HeartIcon`, `CartIcon`,
-`AlignLeftMenuIcon`, `ChevronDownIcon`, and `GoogleIcon`. Each export automatically
-extends the exported `IconName` type; no change to `Icon.tsx` is needed.
-Simply adding a file does not register a name. Names are case-sensitive:
-`searchIcon` and `lockIcon` have been replaced by `SearchIcon` and `LockIcon`.
-Current consumers use the new names. Keep the barrel limited to SVG React
-components because `Icon` renders any selected export as a component.
+`AlignLeftMenuIcon`, `ChevronDownIcon`, `GoogleIcon`, `SunIcon`, `MoonIcon`,
+`EyeIcon`, and `EyeOffIcon`.
+Each export automatically extends the exported `IconName` type; no change to
+`Icon.tsx` is needed. Simply adding a file does not register a name. Names are
+case-sensitive: `searchIcon` and `lockIcon` have been replaced by `SearchIcon`
+and `LockIcon`. Current consumers use the new names. Keep the barrel limited to
+SVG React components because `Icon` renders any selected export as a component.
 
-Prefer `currentColor` for themeable fills/strokes. The profile, heart, and
-cart SVGs hardcode black, and the Google SVG uses official multi-color brand fills; text-color utilities cannot recolor them, and
-dark-mode contrast for hardcoded black icons remains unresolved.
+Prefer `currentColor` for themeable fills/strokes. Monochrome icons (`SearchIcon`,
+`LockIcon`, `ProfileIcon`, `HeartIcon`, `CartIcon`, `AlignLeftMenuIcon`,
+`ChevronDownIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, and `EyeOffIcon`) use `currentColor` so text-color
+utilities and light/dark themes recolor them automatically; `GoogleIcon` uses
+official multi-color brand fills.
 
 Assets belong to the repo-wide `packages/assets` folder, independently of UI.
 Apps can also import `{ SearchIcon, LockIcon }` from `@packages/assets/icons`
@@ -196,7 +217,8 @@ Provide a visible label or an accessible name. For an error, set `aria-invalid`
 and connect an error message with `aria-describedby`; the input only styles the
 state and does not render messages or validate values. Controlled values, event
 handlers, and imperative refs belong in a client component in Next.js. The shared
-input itself needs no client boundary. For checkbox, radio, range, or other
+input declares its own client boundary for password visibility state. Static
+props can still be passed from server components. For checkbox, radio, range, or other
 specialized native controls, supply appropriate overrides or a dedicated control;
 the defaults target text-like inputs and file inputs.
 
@@ -209,10 +231,14 @@ change. A no-emit client typecheck was attempted on 2026-10-26 and stopped at
 ## Review status
 
 The sizing and dark-mode comments have been addressed in source. Named SVGs
-receive an overridable default size from the shared `Icon`, and the header uses
-`bg-surface` and the client-local `font-poppins` backed by `next/font/google`. The outdated parent size-selector restriction and
-claims of rendering specs have been removed. Storybook now contains examples and permanent play checks. No headless UI test
-runner is configured; these checks have not been run. Runtime and browser validation remain open.
+receive an overridable default size from the shared `Icon`, monochrome icons
+use `currentColor`, and the header uses `bg-surface`, `ThemeToggle`, and the
+client-local Roboto/Poppins fonts backed by `next/font/google`. Header search
+uses Roboto; branding and auth headings use Poppins. The outdated parent
+size-selector restriction and claims of rendering specs have been removed.
+Storybook now contains examples and permanent play checks. No headless UI test
+runner is configured; these checks have not been run. Runtime and browser
+validation remain open.
 
 See [current validation](../operations/implementation-status.md#common-component-library-2026-10-27)
 for the full review boundary.

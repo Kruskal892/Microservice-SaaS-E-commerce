@@ -2,16 +2,16 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current test files and target configuration. **Reviewed:** 2026-10-25.
+**Status:** Current test files and target configuration. **Reviewed:** 2026-11-03.
 
 ## Existing coverage
 
-| Project      | Present coverage                                              | Limits                                                                   |
-| ------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Auth service | Jest/SWC configuration, `passWithNoTests: true` target option | No unit-test files; a successful empty run would not prove auth behavior |
-| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`     | Greeting only; no registration or external-service assertions            |
-| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                | Default port 3000 differs from gateway 8080; only gateway is started     |
-| Client       | Next.js scaffold and token configuration                      | No client unit, browser, or E2E suite configured                         |
+| Project      | Present coverage                                              | Limits                                                                       |
+| ------------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Auth service | Jest/SWC configuration, `passWithNoTests: true` target option | No unit-test files; a successful empty run would not prove auth behavior     |
+| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`     | Greeting only; no registration or external-service assertions                |
+| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                | Default port 3000 differs from gateway 8080; only gateway is started         |
+| Client       | Focused Node test for `signUpSchema` validation               | No client browser or E2E suite configured; schema test unrun for this change |
 
 Source: [auth Jest config](../../apps/auth-service/jest.config.cts),
 [auth E2E spec](../../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts),
@@ -20,6 +20,15 @@ No permanent Redis integration, OTP validation, login/JWT/cookie, or mail-failur
 suites are present.
 
 ## Focused checks
+
+The standalone client schema check uses Node's built-in test runner and type
+stripping (Node 24, as selected in CI). Run it explicitly from the root:
+
+```sh
+node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
+```
+
+It is not wired into the Nx Jest targets and has not been run for this change.
 
 Run commands from the repository root, choosing checks relevant to the change:
 
@@ -66,14 +75,33 @@ semantic colors, type/radius scales, spacing, named breakpoints, and the custom
 `dark:` selector. Keep checks temporary for a token-only change; no shopping
 behavior or accessibility conformance can be inferred from generated CSS.
 
-For future browser checks, run the client and verify both `.dark` and
-`data-theme="dark"`, light reset, keyboard focus for real components, and widths
-below/at 390px, 768px, and 1440px. The header contains the shared search input and the page remains a placeholder.
-Also check Roboto body/Poppins input fonts, header overflow, and dark contrast
-for the new black SVGs. Sign-in/wishlist/cart currently lead to missing routes;
-counts remain static zeros. Check link accessible names: wishlist/cart currently
-expose only their count. `HeaderBottom` is not mounted. These are suggested
-manual checks, not checks completed for the 2026-10-27 change.
+The following browser checks are suggested, not completed for this change:
+
+1. Check `ThemeToggle` in the top header and sticky navigation. Verify reload
+   persistence, same-origin cross-tab synchronization, and live OS updates while
+   the preference is `system`. Selecting the binary switch saves an explicit
+   mode; restore `system` through `setTheme('system')` when checking OS tracking.
+2. Check keyboard operation, announced switch state, and hydration warnings on
+   reload in both themes. The switch remains disabled until mounted.
+3. Open `/login` and `/sign-up`. Check required fields, invalid email, password
+   length, mismatched confirmation, and error-to-field associations. Valid
+   submissions show unavailable feedback; no credentials should be logged or sent.
+4. Check password eye/eye-off controls by pointer and keyboard. In Edge, typing
+   should show only the custom reveal button. Inspect password-manager overlays
+   and confirm that toggling visibility never submits the form.
+   Shared `Input` should preserve native refs, controlled/uncontrolled values,
+   and existing start/end icons alongside the built-in reveal button. Non-password
+   types should retain their existing rendering.
+   With browser-saved credentials, verify that autofilled email/password fields
+   and the eye area share the themed surface in both light and dark modes,
+   including hover, focus, and password visibility changes.
+5. Check widths below/at 390px, 768px, and 1440px, including 320px. Inspect header
+   overflow, CSS-sticky positioning, compact actions, active navigation, mobile
+   wishlist access, and menu closing after selection.
+6. Check Roboto body/search/auth controls, Poppins branding/auth headings, and
+   `currentColor` icon contrast in both themes. Wishlist/cart/forgot-password
+   routes remain missing; empty count badges are omitted.
+
 For the input, check light/dark colors, keyboard focus, disabled and
 `aria-invalid` states, label/error associations, native props and React 19 refs,
 controlled/uncontrolled values, file selection, and `className` overrides. Repeat
@@ -99,9 +127,14 @@ also defaults to 3000; do not mistake a frontend response for gateway health.
 ## Shared component stories
 
 Storybook now contains colocated stories and permanent play checks for the
-shared UI library. See [Storybook workflow](storybook.md) for the configuration,
+shared UI library, including shared Input password visibility/value-preservation
+and disabled-password checks added for this change. Those checks have not been
+run. See [Storybook workflow](storybook.md) for the configuration,
 manual review and explicit-request validation policy. Its separate TypeScript
 check avoids the standalone client's missing composite-output limitation.
+For the shared Input password migration, `tsc -p .storybook/tsconfig.json --noEmit`
+passed. This is source typing evidence only; no story play functions, lint,
+production build, or browser checks were run.
 Storybook is a component documentation host; no headless test runner is wired
 into CI yet. Existing dated validation records are historical.
 

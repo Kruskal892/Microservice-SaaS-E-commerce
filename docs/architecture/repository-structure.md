@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [System architecture](overview.md)
 
-**Status:** Current files and configuration. **Reviewed:** 2026-11-02.
+**Status:** Current files and configuration. **Reviewed:** 2026-11-03.
 
 ## Source layout
 
@@ -10,20 +10,23 @@
 .
 |-- apps/
 |   |-- client/
-|   |   |-- src/app/layout.tsx          # Global CSS and Header
+|   |   |-- src/app/layout.tsx          # Global CSS, next-themes provider, and Header
 |   |   |-- src/app/page.tsx            # Placeholder page
 |   |   |-- src/app/global.css          # Tailwind, shared theme import/source, body styles
 |   |   |-- src/app/(routes)/login/page.tsx # Login page UI with RHF + Zod validation
+|   |   |-- src/app/(routes)/sign-up/page.tsx # Sign-up form scaffold with RHF + Zod
 |   |   |-- src/app/constants/navigation-menu.ts # Header navigation items
 |   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
 |   |   |-- src/components/index.ts     # Common and layout exports
-|   |   |-- src/components/common/      # Reusable client components (GoogleButton)
+|   |   |-- src/components/common/      # AuthCard, GoogleButton, ThemeToggle
 |   |   |-- src/components/layout/index.ts # Named Header and HeaderBottom
 |   |   |-- src/components/layout/Header/
-|   |   |   |-- Header.tsx             # Search, sign-in, wishlist/cart links, HeaderBottom
-|   |   |   |-- HeaderBottom.tsx       # Sticky navigation bar and mobile menu
+|   |   |   |-- Header.tsx             # Brand/search row and sibling HeaderBottom
+|   |   |   |-- HeaderActions.tsx      # Shared account, wishlist/cart links, and theme switch
+|   |   |   |-- HeaderBottom.tsx       # CSS-sticky navigation, mobile menu, and compact actions
 |   |   |   `-- index.ts               # Default Header and named HeaderBottom
 |   |   |-- src/schemas/                # Client Zod validation schemas (auth.schema.ts)
+|   |   |   `-- auth.schema.test.ts     # Permanent standalone Node validation tests (unrun)
 |   |   |-- src/utils/zod-resolver.ts   # Zod v4 resolver adapter for react-hook-form
 |   |   |-- postcss.config.mjs          # @tailwindcss/postcss
 |   |   |-- next.config.js

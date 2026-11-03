@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-10-25. See [repository structure](../architecture/repository-structure.md)
+**Reviewed:** 2026-11-03. See [repository structure](../architecture/repository-structure.md)
 for the code tree and dependency diagram, and
 [configuration](../reference/configuration.md) for runtime inputs.
 
@@ -163,8 +163,11 @@ Add styles using the
 [design token reference](../reference/design-tokens.md): semantic colors,
 `font-sans`, the supplied type/radius scales, and `mobile:/tablet:/desktop:`
 breakpoints. The body consumes background/text/font tokens. The header uses the
-shared native input with an accessible search name; shopping screens and theme
-controls remain planned.
+shared native input with an accessible search name and includes `ThemeToggle`
+for light/dark mode switching; shopping screens remain planned. The root
+`next-themes` provider owns theme persistence and system/cross-tab updates.
+Use `useTheme().setTheme()` in client components instead of writing theme
+attributes directly; keep that dependency out of the shared UI library.
 Use `className` for the field wrapper, `inputClassName` for native input
 padding, `iconContainerClassName` for icon-area styling, and `iconClassName` for
 a registered SVG. The shared `Icon` defaults to `size-5`; named icon size
@@ -176,8 +179,17 @@ The existing `clsx` and `tailwind-merge` dependencies in the shared manifest
 support `cn`; no separate UI/assets package manifest is required.
 The shared `font-sans` retains its Inter/system fallback. The client loads
 Roboto and Poppins with `next/font/google`; `font-roboto` styles the body and
-`font-poppins` overrides the header input font. The header uses `bg-surface`.
+`font-poppins` styles the brand and auth headings. Header search and auth
+controls use Roboto. The header uses `bg-surface`.
 Keep these app-local font mappings in client CSS.
+
+Auth page composition uses client `AuthCard` and the shared password-enabled
+`Input`. Password visibility state and its accessible flex button belong to
+`packages/ui/common/Input`; no app wrapper is needed. Schemas remain in
+`src/schemas/auth.schema.ts` and use the local Zod resolver.
+Keep permanent regression tests. Remove only temporary debugging artifacts
+after their verification is complete, and do not run lint, builds, or tests
+unless explicitly requested.
 
 `npm run client` is separate from `npm run dev`: the client uses `dev`, while
 the backend applications use `serve`. Shared browser/auth integration must be

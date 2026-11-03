@@ -2,17 +2,19 @@
 
 [Documentation hub](../README.md) · [Architecture overview](overview.md)
 
-**Status:** Current source and configuration. **Reviewed:** 2026-11-02.
+**Status:** Current source and configuration. **Reviewed:** 2026-11-03.
 Future design decisions live in [future plans](../future-plans/README.md).
 
 ## Implementation ownership
 
 The client is a Next.js App Router scaffold, separate from the Express services.
-Its root layout imports Tailwind global CSS and renders the header (`Header` and
-sticky `HeaderBottom`) before page routes (`/` placeholder and `/login`).
-`/api/hello` is a local Next route handler. `/login` renders a form card with
-`GoogleButton`, `@packages/ui` form controls (`Field`, `Label`, `Input`,
-`FieldError`, `Checkbox`, `Button`), and client-side validation via
+Its root layout imports Tailwind global CSS, wraps the app in `next-themes`
+`ThemeProvider` to initialize the stored or OS-preferred theme through
+`data-theme`, and renders the header (`Header` and sticky `HeaderBottom`, both
+containing `ThemeToggle`) before page routes (`/` placeholder and `/login` and
+`/sign-up` form scaffolds). `/api/hello` is a local Next route handler. `/login` renders a
+form card with `GoogleButton`, `@packages/ui` form controls (`Field`, `Label`,
+`Input`, `FieldError`, `Checkbox`, `Button`), and client-side validation via
 `react-hook-form` and `zod` (`loginSchema` in `src/schemas/auth.schema.ts` with
 `zodResolver` in `src/utils/zod-resolver.ts`). There are no browser calls to
 auth/gateway yet and no commerce or session state.
@@ -21,7 +23,12 @@ The shared `packages/ui/theme.css`, imported by client global CSS, owns the
 Tailwind CSS-first `@theme` that registers brand/status colors, font, spacing,
 type/radius scales, and named breakpoints. `@theme inline` maps semantic colors
 to variables selected by light/dark CSS selectors. Base body styles consume the
-background, text, and font tokens; there is no theme-switching JavaScript.
+background, text, and font tokens. `ThemeToggle` (`src/components/common/ThemeToggle`)
+uses `useTheme()` for the resolved mode and theme updates. The provider owns
+initialization, persistence, cross-tab synchronization, and system-theme
+tracking. The switch is disabled until mounted to avoid hydration mismatches.
+System tracking applies while the preference is `system`; the binary switch
+saves an explicit light/dark preference.
 Client CSS explicitly scans `packages/ui`. The header and login page use the shared
 native `Input` exported from `@packages/ui`. Its flex wrapper owns field styling and
 reacts to native input focus/disabled/invalid state through `:has()` selectors.
@@ -29,12 +36,18 @@ reacts to native input focus/disabled/invalid state through `:has()` selectors.
 the wrapper, input, icon area, and named SVG respectively. Start/end ordering
 uses flex order, with no absolute offsets. Raw SVGs are owned by `packages/assets`
 and imported through a typed UI registry using the client's SVGR loaders. There
-is no search backend. `HeaderBottom` is rendered inside `Header` with sticky scroll
-behavior and navigation links. `/wishlist`, `/cart`, `/sign-up`, and `/forgot-password`
-links target missing routes; counts are static. Roboto and Poppins load via
-`next/font/google` in the root layout, which sets MicroShop metadata. The body
-uses Roboto; the search input and headings use Poppins. See [shared UI](../reference/shared-ui.md)
-and [design tokens](../reference/design-tokens.md) for the exact contracts.
+is no search backend. `Header` renders the top header and CSS-sticky
+`HeaderBottom` as siblings, with shared `HeaderActions`, active-page navigation,
+and a mobile menu that closes on link selection. `/wishlist`, `/cart`, and `/forgot-password`
+links target missing routes; `/sign-up` is a validated form scaffold. Empty count
+badges are omitted, and cart data remains unwired.
+Roboto and Poppins load via `next/font/google` in the root layout, which sets
+MicroShop metadata. The body, header search, and auth controls use Roboto; the
+brand and auth headings use Poppins. Shared `Input` adds an accessible eye/eye-off
+button automatically for `type="password"`, with flex positioning and scoped
+`::-ms-reveal` suppression. Its visibility state lives inside its client boundary.
+See [shared UI](../reference/shared-ui.md) and
+[design tokens](../reference/design-tokens.md) for the exact contracts.
 
 The diagram below covers backend auth ownership.
 

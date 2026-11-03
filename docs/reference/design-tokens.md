@@ -2,8 +2,8 @@
 
 [Documentation hub](../README.md) · [Client README](../../apps/client/README.md)
 
-**Status:** Implemented token configuration; storefront UI remains planned.
-**Reviewed:** 2026-10-27 (font/header source; browser checks not rerun).
+**Status:** Implemented token configuration and client theme toggle; storefront UI remains planned.
+**Reviewed:** 2026-11-03 (source review; browser checks not rerun).
 
 [packages/ui/theme.css](../../packages/ui/theme.css) is the source of truth for
 the user-supplied palette and scales. The client
@@ -41,12 +41,11 @@ The implementation follows Tailwind's [theme variables](https://tailwindcss.com/
 `@theme inline` maps semantic utilities to theme-dependent CSS variables.
 The starter aliases remain available: `primary` maps to `brand-600` and
 `secondary` maps to `muted`. Brand and status colors are the same in both modes.
-Tailwind's default palette remains available for existing classes such as the
-header badges' `bg-red-500`; the page no longer has a red background.
+Tailwind's default palette remains available alongside the semantic tokens.
 
 ## Theme selection
 
-Light is the default. Set `data-theme="dark"` or add `.dark` to `<html>` to select
+Light is the CSS default. Set `data-theme="dark"` or add `.dark` to `<html>` to select
 dark values and activate `dark:*` variants. Remove `.dark` and the attribute, or
 set `data-theme="light"` without `.dark`, to return to light. Use one convention
 on the document root rather than combining conflicting selectors.
@@ -55,15 +54,24 @@ on the document root rather than combining conflicting selectors.
 <html data-theme="dark"></html>
 ```
 
-`color-scheme` follows the selected mode for native controls. There is no theme
-toggle, system-preference detection, or saved preference. Semantic classes switch
-automatically with the theme; `dark:*` is available for explicit differences.
+`color-scheme` follows the selected mode for native controls. In the client
+application, [layout.tsx](../../apps/client/src/app/layout.tsx) mounts
+`next-themes` `ThemeProvider` with `attribute="data-theme"` and
+`defaultTheme="system"`. The provider owns the startup script, saved preference
+under `localStorage.theme`, system-theme tracking, and cross-tab synchronization.
+[ThemeToggle.tsx](../../apps/client/src/components/common/ThemeToggle/ThemeToggle.tsx)
+(rendered in `Header` and the sticky `HeaderBottom` bar) reads `resolvedTheme`
+and calls `setTheme('light' | 'dark')` through `useTheme()`. In the client app,
+change themes through this API so the provider and switches remain synchronized.
+The switch stays disabled until mounting. Its binary choice saves an explicit
+mode; `setTheme('system')` resumes system tracking, but is not exposed as a third
+option in the current header.
+Semantic classes switch automatically with the theme; `dark:*` is available for
+explicit differences.
 
-The body applies `bg-background font-roboto text-text`. The header uses the
-[shared Input](shared-ui.md#input), which consumes the
-surface, text, muted, border, focus, and danger tokens. The placeholder page
-remains unchanged. Individual screens still need their own component styling
-and accessibility checks.
+The body applies `bg-background font-roboto text-text transition-colors duration-200 motion-reduce:transition-none`.
+The header uses the [shared Input](shared-ui.md#input), which consumes the
+surface, text, muted, border, focus, and danger tokens.
 
 ## Common control tokens
 
@@ -79,7 +87,8 @@ The shared `font-sans` remains `Inter, system-ui, sans-serif`; Inter is not
 bundled. The client loads Roboto and Poppins through `next/font/google` in
 `layout.tsx`. Its `global.css` maps `--font-roboto-next` and
 `--font-poppins-next` to `font-roboto` and `font-poppins` with `@theme inline`.
-The body uses Roboto; the header overrides Input's `font-sans` with Poppins.
+The body, header search, and auth controls use Roboto. The brand and auth
+headings use Poppins; the shared components retain their Inter/system default.
 Poppins weights 100 through 700 are configured. These font choices belong to
 the client. Builds need network access to fetch the Google fonts, which are
 self-hosted in the generated application.
@@ -152,6 +161,6 @@ This is a documentation example, not an added component or screen:
 
 The supplied external design spec and prototype describe future screens and
 flows. They are design references, not proof that localization, cart, checkout,
-theme controls, or backend integration exist. Keep implementation status in the
+or backend integration exist. Keep implementation status in the
 [status inventory](../operations/implementation-status.md) and screen proposals in
 the [UI/UX specification](../future-plans/product/ui-ux-specification.md).

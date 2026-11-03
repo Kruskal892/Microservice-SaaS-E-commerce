@@ -6,3 +6,7 @@ export { default as CartIcon } from './cartIcon.svg';
 export { default as AlignLeftMenuIcon } from './align-left-menu-icon.svg';
 export { default as ChevronDownIcon } from './chevron-down-icon.svg';
 export { default as GoogleIcon } from './google-icon.svg';
+export { default as SunIcon } from './sun.svg';
+export { default as MoonIcon } from './moon.svg';
+export { default as EyeIcon } from './eye.svg';
+export { default as EyeOffIcon } from './eye-off.svg';

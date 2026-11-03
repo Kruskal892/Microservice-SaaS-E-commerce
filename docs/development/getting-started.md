@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-10-25. Commands describe setup; live integrations have not
+**Reviewed:** 2026-11-03. Commands describe setup; live integrations have not
 been verified by this documentation refresh.
 
 ## Requirements
@@ -88,9 +88,11 @@ npm run client
 
 Open `http://localhost:3000`. The root script selects
 `nx dev @microservice-eshop/client`; `npm run dev` selects backend `serve` targets
-and does not start this client. Its current page contains the header with a shared input
-and placeholder content. See [shared UI](../reference/shared-ui.md) for reuse in other apps. No auth, catalog, cart, checkout, orders, or API wiring
-is present. The client also has a standalone `/api/hello` text handler.
+and does not start this client. Its current pages include the header (with a shared
+search input, sticky `HeaderBottom`, and `ThemeToggle`), a `/` placeholder,
+and `/login` and `/sign-up` form scaffolds. See [shared UI](../reference/shared-ui.md)
+for reuse in other apps. No backend auth calls, catalog, cart, checkout, or
+orders are present. The client also has a standalone `/api/hello` text handler.
 
 No database, Redis, SMTP, signing secret, or custom client environment variable
 is required for this scaffold. In PowerShell, use `npm.cmd`/`npx.cmd` when script
@@ -98,8 +100,13 @@ execution policy blocks their `.ps1` wrappers.
 
 The [client README](../../apps/client/README.md) owns client commands;
 [design tokens](../reference/design-tokens.md) documents the Tailwind palette,
-light/dark selectors, and named responsive variants. Theme and language controls
-are future UI work.
+light/dark selectors, and named responsive variants. Language controls remain
+future UI work.
+
+The root `next-themes` provider defaults to the OS theme and retains a saved
+light/dark preference under `localStorage.theme`. The header switch is disabled
+until mounting. Auth forms validate locally and show unavailable feedback;
+Google sign-in is disabled. These screens do not require backend credentials.
 
 ## Environment variables
 

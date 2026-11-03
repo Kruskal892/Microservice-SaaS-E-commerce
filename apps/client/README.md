@@ -1,12 +1,12 @@
 # Client
 
 Next.js App Router scaffold with React and Tailwind CSS v4. The current UI
-includes `Header` (with `HeaderBottom` sticky navigation, search input, and
-account/wishlist/cart links), a placeholder home page, and a `/login` route
-built with shared `@packages/ui` controls, `GoogleButton`, React Hook Form, and
-Zod validation. Storefront screens, backend API integration, authentication
-submission handlers, commerce flows, localization, and theme controls are not
-implemented.
+includes `Header` (with `HeaderBottom` sticky navigation, search input,
+account/wishlist/cart links, and a light/dark `ThemeToggle`), a placeholder `/`
+page, and `/login` and `/sign-up` forms built with shared `@packages/ui`
+controls, `AuthCard`, React Hook Form, and Zod validation. Storefront
+screens, backend API integration, authentication submission handlers, commerce
+flows, and localization are not implemented.
 
 ## Run and check
 
@@ -29,17 +29,32 @@ node node_modules/typescript/bin/tsc -p apps/client/tsconfig.json --noEmit
 Run these commands from the repository root. Use `npm.cmd` or `npx.cmd` if
 PowerShell blocks the `.ps1` wrappers. Build before using `start`.
 
-## Styling
+## Styling and theme switching
 
 [global.css](src/app/global.css) imports the supplied design tokens from
 [the shared theme](../../packages/ui/theme.css) and registers `packages/ui` as a
 Tailwind source. The root layout imports it; [postcss.config.mjs](postcss.config.mjs) uses `@tailwindcss/postcss`.
 Use semantic utilities such as `bg-background`, `bg-surface`, `text-text`,
-`text-muted`, and `border-border`. They follow `.dark` or `data-theme="dark"`
-on the document; the default is light. Theme selection and persistence are not
-implemented. The root layout loads Roboto and Poppins with `next/font/google`.
-The body uses `font-roboto`; the header input and headings use `font-poppins`. These app-local
-utilities map to font variables in `global.css`. Builds need network access for
+`text-muted`, and `border-border`. They follow `data-theme="dark"` or `.dark`
+on the document root.
+
+`layout.tsx` wraps the app in `next-themes` `ThemeProvider` with
+`attribute="data-theme"` and `defaultTheme="system"`. The provider supplies the
+startup script, persists the preference under the existing `localStorage`
+`theme` key, and synchronizes browser tabs. System changes are followed while
+the preference is `system`. Selecting a mode with the binary switch saves an
+explicit preference. There is no System option in the current UI; use
+`setTheme('system')` to resume following the OS.
+[`ThemeToggle`](src/components/common/ThemeToggle/ThemeToggle.tsx) uses
+`useTheme().resolvedTheme` to display the effective mode and `setTheme()` to
+select `"light"` or `"dark"`. The switch is disabled until mounted to keep the
+server and initial browser markup consistent. Existing CSS tokens and
+`dark:*` selectors continue to work without a custom DOM observer.
+
+The root layout loads Roboto and Poppins with `next/font/google`.
+The body, header search, and auth controls use `font-roboto`; the brand and auth
+headings use `font-poppins`. These app-local utilities map to font variables in
+`global.css`. Builds need network access for
 Google font downloads.
 
 See the [complete token reference](../../docs/reference/design-tokens.md) for
@@ -50,8 +65,8 @@ colors, type, spacing, radii, breakpoints, and utility examples. Use the client
 
 The shared UI library includes common buttons, form controls, menus, modals,
 tabs, tooltips, badges and cards. Import from `@packages/ui`. App-level common
-components live in `src/components/common` (such as `GoogleButton`, exported
-through `@/components`). Run `npm run storybook` from the
+components live in `src/components/common` (`AuthCard`, `GoogleButton`, and `ThemeToggle`,
+exported through `@/components`). Run `npm run storybook` from the
 repository root and open port 6006 for examples, state previews and controls.
 See [component recipes](../../docs/reference/common-components.md),
 [design contract](../../docs/design/shared-ui-system.md), and
@@ -68,12 +83,13 @@ registered SVG icons. The header uses it for an accessible search field; search
 behavior is not implemented. See [shared UI](../../docs/reference/shared-ui.md)
 for examples and setup in other apps.
 
-Client form schemas live in `src/schemas/` (such as `loginSchema` in
+Client form schemas live in `src/schemas/` (`loginSchema` and `signUpSchema` in
 [auth.schema.ts](src/schemas/auth.schema.ts)) using `zod`, paired with the local
 [`zodResolver`](src/utils/zod-resolver.ts) for `react-hook-form`.
 
 Shared SVG files live in `packages/assets/icons/`; use `icon="SearchIcon"`,
-`icon="LockIcon"`, or render `<Icon name="GoogleIcon" />`. The Next config uses
+`icon="LockIcon"`, or render `<Icon name="GoogleIcon" />`, `<Icon name="SunIcon" />`,
+or `<Icon name="MoonIcon" />`. The Next config uses
 the installed SVGR loader in Turbopack and Webpack. Restart development after
 config changes; see the shared UI guide to register more icons.
 
@@ -85,29 +101,61 @@ shared `Icon` supplies an overridable `size-5` default; see
 ## Header and common components
 
 The root layout renders the default export from `components/layout/Header`.
-Its folder contains `Header.tsx`, `HeaderBottom.tsx` (sticky navigation bar with
-departments button, desktop navigation links from `src/app/constants/navigation-menu.ts`,
-and mobile `<details>` menu), and an extensionless `index.ts` barrel.
+Its folder contains `Header.tsx` (brand, search, and account actions),
+`HeaderBottom.tsx` (CSS-sticky navigation with active-page links and a mobile
+`<details>` menu), and `HeaderActions.tsx` (shared account/cart/theme controls).
+The navigation is a sibling of the top header so it can remain sticky through
+the page. Quick actions appear when the navigation reaches the viewport top.
+Wishlist is available in the mobile menu; the unused Departments button and
+empty count badges are omitted. The menu closes when a link is selected.
 `components/common/GoogleButton` provides a reusable Google sign-in UI button
-combining `@packages/ui` `Button` and `<Icon name="GoogleIcon" />`. Both
-`common` and `layout` are re-exported from `src/components/index.ts`.
+combining `@packages/ui` `Button` and `<Icon name="GoogleIcon" />`.
+`components/common/ThemeToggle` uses the shared Radix-backed `Switch` with a
+stable "Dark mode" label, an announced checked state, and sun/moon indicators.
+Both `common` and `layout` are re-exported from `src/components/index.ts`.
 
 The header links to `/login`, `/wishlist`, and `/cart`. `/login` renders the
-login form UI; `/wishlist`, `/cart`, `/sign-up`, and `/forgot-password` do not
-exist yet and return the not-found page. Wishlist/cart counters are static `0`
-values. Search has an editable field without submission or API calls. Metadata
-uses MicroShop; the visible header brand remains Eshop.
+login form UI and `/sign-up` renders a registration form scaffold; `/wishlist`, `/cart`,
+and `/forgot-password` do not exist yet and return the not-found page.
+Wishlist/cart are not connected to data. Search has an editable field
+without submission or API calls. Metadata uses MicroShop; the visible header
+brand remains Eshop.
 
 ## Routes
 
-| Route        | Current response                                                                                      |
-| ------------ | ----------------------------------------------------------------------------------------------------- |
-| `/`          | Placeholder page with the header and sticky `HeaderBottom` navigation                                 |
-| `/login`     | Login card UI with `GoogleButton`, email/password `Field`/`Input`, `Checkbox`, and Zod/RHF validation |
-| `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler                                            |
+| Route        | Current response                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------- |
+| `/`          | Placeholder page with the header, `ThemeToggle`, and sticky `HeaderBottom` navigation                   |
+| `/login`     | Login card UI with `GoogleButton`, email/password `Field`/`Input`, `Checkbox`, and Zod/RHF validation   |
+| `/sign-up`   | Name/email/password/confirmation form scaffold with Zod/RHF validation and password visibility controls |
+| `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler                                              |
 
-The `/login` form `onSubmit` handler is currently a no-op placeholder and does
-not call the backend `/api/login` endpoint. The hello handler is separate from
+Both auth forms validate locally and show an unavailable status on valid
+submission; no credentials are logged or sent. Google sign-in is visibly
+unavailable. `AuthCard` shares the page shell. Both pages use the shared
+`<Input type="password" />`, which retains native input props and refs while
+adding an accessible `EyeIcon`/`EyeOffIcon` button in the field's flex layout.
+Sign-up enforces matching passwords and the backend's name, email, and password
+length limits.
+
+`signUpSchema` trims name/email, requires a name of 1–100 characters and a valid
+email of at most 254 characters, and accepts passwords of 8–128 characters.
+Confirmation must match the password; password whitespace is preserved.
+Client validation is scaffolding and does not replace backend validation.
+
+For password fields, shared `Input` suppresses Edge's native `::-ms-reveal`
+button so it does not duplicate the custom eye control. Other input types keep
+their existing rendering. The reveal button follows `disabled` and never submits
+the form. Keyboard access, password-manager overlays, and rendering still need
+browser verification. The app-specific password wrapper has been removed.
+
+A permanent focused schema test is available but has not been run for this change:
+
+```sh
+node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
+```
+
+The forms do not call the backend auth endpoints. The hello handler is separate from
 the Express gateway and auth endpoints.
 
 Project-wide setup, architecture, checks, and limitations live in the

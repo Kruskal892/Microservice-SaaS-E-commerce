@@ -3,13 +3,16 @@
 [Documentation hub](../README.md) · [Registration & verification sequence diagrams](../architecture/request-flows.md#registration-and-otp-delivery)
 
 **Status:** Source implementation, not a verified live integration.
-**Reviewed:** 2026-11-02.
+**Backend snapshot:** 2026-11-02. **Client UI updated:** 2026-11-03.
 
-The Next.js client now includes a `/login` route (`apps/client/src/app/(routes)/login/page.tsx`)
-with a `GoogleButton` UI component, email/password fields, remember-me checkbox,
-and client-side validation via `react-hook-form` and `zod` (`loginSchema`).
-However, `onSubmit` and Google sign-in are currently UI placeholders with no backend
-API requests, session handling, cookie consumer, registration page, or recovery UI.
+The Next.js client includes `/login` and `/sign-up` form scaffolds with a shared
+`AuthCard`, shared `Input type="password"` eye/eye-off controls, and React Hook Form + Zod
+validation (`loginSchema` and `signUpSchema`). Login includes a remember-me
+checkbox; sign-up collects name, email, password, and password confirmation.
+Both forms show unavailable feedback after valid submission and do not send or
+log credentials. Google sign-in is disabled with a visible coming-soon message.
+There are no backend auth requests, session handling, cookie consumption, OTP
+entry, or recovery page. The forgot-password link still targets a missing route.
 The backend contracts below remain independent of the client UI. Use the
 [client README](../../apps/client/README.md) for frontend setup.
 

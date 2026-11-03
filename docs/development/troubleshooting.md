@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-10-25. Configuration defaults belong to the
+**Reviewed:** 2026-11-03. Configuration defaults belong to the
 [configuration reference](../reference/configuration.md).
 
 ## Shared input styling and compiler errors
@@ -36,11 +36,15 @@ Install dependencies at the root workspace rather than creating a second lockfil
 Use full class names from the [token reference](../reference/design-tokens.md).
 Semantic colors use `bg-surface`, `text-text`, `text-muted`, and `border-border`.
 The configured viewport prefixes are `mobile:`, `tablet:`, and `desktop:`;
-default `sm/md/lg/xl/2xl` viewport variants were replaced. Dark colors require
-`.dark` or `data-theme="dark"` on `<html>`; there is no theme toggle or preference
-storage. Roboto and Poppins load through `next/font/google`. If a build cannot
-fetch Google fonts, check build-time network access; the shared `font-sans`
-Inter/system stack is a separate fallback token.
+default `sm/md/lg/xl/2xl` viewport variants were replaced. Dark colors use
+`data-theme="dark"` or `.dark` on `<html>`. The client uses `next-themes`
+`ThemeProvider` in `layout.tsx` to manage `data-theme`, the saved `theme`
+preference, and system-theme detection. Use `useTheme().setTheme()` instead of
+changing the DOM attribute directly. `ThemeToggle` waits until mounting before
+enabling its switch to avoid hydration mismatches. Roboto and Poppins load through
+`next/font/google`. If a build cannot fetch Google fonts, check build-time
+network access; the shared `font-sans` Inter/system stack is a separate fallback
+token.
 
 The header search input and placeholder page are intentional; product search is not implemented. A token setup does
 not add catalog, authentication, cart, or checkout screens. Backend CORS still

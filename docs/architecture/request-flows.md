@@ -5,9 +5,11 @@
 **Status:** Current source execution paths. **Reviewed:** 2026-10-25.
 These diagrams explain code behavior, not a successful end-to-end run.
 
-These are backend execution paths. The Next.js client currently renders its
-header with the shared search input and placeholder page with [Tailwind tokens](../reference/design-tokens.md).
-It does not initiate these auth/commerce flows. Its local `/api/hello` text route
+These are backend execution paths. The Next.js client renders a responsive
+header, persisted theme switching, a placeholder home page, and `/login` and
+`/sign-up` form scaffolds with [Tailwind tokens](../reference/design-tokens.md).
+The forms validate locally and show unavailable feedback; they do not initiate
+these auth/commerce flows. Its local `/api/hello` text route
 is independent of the gateway and is described in the [API reference](../reference/api.md).
 
 ## Gateway request lifecycle

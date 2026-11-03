@@ -9,10 +9,12 @@ owned by the [proposed product API](../api/product-api.md).
 ## 1. Current foundation
 
 The client foundation is a Next.js App Router scaffold with React and
-[shared Tailwind design tokens](../../reference/design-tokens.md). Its header
-uses the [shared Input and SVG icons](../../reference/shared-ui.md) alongside a
-placeholder page; it implements none of the proposed customer-facing
-identity, catalog, cart, checkout, or order features below.
+[shared Tailwind design tokens](../../reference/design-tokens.md), a responsive
+header using shared Input/SVG controls, `next-themes` switching, and a placeholder
+home page. `/login` and `/sign-up` provide local form validation and password
+visibility controls, but do not call backend auth. Google sign-in is disabled.
+The proposed identity journey is incomplete; catalog, cart, checkout, and order
+features below are not implemented.
 
 | Feature              | Trigger and result                                                                             | Limits                                                                                  |
 | -------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |

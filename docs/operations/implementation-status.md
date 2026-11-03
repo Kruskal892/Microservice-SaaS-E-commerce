@@ -2,31 +2,34 @@
 
 [Documentation hub](../README.md) · [Future implementation plan](../future-plans/implementation-plan.md)
 
-**Reviewed:** Backend snapshot 2026-10-25; client/shared UI/assets source 2026-11-02.
+**Reviewed:** Backend snapshot 2026-10-25; client/shared UI/assets source 2026-11-03.
 This inventory reflects source/configuration inspection, not full runtime verification.
+The capability inventory and 2026-11-03 client section describe the current UI.
+Older dated sections retain historical implementation and validation records;
+their UI details and command results do not verify the current working tree.
 
 ## Capability inventory
 
-| Area                      | Present in source/configuration                                                                                                                               | Remaining work                                                                                                                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                              | Verify relevant targets as code changes                                                                                         |
-| Client scaffold           | Next.js App Router, Header (`Header.tsx` + sticky `HeaderBottom.tsx`), `/login` form UI (`GoogleButton`, RHF + Zod validation), placeholder home, `/api/hello` | Connect `/login` to backend, `/sign-up` and `/forgot-password` pages, storefront routes/components, state, localization, tests  |
-| Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales, named breakpoints                                                   | Theme controls/persistence, component styling, font/browser and accessibility verification                                      |
-| Shared UI                 | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, overridable Button hover/active classes, Storybook states and play checks              | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps                   |
-| Shared assets             | Repo-wide SVG files and exports in `packages/assets` (including `GoogleIcon`), typed SVG declarations, client SVGR rules for both bundlers                    | Additional-app bundler adoption and production validation                                                                       |
-| Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                                    | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                              |
-| Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                                    | Concurrency, partial failures, permanent behavior coverage                                                                      |
-| Verification and identity | Routed verification, Redis OTP check, 3-attempt lock, bcrypt hashing, Prisma user persistence                                                                 | Consistent validation/normalization, OTP error contract and concurrency coverage                                                |
-| Login and JWT cookies     | `POST /api/login`, bcrypt comparison, 15-minute access/7-day refresh signing, HTTP-only JWT cookies, public user response                                     | Protected routes/token verification, refresh/rotation, logout/revocation, browser/CSRF validation                               |
-| Password recovery         | Three public routes; recovery email template, corrected mail arguments, awaited OTP verification, and bcrypt password update                                  | Critical: reset requires no verification proof; validation, purpose separation, token invalidation, live delivery, and coverage |
-| Data                      | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                                   | Verify live connectivity, applied indexes, and seed/migration workflow                                                          |
-| Redis                     | Simple ioredis instance; string OTP, cooldown, attempt count, and lock keys                                                                                   | Atomic admission, bounded failure policy, lifecycle cleanup                                                                     |
-| API docs                  | Swagger 2.0 greeting and all six auth POSTs; required fields/examples; recovery defects and 400/500 responses; static `npm run auth-docs` generator           | Cookie headers and complete validation/error contracts; permanent contract-alignment tests                                      |
-| Tests                     | Two greeting E2E specs; auth Jest/SWC configuration                                                                                                           | Auth unit tests; correct gateway E2E; integration/failure-path coverage                                                         |
-| Packaging                 | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                                          | Verify generated dependencies, Prisma runtime and image startup                                                                 |
-| CI                        | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                              | Explicit reliable E2E and delivery pipeline                                                                                     |
-| Product                   | Draft requirements and proposed designs                                                                                                                       | Storefront, catalog, cart, orders, payments, tenancy decisions                                                                  |
-| Operations                | Local greetings and listener error logs/exitCode                                                                                                              | Readiness, drain/cleanup, ingress, monitoring, backups, production deployment                                                   |
+| Area                      | Present in source/configuration                                                                                                                                                                              | Remaining work                                                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                                                                             | Verify relevant targets as code changes                                                                                         |
+| Client scaffold           | Next.js App Router, Header (`Header.tsx` + sticky `HeaderBottom.tsx`), `ThemeToggle` (`next-themes`), `/login` and `/sign-up` form scaffolds, `/` placeholder, `/api/hello`                                  | Connect auth forms to backend, implement `/forgot-password`, storefront routes/components, localization, browser tests          |
+| Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales, named breakpoints, pre-paint `data-theme` initialization                                                           | Component styling across future storefront screens, font/browser and accessibility verification                                 |
+| Shared UI                 | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, overridable Button hover/active classes, Storybook states and play checks                                                             | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps                   |
+| Shared assets             | Repo-wide SVG files and exports in `packages/assets` (all monochrome icons use `currentColor`, plus `GoogleIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, `EyeOffIcon`), typed SVG declarations, client SVGR rules | Additional-app bundler adoption and production validation                                                                       |
+| Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                                                                                   | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                              |
+| Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                                                                                   | Concurrency, partial failures, permanent behavior coverage                                                                      |
+| Verification and identity | Routed verification, Redis OTP check, 3-attempt lock, bcrypt hashing, Prisma user persistence                                                                                                                | Consistent validation/normalization, OTP error contract and concurrency coverage                                                |
+| Login and JWT cookies     | `POST /api/login`, bcrypt comparison, 15-minute access/7-day refresh signing, HTTP-only JWT cookies, public user response                                                                                    | Protected routes/token verification, refresh/rotation, logout/revocation, browser/CSRF validation                               |
+| Password recovery         | Three public routes; recovery email template, corrected mail arguments, awaited OTP verification, and bcrypt password update                                                                                 | Critical: reset requires no verification proof; validation, purpose separation, token invalidation, live delivery, and coverage |
+| Data                      | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                                                                                  | Verify live connectivity, applied indexes, and seed/migration workflow                                                          |
+| Redis                     | Simple ioredis instance; string OTP, cooldown, attempt count, and lock keys                                                                                                                                  | Atomic admission, bounded failure policy, lifecycle cleanup                                                                     |
+| API docs                  | Swagger 2.0 greeting and all six auth POSTs; required fields/examples; recovery defects and 400/500 responses; static `npm run auth-docs` generator                                                          | Cookie headers and complete validation/error contracts; permanent contract-alignment tests                                      |
+| Tests                     | Two greeting E2E specs; auth Jest/SWC configuration; permanent standalone sign-up schema test (unrun)                                                                                                        | Auth unit tests; correct gateway E2E; integration/failure-path coverage                                                         |
+| Packaging                 | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                                                                                         | Verify generated dependencies, Prisma runtime and image startup                                                                 |
+| CI                        | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                                                                             | Explicit reliable E2E and delivery pipeline                                                                                     |
+| Product                   | Draft requirements and proposed designs                                                                                                                                                                      | Storefront, catalog, cart, orders, payments, tenancy decisions                                                                  |
+| Operations                | Local greetings and listener error logs/exitCode                                                                                                                                                             | Readiness, drain/cleanup, ingress, monitoring, backups, production deployment                                                   |
 
 ## Known source limitations
 
@@ -61,6 +64,59 @@ This inventory reflects source/configuration inspection, not full runtime verifi
 Detailed behavior belongs in [architecture](../architecture/overview.md),
 [request flows](../architecture/request-flows.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
+
+## Client theme toggle and dark-mode UI/UX improvements: 2026-11-03
+
+The auth pages now share `AuthCard` and use shared `Input type="password"` with
+built-in eye/eye-off controls. The app-specific password wrapper and barrel were
+removed. Password fields use normal flex flow, keep native props/refs and values,
+follow disabled state, and suppress the native Edge reveal button. Permanent
+Password and DisabledPassword Storybook play checks were added but not run.
+The focused Storybook no-emit TypeScript check passed for this shared Input
+migration; it does not run interaction checks or typecheck the entire client.
+`/sign-up` validates name, email, password length, and
+password confirmation using `signUpSchema`; a focused Node schema test was
+added but not run. Login no longer logs form credentials. Both forms show an
+unavailable status on valid submission, and Google sign-in is disabled until
+integration is implemented. Theme selection uses the shared `Switch` with
+sun/moon indicators. Header actions are shared between the top row and sticky
+navigation, with one sign-in link per group, quieter search styling, active-page
+links, and wishlist access in the mobile menu. CSS sticky positioning replaces
+the fixed scroll threshold; the disabled Departments button and empty badges
+are omitted. No lint, build, test, or browser checks were run.
+
+Documentation cleanup checked 36 Markdown files and 397 local file/heading
+links, with no missing targets or unclosed code fences. Formatting was applied
+to the 28 updated Markdown files, and Git whitespace checks passed. The
+temporary `.nx/npm-cache` and old `debug-storybook.log` were removed. Permanent
+schema tests, shared icon exports, and active app components were retained;
+the schema test has not been run. External links and runtime behavior were not
+verified by these documentation checks.
+
+Added client light/dark mode switching, pre-paint theme initialization, new
+`SunIcon` and `MoonIcon` assets, and dark-mode contrast fixes across the client
+and shared SVG icons.
+
+Key implementation details:
+
+- Added `ThemeToggle` (`apps/client/src/components/common/ThemeToggle`) using
+  `@packages/ui` `Switch`, `Icon` (`SunIcon` and `MoonIcon`), and
+  `next-themes` `useTheme()` so multiple toggle instances stay synchronized.
+  The switch is disabled until mounted to keep hydration markup consistent.
+- `ThemeProvider` in `apps/client/src/app/layout.tsx` replaces the custom
+  initialization script and DOM observer. It uses `data-theme`, the existing
+  `theme` storage key, and a system default, with cross-tab synchronization and
+  live system updates while that default is selected. `<html>` retains
+  `suppressHydrationWarning`.
+- Added `sun.svg` (`SunIcon`) and `moon.svg` (`MoonIcon`) to
+  `packages/assets/icons/` and updated `profileIcon.svg`, `heartIcon.svg`, and
+  `cartIcon.svg` from hardcoded `#000000` to `currentColor` so header icons
+  adapt automatically in light and dark modes.
+- Updated `Login` (`apps/client/src/app/(routes)/login/page.tsx`) to use the
+  semantic `primary` `Button` variant instead of hardcoded black classes and
+  added `dark:text-focus` on action links for dark-surface contrast.
+- Added `border-b border-border` to the sticky `HeaderBottom` bar for clear
+  separation on dark backgrounds. No lint, build, or test commands were run.
 
 ## Client login UI and Button hover override fix: 2026-11-02
 
@@ -110,6 +166,9 @@ upgrade or automatic audit fix was applied.
 
 ## Client and conflict resolution: 2026-10-27
 
+Historical snapshot; current fonts, routes, and header behavior are documented
+in the [client guide](../../apps/client/README.md).
+
 Resolved the stash conflicts by keeping the Header folder move, new SVG exports,
 and automatic icon registry. Restored shared Input, `cn`, theme, SVG types,
 SVGR rules, client aliases, shared TSX configuration, and manifest/lockfile
@@ -119,15 +178,7 @@ a named Header. The body uses Roboto, the header input uses Poppins, and metadat
 uses MicroShop. `HeaderBottom` is now rendered inside `Header` with sticky scroll
 behavior, navigation links, and mobile menu.
 
-Remaining source findings:
-
-- `/wishlist`, `/cart`, `/sign-up`, and `/forgot-password` are links only; route
-  pages do not exist. `/login` renders the login UI without backend submission.
-  Counts are static zeros and search has no submit handler or API.
-- New profile/heart/cart SVGs hardcode black, so text-color utilities cannot
-  recolor them for dark mode.
-
-Static verification: no unmerged Git index entries or conflict markers remain;
+Verification recorded for that snapshot: no unmerged Git index entries or conflict markers remain;
 Git whitespace checks pass. All 31 documentation files were checked for local
 file links (none missing); changed JSON parses and shared manifest dependency
 versions match the lockfile. No lint, builds, typechecks, tests, or browser checks
