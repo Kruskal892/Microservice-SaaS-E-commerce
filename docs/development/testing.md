@@ -29,6 +29,15 @@ node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.
 ```
 
 It is not wired into the Nx Jest targets and has not been run for this change.
+The schema test also covers OTP submission: exactly four digits, leading zeros,
+and rejection of short, long, non-numeric, and whitespace-padded codes.
+
+For the sign-up OTP controls, manually check that incomplete codes cannot submit,
+four digits enable Verify code, and submitting shows unavailable feedback with
+no API request. Resend should count down from 60 seconds, enable at zero, and
+restart when activated without clearing the current code. Check background-tab
+catch-up, screen-reader availability feedback, and interval cleanup on navigation.
+These browser and timer checks have not been run.
 
 Run commands from the repository root, choosing checks relevant to the change:
 
@@ -125,6 +134,14 @@ The gateway E2E port-3000 mismatch is especially relevant now that the client
 also defaults to 3000; do not mistake a frontend response for gateway health.
 
 ## Shared component stories
+
+`OtpInput` has permanent Storybook play checks for per-digit box rendering,
+controlled/uncontrolled editing, digits-only input, length limits, leading zeros,
+paste, deletion, arrow-key replacement, disabled state, native form validity/data,
+and refs. These checks have not been
+run for this change. Browser one-time-code suggestions and real-device numeric
+keyboards still need manual verification; Storybook cannot prove OTP delivery
+or backend verification.
 
 Storybook now contains colocated stories and permanent play checks for the
 shared UI library, including shared Input password visibility/value-preservation

@@ -11,8 +11,16 @@ validation (`loginSchema` and `signUpSchema`). Login includes a remember-me
 checkbox; sign-up collects name, email, password, and password confirmation.
 Both forms show unavailable feedback after valid submission and do not send or
 log credentials. Google sign-in is disabled with a visible coming-soon message.
-There are no backend auth requests, session handling, cookie consumption, OTP
-entry, or recovery page. The forgot-password link still targets a missing route.
+The sign-up page currently previews a shared `OtpInput` code field. Its code is
+a string with configurable digit length; paste/editing and numeric filtering
+belong to the shared component. There are no backend auth requests, session
+handling, cookie consumption, OTP delivery/verification/resend API integration,
+or recovery page. The OTP preview now has Verify code submission guarded by a
+four-digit schema and a Resend code control with a 60-second cooldown. The
+countdown uses elapsed wall time and updates when the tab becomes visible.
+Both actions display unavailable feedback while their API calls are unwired;
+no code is sent or verified. This client timer does not replace the backend
+cooldown. The forgot-password link still targets a missing route.
 The backend contracts below remain independent of the client UI. Use the
 [client README](../../apps/client/README.md) for frontend setup.
 

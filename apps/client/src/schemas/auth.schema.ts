@@ -34,3 +34,8 @@ export const signUpSchema = loginSchema
   });
 
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
+
+export const otpCodeSchema = z
+  .string()
+  .length(4, 'Enter the four-digit code')
+  .regex(/^[0-9]+$/, 'Use digits only');

@@ -38,6 +38,12 @@ accessibility tests pass. Do not run lint, build or tests automatically.
 
 ## Explore
 
+`Forms/OtpInput` includes default, controlled, six-digit, keyboard-editing,
+disabled, read-only, invalid, and native-form/ref stories. Permanent play checks
+cover box count and displayed digits, non-digit rejection, length limits,
+leading zeros, paste, deletion, arrow-key replacement, disabled state, native
+form data, and imperative focus. They were added but not run for this change.
+
 - Autodocs includes source examples and prop controls. Compound component
   examples demonstrate composition; see usage recipes for the complete API.
 - Theme and direction toolbars switch the document root and Radix direction

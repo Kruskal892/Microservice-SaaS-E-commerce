@@ -1,43 +1,40 @@
-## 📝 Description
+## 📝 Summary
 
-<!-- Explain what changed and why. Include important behavior or architectural decisions. -->
+<!-- Briefly explain what changed and why. -->
 
-## 🎟️ Related Issues / Tickets
+## 🏷️ Type of Change
 
-<!-- Link real issues or tickets only. Use "Closes #123" when appropriate. -->
+- [ ] ✨ New feature
+- [ ] 🐛 Bug fix
+- [ ] ♻️ Refactor / Code quality
+- [ ] 🎨 UI / Styling
+- [ ] ⚡ Performance / Infrastructure
+- [ ] 📝 Documentation / Chore
 
-## 📸 Evidence
+## 🔍 Key Changes
 
-<!-- Attach relevant screenshots, recordings, or logs. Omit sensitive data. -->
+<!-- Highlight major architectural decisions, affected services/apps, or notable implementation details. -->
 
-## 🧪 How to Test
+- 
 
-<!-- Provide concise, reproducible steps and expected results for the affected services or UI. -->
+## 📸 Evidence / Screenshots
 
-1.
+<!-- Attach relevant screenshots, recordings, or terminal logs. Leave as N/A if not applicable. -->
 
-### Validation Results
+## 🧪 Verification & Testing
 
-<!-- Record exact commands or manual checks and their outcomes. State which relevant checks were not run and why. -->
+<!-- Concise, reproducible steps to verify the changes. -->
 
-- Passed:
-- Not run:
+1. 
 
-## 🧩 Notes for Reviewers
+## 🧩 Technical Notes
 
-<!-- Highlight meaningful decisions, compatibility changes, environment variables, migrations, rollout/rollback steps, or known limitations. Leave empty if unnecessary. -->
+<!-- Optional: environment variables, database migrations, breaking changes, or follow-up tasks. -->
 
-## ⚠️ Checklist
+## ✅ Checklist
 
-<!-- Check only completed or confirmed items. Leave unrun checks unchecked; mark irrelevant items as N/A. -->
-
-- [ ] Related issue or ticket linked (if applicable)
-- [ ] Code follows project style guidelines
-- [ ] Tests added or updated (if applicable)
-- [ ] Documentation updated (if applicable)
-- [ ] Verified in local or staging environment
-- [ ] Relevant tests passed (commands and results recorded above)
-- [ ] Lint passed (if explicitly requested)
-- [ ] Build completed successfully (if explicitly requested)
-- [ ] Evidence attached (if applicable)
-- [ ] No sensitive data committed
+- [ ] Code follows project style and architecture guidelines
+- [ ] Self-reviewed the diff and removed debug artifacts
+- [ ] Verified locally across affected services/UI
+- [ ] Env variables or config changes documented (if applicable)
+- [ ] No sensitive data or secrets committed

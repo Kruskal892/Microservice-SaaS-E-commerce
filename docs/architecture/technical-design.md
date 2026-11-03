@@ -51,6 +51,17 @@ See [shared UI](../reference/shared-ui.md) and
 
 The diagram below covers backend auth ownership.
 
+`OtpInput` in `packages/ui/common/OtpInput` wraps the `input-otp` primitive with
+one themed box per digit, an active-slot highlight, and a caret. The primitive
+keeps a single accessible native field underneath the visual boxes for selection,
+paste, keyboard editing, form semantics, and autocomplete. The sign-up page
+continues to use a controlled code string and remains an OTP-preview scaffold.
+The sign-up page owns the Verify code form and a 60-second resend countdown,
+including cleanup and visibility updates. Its `otpCodeSchema` accepts exactly
+four numeric characters, preserving leading zeros. Actions show unavailable
+feedback until backend calls are connected; `OtpInput` does not submit, resend,
+or enforce server rate limits.
+
 ```mermaid
 flowchart LR
     Main["Auth main.ts<br/>Express wiring and listener"] --> Router["routes/auth.router.ts"]

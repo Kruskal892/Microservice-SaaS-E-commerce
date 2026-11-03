@@ -27,6 +27,45 @@ eye/eye-off controls. No app wrapper is required. Native props, refs, and existi
 icon/style hooks remain available; the reveal button is a separate flex item and
 uses `type="button"` so it does not submit the surrounding form.
 
+## OTP input
+
+```tsx
+import { Field, FieldDescription, Label, OtpInput } from '@packages/ui';
+
+<Field>
+  <Label htmlFor="verification-code">Verification code</Label>
+  <OtpInput
+    id="verification-code"
+    name="otp"
+    length={4}
+    value={code}
+    onValueChange={setCode}
+    aria-describedby="verification-help"
+    required
+  />
+  <FieldDescription id="verification-help">
+    Enter the four-digit code.
+  </FieldDescription>
+</Field>;
+```
+
+`OtpInput` renders a separate box for each digit with active-slot styling and
+a caret. The `input-otp` primitive manages one underlying accessible input for
+keyboard selection, arrow keys, Backspace, paste, and one-time-code autocomplete.
+Screen readers encounter one labeled code field instead of repeated labels for
+each visual box. Its string value preserves leading zeros. `length` defaults
+to four and sets native min/max length. Non-digit edits are rejected. `required`
+is opt-in; the server must still verify the code.
+
+Use `value`/`onValueChange` for controlled state or `defaultValue` for internal
+state. `onValueChange` receives the new code string. Native form/ARIA props,
+focus/blur/keyboard handlers, and React refs reach the underlying input.
+`className` styles the group, `slotClassName` overrides each box, and
+`inputClassName` targets the underlying input. The component handles
+disabled/read-only/invalid states with shared theme tokens. The caller owns
+labels, errors, verification, resend, and timers. No verification request is sent
+by this component.
+
 ## Button
 
 ```tsx
