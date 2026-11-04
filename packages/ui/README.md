@@ -1,6 +1,8 @@
 # Shared UI
 
-Reusable React 19 components with Tailwind v4 tokens and Radix behavior.
+Reusable React 19 components with monochrome Tailwind v4 tokens, bundled DM Sans
+and Radix behavior. `theme.css` owns colours, font loading, spacing and shape.
+The font and its licence live in `packages/assets/fonts/`.
 
 ```tsx
 import { Button, Input, Field, Label } from '@packages/ui';
@@ -43,6 +45,8 @@ Next.js or form-validation dependencies to this library. See the
 Run `npm run storybook` from the repository root, then open port 6006. Use the
 theme/direction toolbar, controls, state stories and accessibility panel.
 
+- [Monochrome design](../../docs/design/eshop-monochrome.md)
+- [Component contracts](../../docs/design/common-ui.md)
 - [Usage recipes](../../docs/reference/common-components.md)
 - [Design and accessibility contract](../../docs/design/shared-ui-system.md)
 - [Storybook workflow](../../docs/development/storybook.md)

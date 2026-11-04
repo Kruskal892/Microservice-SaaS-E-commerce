@@ -1,46 +1,68 @@
-/* Theme selection is explicit; a switcher can set either selector on <html>. */
+@font-face {
+  font-family: 'DM Sans';
+  src: url('../assets/fonts/DM-Sans-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *, [data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
+  --color-brand-50: #fafafa;
+  --color-brand-100: #f5f5f5;
+  --color-brand-500: #595959;
+  --color-brand-600: #171717;
+  --color-brand-700: #000000;
 
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
-  --color-focus: #818cf8;
+  --color-danger-action: #b42318;
+  --color-danger-hover: #912018;
+  --color-danger-active: #751b14;
 
-  --color-on-action: #ffffff;
-  --color-danger-action: #b91c1c;
-  --color-danger-hover: #991b1b;
-  --color-danger-active: #7f1d1d;
-
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'DM Sans', Arial, sans-serif;
 
   --text-*: initial;
   --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
   --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
   --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
   --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
   --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
   --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
   --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.25rem;
   --text-4xl: 2.25rem;
+  --text-4xl--line-height: 2.75rem;
   --text-5xl: 3rem;
-  --text-6xl: 3.75rem;
+  --text-5xl--line-height: 3.5rem;
+  --text-6xl: 4rem;
+  --text-6xl--line-height: 4.875rem;
+  --text-auth-display: 3.375rem;
+  --text-auth-display--line-height: 3.75rem;
+  --text-auth-display--letter-spacing: -0.037em;
+  --text-mobile-h1: 2rem;
+  --text-mobile-h1--line-height: 2.5rem;
+  --text-mobile-h1--letter-spacing: -0.03125em;
 
   /* 1/2/3/4/5/6/8/10/12/16/20 = 4/8/12/16/20/24/32/40/48/64/80px. */
   --spacing: 0.25rem;
 
   --radius-*: initial;
+  --radius-xs: 0.25rem;
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
   --radius-2xl: 1.5rem;
+
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 12%);
+  --default-transition-duration: 120ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 
   --breakpoint-*: initial;
   --breakpoint-mobile: 24.375rem;
@@ -51,37 +73,45 @@
 :root,
 [data-theme='light'] {
   color-scheme: light;
-  --action: #4f46e5;
-  --action-hover: #4338ca;
-  --action-active: #3730a3;
-  --success-foreground: #15803d;
-  --warning-foreground: #92400e;
-  --danger-foreground: #b91c1c;
-  --overlay: rgb(15 23 42 / 60%);
-  --background: #f8fafc;
+  --action: #000000;
+  --action-hover: #292929;
+  --action-active: #404040;
+  --on-action: #ffffff;
+  --focus: #000000;
+  --success-foreground: #166534;
+  --warning-foreground: #854d0e;
+  --danger-foreground: #b42318;
+  --overlay: rgb(0 0 0 / 60%);
+  --background: #ffffff;
   --surface: #ffffff;
-  --surface-alt: #f1f5f9;
-  --text: #0f172a;
-  --muted: #64748b;
-  --border: #e2e8f0;
+  --surface-alt: #f5f5f5;
+  --text: #000000;
+  --muted: #595959;
+  --border: #dedede;
+  --control-border: #858585;
+  --muted-surface: #ebebeb;
 }
 
 .dark,
 [data-theme='dark'] {
   color-scheme: dark;
-  --action: #4f46e5;
-  --action-hover: #4338ca;
-  --action-active: #3730a3;
-  --success-foreground: #4ade80;
-  --warning-foreground: #fbbf24;
-  --danger-foreground: #f87171;
-  --overlay: rgb(0 0 0 / 70%);
-  --background: #090d18;
-  --surface: #121827;
-  --surface-alt: #1b2435;
-  --text: #f1f5f9;
-  --muted: #94a3b8;
-  --border: #2b364a;
+  --action: #ffffff;
+  --action-hover: #dedede;
+  --action-active: #cccccc;
+  --on-action: #000000;
+  --focus: #ffffff;
+  --success-foreground: #86efac;
+  --warning-foreground: #fde68a;
+  --danger-foreground: #fda29b;
+  --overlay: rgb(0 0 0 / 60%);
+  --background: #0a0a0a;
+  --surface: #171717;
+  --surface-alt: #242424;
+  --text: #ffffff;
+  --muted: #b3b3b3;
+  --border: #404040;
+  --control-border: #858585;
+  --muted-surface: #333333;
 }
 
 /* Inline aliases resolve at the styled element so semantic utilities follow its theme. */
@@ -89,6 +119,11 @@
   --color-action: var(--action);
   --color-action-hover: var(--action-hover);
   --color-action-active: var(--action-active);
+  --color-on-action: var(--on-action);
+  --color-focus: var(--focus);
+  --color-success: var(--success-foreground);
+  --color-warning: var(--warning-foreground);
+  --color-danger: var(--danger-foreground);
   --color-success-foreground: var(--success-foreground);
   --color-warning-foreground: var(--warning-foreground);
   --color-danger-foreground: var(--danger-foreground);
@@ -99,8 +134,10 @@
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-control-border: var(--control-border);
+  --color-muted-surface: var(--muted-surface);
 
   /* Preserve the starter's utility names with the supplied palette. */
-  --color-primary: var(--color-brand-600);
+  --color-primary: var(--action);
   --color-secondary: var(--muted);
 }

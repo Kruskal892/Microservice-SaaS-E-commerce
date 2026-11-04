@@ -10,3 +10,4 @@ export { default as SunIcon } from './sun.svg';
 export { default as MoonIcon } from './moon.svg';
 export { default as EyeIcon } from './eye.svg';
 export { default as EyeOffIcon } from './eye-off.svg';
+export { default as CloseIcon } from './close.svg';

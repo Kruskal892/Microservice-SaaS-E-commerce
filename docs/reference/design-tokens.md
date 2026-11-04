@@ -1,166 +1,95 @@
-# Shared design tokens
+# Design tokens
 
-[Documentation hub](../README.md) · [Client README](../../apps/client/README.md)
-
-**Status:** Implemented token configuration and client theme toggle; storefront UI remains planned.
-**Reviewed:** 2026-11-03 (source review; browser checks not rerun).
-
-[packages/ui/theme.css](../../packages/ui/theme.css) is the source of truth for
-the user-supplied palette and scales. The client
-[global.css](../../apps/client/src/app/global.css) imports Tailwind v4 and this
-shared theme, and registers `packages/ui` with `@source`. The client PostCSS config
-uses `@tailwindcss/postcss`. See [shared UI](shared-ui.md) for cross-app setup.
-No JavaScript Tailwind configuration or token-generation step is needed.
-The implementation follows Tailwind's [theme variables](https://tailwindcss.com/docs/theme),
-[custom dark variant](https://tailwindcss.com/docs/dark-mode), and
-[breakpoint configuration](https://tailwindcss.com/docs/responsive-design).
+Runtime values live in [`packages/ui/theme.css`](../../packages/ui/theme.css).
+Import it after Tailwind and scan `packages/ui` with `@source`.
+The [monochrome specification](../design/eshop-monochrome.md) contains the full
+colour, typography and responsive contract; [component rules](../design/common-ui.md)
+explain how to apply it.
 
 ## Colors
 
-| Token       | Value     | Example utility            |
-| ----------- | --------- | -------------------------- |
-| `brand-50`  | `#EEF2FF` | `bg-brand-50`              |
-| `brand-100` | `#E0E7FF` | `bg-brand-100`             |
-| `brand-500` | `#6366F1` | `bg-brand-500`             |
-| `brand-600` | `#4F46E5` | `bg-brand-600`             |
-| `brand-700` | `#4338CA` | `hover:bg-brand-700`       |
-| `success`   | `#16A34A` | `text-success`             |
-| `warning`   | `#D97706` | `text-warning`             |
-| `danger`    | `#DC2626` | `border-danger`            |
-| `focus`     | `#818CF8` | `focus-visible:ring-focus` |
+| Utility role     | Light     | Dark      |
+| ---------------- | --------- | --------- |
+| `background`     | `#FFFFFF` | `#0A0A0A` |
+| `surface`        | `#FFFFFF` | `#171717` |
+| `surface-alt`    | `#F5F5F5` | `#242424` |
+| `muted-surface`  | `#EBEBEB` | `#333333` |
+| `text`           | `#000000` | `#FFFFFF` |
+| `muted`          | `#595959` | `#B3B3B3` |
+| `border`         | `#DEDEDE` | `#404040` |
+| `control-border` | `#858585` | `#858585` |
+| `action`         | `#000000` | `#FFFFFF` |
+| `on-action`      | `#FFFFFF` | `#000000` |
+| `focus`          | `#000000` | `#FFFFFF` |
 
-| Semantic token | Light     | Dark      | Example utility  |
-| -------------- | --------- | --------- | ---------------- |
-| `background`   | `#F8FAFC` | `#090D18` | `bg-background`  |
-| `surface`      | `#FFFFFF` | `#121827` | `bg-surface`     |
-| `surface-alt`  | `#F1F5F9` | `#1B2435` | `bg-surface-alt` |
-| `text`         | `#0F172A` | `#F1F5F9` | `text-text`      |
-| `muted`        | `#64748B` | `#94A3B8` | `text-muted`     |
-| `border`       | `#E2E8F0` | `#2B364A` | `border-border`  |
-
-`@theme inline` maps semantic utilities to theme-dependent CSS variables.
-The starter aliases remain available: `primary` maps to `brand-600` and
-`secondary` maps to `muted`. Brand and status colors are the same in both modes.
-Tailwind's default palette remains available alongside the semantic tokens.
+Use `border-border` for structure and `border-control-border` for essential
+control boundaries. Always pair `bg-action` with `text-on-action`.
+`primary` aliases `action`; `secondary` aliases `muted`. Legacy brand utilities
+remain neutral, but semantic utilities should drive theme-aware components.
+Success, warning and error use small functional accents with readable text.
 
 ## Theme selection
 
-Light is the CSS default. Set `data-theme="dark"` or add `.dark` to `<html>` to select
-dark values and activate `dark:*` variants. Remove `.dark` and the attribute, or
-set `data-theme="light"` without `.dark`, to return to light. Use one convention
-on the document root rather than combining conflicting selectors.
+The shared CSS supports `.dark` and `data-theme="dark"`; light is the default.
+Choose one convention on the document root so portals inherit the same theme.
+`color-scheme` follows the active mode for native controls.
 
-```html
-<html data-theme="dark"></html>
-```
-
-`color-scheme` follows the selected mode for native controls. In the client
-application, [layout.tsx](../../apps/client/src/app/layout.tsx) mounts
-`next-themes` `ThemeProvider` with `attribute="data-theme"` and
-`defaultTheme="system"`. The provider owns the startup script, saved preference
-under `localStorage.theme`, system-theme tracking, and cross-tab synchronization.
-[ThemeToggle.tsx](../../apps/client/src/components/common/ThemeToggle/ThemeToggle.tsx)
-(rendered in `Header` and the sticky `HeaderBottom` bar) reads `resolvedTheme`
-and calls `setTheme('light' | 'dark')` through `useTheme()`. In the client app,
-change themes through this API so the provider and switches remain synchronized.
-The switch stays disabled until mounting. Its binary choice saves an explicit
-mode; `setTheme('system')` resumes system tracking, but is not exposed as a third
-option in the current header.
-Semantic classes switch automatically with the theme; `dark:*` is available for
-explicit differences.
-
-The body applies `bg-background font-roboto text-text transition-colors duration-200 motion-reduce:transition-none`.
-The header uses the [shared Input](shared-ui.md#input), which consumes the
-surface, text, muted, border, focus, and danger tokens.
+The client uses `next-themes` with `attribute="data-theme"` and
+`defaultTheme="system"`. Use `setTheme('light' | 'dark' | 'system')` rather than
+editing the DOM attribute directly. The header's Dark mode toggle button uses
+`aria-pressed`, stays disabled until mounted, and saves an explicit preference.
+The provider owns startup selection, cross-tab updates and system tracking.
 
 ## Common control tokens
 
-The component library adds semantic action, action-hover, action-active,
-on-action, danger-action/hover/active, overlay and status-foreground roles.
-See the [design contract token table](../design/shared-ui-system.md#tokens-and-visual-behavior)
-for values and usage. Existing palette and type scales are unchanged.
-Button states and theme specimens are available in Storybook.
+Buttons have 36/44/48px minimum heights; icon actions are 44px square. Inputs
+and Select triggers default to 48px. Four OTP cells are 60x64px and shrink within
+their group for longer codes. Focus uses a 2px ring and 2px surface offset.
+`danger-action`, `danger-hover` and `danger-active` are destructive fills with
+white labels in both themes. Ordinary actions stay monochrome.
 
 ## Typography
 
-The shared `font-sans` remains `Inter, system-ui, sans-serif`; Inter is not
-bundled. The client loads Roboto and Poppins through `next/font/google` in
-`layout.tsx`. Its `global.css` maps `--font-roboto-next` and
-`--font-poppins-next` to `font-roboto` and `font-poppins` with `@theme inline`.
-The body, header search, and auth controls use Roboto. The brand and auth
-headings use Poppins; the shared components retain their Inter/system default.
-Poppins weights 100 through 700 are configured. These font choices belong to
-the client. Builds need network access to fetch the Google fonts, which are
-self-hosted in the generated application.
+DM Sans is bundled with its OFL licence in `packages/assets/fonts/` and loaded
+by the shared theme's `@font-face`. Client and Storybook both use `font-sans`.
+No `next/font/google` download or app-specific font utility is required.
 
-| Utility     | Size at a 16px root |
-| ----------- | ------------------- |
-| `text-xs`   | 12px                |
-| `text-sm`   | 14px                |
-| `text-base` | 16px                |
-| `text-lg`   | 18px                |
-| `text-xl`   | 20px                |
-| `text-2xl`  | 24px                |
-| `text-3xl`  | 30px                |
-| `text-4xl`  | 36px                |
-| `text-5xl`  | 48px                |
-| `text-6xl`  | 60px                |
+| Utility                              | Size                   |
+| ------------------------------------ | ---------------------- |
+| `text-xs` / `text-sm` / `text-base`  | 12 / 14 / 16px         |
+| `text-lg` / `text-xl` / `text-2xl`   | 18 / 20 / 24px         |
+| `text-3xl` / `text-4xl` / `text-5xl` | 30 / 36 / 48px         |
+| `text-6xl`                           | 64px, 78px line height |
+| `text-auth-display`                  | 54px, 60px line height |
+| `text-mobile-h1`                     | 32px, 40px line height |
 
-The `--text-*` namespace is reset before defining this scale. Larger default
-sizes are not included. Sizes use rem units; line height can be chosen per
-component, for example `text-base/6`.
+Use 400 for reading copy, 500 for labels, 600 for headings/actions and 700 for
+the wordmark. Use tabular figures for countdowns and changing amounts.
 
 ## Spacing and radii
 
-The spacing unit is `0.25rem` (4px at a 16px root). The supplied spacing steps map
-to Tailwind's usual numeric utilities; other multiples remain possible.
-
-| Utility suffix | `1` | `2` | `3` | `4` | `5` | `6` | `8` | `10` | `12` | `16` | `20` |
-| -------------- | --- | --- | --- | --- | --- | --- | --- | ---- | ---- | ---- | ---- |
-| Pixels         | 4   | 8   | 12  | 16  | 20  | 24  | 32  | 40   | 48   | 64   | 80   |
-
-For example, `p-6` gives 24px padding and `gap-8` gives a 32px gap.
-
-| Utility       | Radius at a 16px root |
-| ------------- | --------------------- |
-| `rounded-sm`  | 8px                   |
-| `rounded-md`  | 12px                  |
-| `rounded-lg`  | 16px                  |
-| `rounded-xl`  | 20px                  |
-| `rounded-2xl` | 24px                  |
-
-The named radius scale is reset to these five entries. `rounded-none` and
-`rounded-full` remain Tailwind utilities.
+Spacing is based on 4px: `gap-2` is 8px, `gap-6` is 24px, `p-8` is 32px.
+Prefer group gaps to stacked child margins. Radii: `xs` 4px, `sm` 8px, `md`
+12px, `lg` 16px, `xl` 20px, `2xl` 24px. Full rounding is available for pills.
+Resting cards have no shadow; elevated content uses `shadow-overlay`.
+Transitions default to 120ms with a reduced-motion alternative in components.
 
 ## Breakpoints
 
-| Prefix     | Minimum width at a 16px browser default | CSS value   |
-| ---------- | --------------------------------------- | ----------- |
-| `mobile:`  | 390px                                   | `24.375rem` |
-| `tablet:`  | 768px                                   | `48rem`     |
-| `desktop:` | 1440px                                  | `90rem`     |
-
-Unprefixed classes apply at all widths, including below 390px. These named
-breakpoints replace the default `sm/md/lg/xl/2xl` viewport variants; do not use
-those prefixes in new client code. Use consistent rem units for breakpoint
-ordering.
+Named prefixes are `mobile:` 390px, `tablet:` 768px and `desktop:` 1440px.
+These replace Tailwind's default viewport prefix names. The storefront uses
+`min-[64rem]:` (1024px) for the full header navigation and split auth layout.
+At narrower widths, navigation uses a dialog and auth content uses one column.
+Keep visible controls and product names within the viewport at 320px.
 
 ## Usage example
 
-This is a documentation example, not an added component or screen:
-
 ```tsx
-<section className="rounded-lg border border-border bg-surface p-4 text-text tablet:p-6 desktop:p-8">
-  <h2 className="text-2xl">Section title</h2>
-  <p className="mt-2 text-sm text-muted">Supporting content</p>
-  <button className="mt-6 rounded-md bg-brand-600 px-6 py-3 text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
-    Continue
-  </button>
+<section className="flex flex-col gap-6 rounded-md border border-border bg-surface p-6 text-text">
+  <h2 className="text-2xl font-semibold">Your details</h2>
+  <p className="text-sm text-muted">
+    Keep your account information up to date.
+  </p>
+  <Button>Save changes</Button>
 </section>
 ```
-
-The supplied external design spec and prototype describe future screens and
-flows. They are design references, not proof that localization, cart, checkout,
-or backend integration exist. Keep implementation status in the
-[status inventory](../operations/implementation-status.md) and screen proposals in
-the [UI/UX specification](../future-plans/product/ui-ux-specification.md).

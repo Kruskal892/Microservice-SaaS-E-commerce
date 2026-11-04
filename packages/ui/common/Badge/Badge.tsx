@@ -16,7 +16,7 @@ function Badge({ className, tone = 'neutral', ...props }: BadgeProps) {
       {...props}
       data-slot="badge"
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2 py-1 font-sans text-xs font-medium',
+        'inline-flex max-w-full items-center gap-1 wrap-anywhere rounded-full border px-2 py-1 font-sans text-xs font-medium',
         tones[tone],
         className,
       )}

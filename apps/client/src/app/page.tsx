@@ -1,5 +1,9 @@
 const Page = () => {
-  return <div className="h-[200vh]">Page</div>;
+  return (
+    <main id="main-content" tabIndex={-1} className="h-[200vh]">
+      Page
+    </main>
+  );
 };
 
 export default Page;

@@ -101,8 +101,10 @@ The focused Storybook no-emit TypeScript check passed for this shared Input
 migration; it does not run interaction checks or typecheck the entire client.
 `/sign-up` validates name, email, password length, and
 password confirmation using `signUpSchema`; a focused Node schema test was
-added but not run. Login no longer logs form credentials. Both forms show an
-unavailable status on valid submission, and Google sign-in is disabled until
+added but not run. Neither auth form logs credentials. Signup posts validated
+details to `/api/user-registration`, keeps submission busy during requests,
+shows server/network errors, and opens OTP entry only on success. Login, OTP
+verification, and resend remain unavailable previews. Google sign-in is disabled until
 integration is implemented. Theme selection uses the shared `Switch` with
 sun/moon indicators. Header actions are shared between the top row and sticky
 navigation, with one sign-in link per group, quieter search styling, active-page

@@ -30,7 +30,7 @@ function TooltipContent({
         collisionPadding={collisionPadding}
         data-slot="tooltip-content"
         className={cn(
-          'z-50 max-w-64 rounded-sm bg-text px-3 py-2 font-sans text-sm text-surface shadow-md',
+          'z-60 max-w-[min(16rem,calc(100vw-1rem))] rounded-sm bg-text px-3 py-2 font-sans text-sm break-words text-surface shadow-overlay',
           className,
         )}
       >

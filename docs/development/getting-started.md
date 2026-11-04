@@ -104,9 +104,11 @@ light/dark selectors, and named responsive variants. Language controls remain
 future UI work.
 
 The root `next-themes` provider defaults to the OS theme and retains a saved
-light/dark preference under `localStorage.theme`. The header switch is disabled
-until mounting. Auth forms validate locally and show unavailable feedback;
-Google sign-in is disabled. These screens do not require backend credentials.
+light/dark preference under `localStorage.theme`. The header theme button is
+disabled until mounting. Both auth forms validate locally. Signup requires
+`NEXT_PUBLIC_API_URL` pointing to the backend and requests a registration OTP;
+the backend needs its database, Redis, and email services configured. Login,
+OTP verification, and resend remain unavailable previews. Google sign-in is disabled.
 
 ## Environment variables
 

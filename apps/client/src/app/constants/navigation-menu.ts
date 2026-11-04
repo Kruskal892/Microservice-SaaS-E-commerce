@@ -1,6 +1,6 @@
 export const NAV_MENU = [
   {
-    title: 'Home',
+    title: 'Discover',
     href: '/',
   },
   {
@@ -16,7 +16,7 @@ export const NAV_MENU = [
     href: '/offers',
   },
   {
-    title: 'Become a Seller',
+    title: 'Become a seller',
     href: '/become-seller',
   },
 ];

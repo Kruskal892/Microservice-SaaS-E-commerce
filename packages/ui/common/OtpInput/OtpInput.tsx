@@ -41,7 +41,7 @@ function OtpInput({
       onChange={onValueChange}
       className={inputClassName}
       containerClassName={cn(
-        'flex w-fit max-w-full items-center gap-2 has-disabled:cursor-not-allowed has-disabled:opacity-50',
+        'flex w-fit max-w-full items-center gap-3 has-disabled:cursor-not-allowed has-disabled:opacity-50',
         className,
       )}
       render={({ slots }) => (
@@ -53,10 +53,10 @@ function OtpInput({
               data-slot="otp-slot"
               data-active={slot.isActive}
               className={cn(
-                'flex h-12 w-10 min-w-0 items-center justify-center rounded-md border border-border bg-surface font-mono text-xl font-semibold text-text transition-colors motion-reduce:transition-none tablet:w-12',
+                'flex h-16 w-15 min-w-0 items-center justify-center rounded-sm border border-control-border bg-surface font-sans text-[26px] tabular-nums font-semibold text-text transition-colors motion-reduce:transition-none',
                 slot.isActive &&
-                  !props.readOnly &&
-                  'border-focus ring-2 ring-focus/50',
+                  !props.disabled &&
+                  'border-focus ring-2 ring-focus ring-offset-2 ring-offset-background',
                 (props['aria-invalid'] === true ||
                   props['aria-invalid'] === 'true') &&
                   'border-danger',

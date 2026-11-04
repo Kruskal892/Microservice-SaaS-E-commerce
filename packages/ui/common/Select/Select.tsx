@@ -18,7 +18,7 @@ function SelectTrigger({
       {...props}
       data-slot="select-trigger"
       className={cn(
-        'inline-flex h-10 w-full items-center justify-between gap-2 rounded-sm border border-border bg-surface px-3 font-sans text-base text-text outline-none focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger data-[placeholder]:text-muted',
+        'inline-flex min-h-12 w-full min-w-0 items-center justify-between gap-2 rounded-sm border border-control-border bg-surface px-3.5 font-sans text-base text-text outline-none focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger data-[placeholder]:text-muted [&>span:first-child]:min-w-0 [&>span:first-child]:truncate [&>span:last-child]:shrink-0',
         className,
       )}
     >
@@ -51,7 +51,7 @@ function SelectContent({
         collisionPadding={collisionPadding}
         data-slot="select-content"
         className={cn(
-          'z-50 min-w-(--radix-select-trigger-width) max-w-[calc(100vw-1rem)] max-h-(--radix-select-content-available-height) overflow-hidden rounded-sm border border-border bg-surface font-sans text-base text-text shadow-lg',
+          'z-50 min-w-(--radix-select-trigger-width) max-w-[calc(100vw-1rem)] max-h-(--radix-select-content-available-height) overflow-hidden overscroll-contain rounded-sm border border-border bg-surface font-sans text-base text-text shadow-overlay',
           className,
         )}
       >
@@ -61,7 +61,7 @@ function SelectContent({
         >
           ⌃
         </Primitive.ScrollUpButton>
-        <Primitive.Viewport className="p-1">{children}</Primitive.Viewport>
+        <Primitive.Viewport className="p-2">{children}</Primitive.Viewport>
         <Primitive.ScrollDownButton
           className="flex justify-center py-1"
           aria-hidden="true"
@@ -81,12 +81,12 @@ function SelectItem({
     <Primitive.Item
       {...props}
       className={cn(
-        'relative flex cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 outline-none data-[highlighted]:bg-surface-alt data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'relative flex min-h-11 cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 wrap-anywhere outline-none data-[highlighted]:bg-surface-alt data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}
     >
       <span
-        className="flex size-4 items-center justify-center"
+        className="flex size-4 shrink-0 items-center justify-center"
         aria-hidden="true"
       >
         <Primitive.ItemIndicator>✓</Primitive.ItemIndicator>

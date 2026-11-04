@@ -71,3 +71,11 @@ Keep accessible names on meaningful icons or their enclosing controls; direct
 SVG imports do not add accessibility attributes automatically. See the
 [shared UI guide](../../docs/reference/shared-ui.md#svg-icon-library) for named
 icons and input styling.
+
+## Shared font
+
+`fonts/DM-Sans-Variable.ttf` and `fonts/OFL.txt` supply the shared type family and
+its licence. `packages/ui/theme.css` loads the font through `@font-face`; no
+Next.js or third-party font service is required. `CloseIcon` is exported from
+the icon barrel for modal/drawer close actions. Product reference illustrations
+belong to the storefront and live in `apps/client/public/images/products/`.

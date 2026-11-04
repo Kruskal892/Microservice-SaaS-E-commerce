@@ -15,7 +15,7 @@ function Checkbox({ className, indicatorClassName, ...props }: CheckboxProps) {
       {...props}
       data-slot="checkbox"
       className={cn(
-        'inline-flex size-5 shrink-0 items-center justify-center rounded-sm border border-border bg-surface text-on-action outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger data-[state=checked]:border-action data-[state=checked]:bg-action data-[state=indeterminate]:border-action data-[state=indeterminate]:bg-action motion-reduce:transition-none',
+        'inline-flex size-5 shrink-0 items-center justify-center touch-manipulation rounded-xs border border-control-border bg-surface text-on-action outline-none transition-colors focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-danger data-[state=checked]:border-action data-[state=checked]:bg-action data-[state=indeterminate]:border-action data-[state=indeterminate]:bg-action motion-reduce:transition-none',
         className,
       )}
     >

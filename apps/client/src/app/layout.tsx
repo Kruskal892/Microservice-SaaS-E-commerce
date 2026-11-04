@@ -1,33 +1,30 @@
 import type { ReactNode } from 'react';
 import './global.css';
-import { Poppins, Roboto } from 'next/font/google';
 import Header from '@/components/layout/Header';
 import { ThemeProvider } from 'next-themes';
+import Providers from './providers';
 
 export const metadata = {
-  title: 'MicroShop',
-  description: 'Welcome to MicroShop',
+  title: 'Eshop',
+  description: 'Thoughtful finds for everyday life.',
 };
-
-const roboto = Roboto({
-  subsets: ['latin'],
-  variable: '--font-roboto-next',
-});
-
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['100', '200', '300', '400', '500', '600', '700'],
-  variable: '--font-poppins-next',
-});
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${roboto.variable} ${poppins.variable}`}>
-        <ThemeProvider attribute="data-theme" defaultTheme="system">
-          <Header />
-          {children}
-        </ThemeProvider>
+      <body>
+        <Providers>
+          <ThemeProvider attribute="data-theme" defaultTheme="system">
+            <a
+              href="#main-content"
+              className="sr-only fixed top-3 left-3 z-100 rounded-sm bg-action px-4 py-3 text-on-action focus:not-sr-only focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              Skip to content
+            </a>
+            <Header />
+            {children}
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

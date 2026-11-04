@@ -3,57 +3,36 @@ import { Icon, cn } from '@packages/ui';
 import Link from 'next/link';
 
 const actionClassName =
-  'inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-alt hover:text-text focus-visible:outline-2 focus-visible:outline-focus motion-reduce:transition-none';
+  'inline-flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-sm text-text outline-none transition-colors hover:bg-surface-alt focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface motion-reduce:transition-none';
 
-export function HeaderActions({ compact = false }: { compact?: boolean }) {
+export function HeaderActions() {
   return (
-    <div className="flex shrink-0 items-center gap-1 tablet:gap-2">
+    <div className="flex items-center gap-1 min-[64rem]:gap-3">
       <Link
         href="/login"
         aria-label="Sign in to your account"
-        title="Sign in to your account"
-        className={cn(
-          actionClassName,
-          !compact && 'desktop:w-auto desktop:gap-2 desktop:px-3',
-        )}
+        title="Your account"
+        className={cn(actionClassName, 'hidden mobile:inline-flex')}
       >
-        <Icon name="ProfileIcon" />
-        {!compact && (
-          <span className="hidden text-left desktop:block">
-            <span className="block text-xs text-muted">Your account</span>
-            <span className="block text-sm font-semibold text-text">
-              Sign in
-            </span>
-          </span>
-        )}
+        <Icon name="ProfileIcon" className="size-6" />
       </Link>
       <Link
         href="/wishlist"
         aria-label="Wishlist"
         title="Wishlist"
-        className={cn(actionClassName, 'hidden tablet:inline-flex')}
+        className={cn(actionClassName, 'hidden min-[64rem]:inline-flex')}
       >
         <Icon name="HeartIcon" className="size-6" />
       </Link>
       <Link
         href="/cart"
-        aria-label="Cart, 0 items"
+        aria-label="Cart"
         title="Cart"
-        className={cn(
-          actionClassName,
-          !compact && 'desktop:w-auto desktop:gap-2 desktop:px-3',
-        )}
+        className={actionClassName}
       >
         <Icon name="CartIcon" className="size-6" />
-        {!compact && (
-          <span className="hidden text-sm font-medium desktop:inline">
-            Cart
-          </span>
-        )}
       </Link>
-      <div className="border-l border-border pl-2 tablet:pl-3">
-        <ThemeToggle />
-      </div>
+      <ThemeToggle />
     </div>
   );
 }

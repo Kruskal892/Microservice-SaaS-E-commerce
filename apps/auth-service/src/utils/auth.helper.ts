@@ -1,4 +1,4 @@
-import { ValidationError } from '@packages/error-handler';
+import { AppError, ValidationError } from '@packages/error-handler';
 import redis from '@packages/libs/redis';
 import { prisma } from '@packages/libs';
 import crypto from 'node:crypto';
@@ -56,6 +56,12 @@ export const validateRegistrationData = (
 
 // shortcut: OTP counters are sequential; make admission atomic before concurrent public traffic.
 export const checkOtpRestrictions = async (email: string) => {
+  if (redis.status !== 'ready') {
+    throw new AppError(
+      'Email verification is temporarily unavailable. Please try again later.',
+      503,
+    );
+  }
   if (await redis.get(`otp_lock:${email}`)) {
     throw new ValidationError('Account is locked. Try again after 30 minutes');
   }
