@@ -7,7 +7,7 @@ function Card({ className, ...props }: ComponentProps<'div'>) {
       {...props}
       data-slot="card"
       className={cn(
-        'flex flex-col rounded-md border border-border bg-surface font-sans text-text',
+        'flex min-w-0 flex-col rounded-md border border-border bg-surface font-sans text-text',
         className,
       )}
     />
@@ -18,7 +18,7 @@ function CardHeader({ className, ...props }: ComponentProps<'div'>) {
     <div
       {...props}
       data-slot="card-header"
-      className={cn('flex flex-col gap-2 p-6', className)}
+      className={cn('flex flex-col gap-2 p-5 tablet:p-6', className)}
     />
   );
 }
@@ -27,7 +27,10 @@ function CardTitle({ className, ...props }: ComponentProps<'h2'>) {
     <h2
       {...props}
       data-slot="card-title"
-      className={cn('text-xl font-semibold', className)}
+      className={cn(
+        'text-xl font-semibold text-balance break-words',
+        className,
+      )}
     />
   );
 }
@@ -36,7 +39,7 @@ function CardDescription({ className, ...props }: ComponentProps<'p'>) {
     <p
       {...props}
       data-slot="card-description"
-      className={cn('text-sm text-muted', className)}
+      className={cn('text-sm leading-5 break-words text-muted', className)}
     />
   );
 }
@@ -45,7 +48,7 @@ function CardContent({ className, ...props }: ComponentProps<'div'>) {
     <div
       {...props}
       data-slot="card-content"
-      className={cn('px-6 pb-6', className)}
+      className={cn('px-5 pb-5 tablet:px-6 tablet:pb-6', className)}
     />
   );
 }
@@ -54,7 +57,10 @@ function CardFooter({ className, ...props }: ComponentProps<'div'>) {
     <div
       {...props}
       data-slot="card-footer"
-      className={cn('flex flex-wrap items-center gap-2 px-6 pb-6', className)}
+      className={cn(
+        'flex flex-wrap items-center gap-2 px-5 pb-5 tablet:px-6 tablet:pb-6',
+        className,
+      )}
     />
   );
 }

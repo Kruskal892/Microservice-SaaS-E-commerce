@@ -26,8 +26,8 @@ to variables selected by light/dark CSS selectors. Base body styles consume the
 background, text, and font tokens. `ThemeToggle` (`src/components/common/ThemeToggle`)
 uses `useTheme()` for the resolved mode and theme updates. The provider owns
 initialization, persistence, cross-tab synchronization, and system-theme
-tracking. The switch is disabled until mounted to avoid hydration mismatches.
-System tracking applies while the preference is `system`; the binary switch
+tracking. The theme button is disabled until mounted to avoid hydration mismatches.
+System tracking applies while the preference is `system`; the theme button
 saves an explicit light/dark preference.
 Client CSS explicitly scans `packages/ui`. The header and login page use the shared
 native `Input` exported from `@packages/ui`. Its flex wrapper owns field styling and
@@ -36,14 +36,13 @@ reacts to native input focus/disabled/invalid state through `:has()` selectors.
 the wrapper, input, icon area, and named SVG respectively. Start/end ordering
 uses flex order, with no absolute offsets. Raw SVGs are owned by `packages/assets`
 and imported through a typed UI registry using the client's SVGR loaders. There
-is no search backend. `Header` renders the top header and CSS-sticky
-`HeaderBottom` as siblings, with shared `HeaderActions`, active-page navigation,
-and a mobile menu that closes on link selection. `/wishlist`, `/cart`, and `/forgot-password`
+is no search backend. `Header` is the CSS-sticky shell containing desktop navigation and shared
+`HeaderActions`. Compact navigation uses the shared Modal, closing on link
+selection or Escape with focus restoration. `/wishlist`, `/cart`, and `/forgot-password`
 links target missing routes; `/sign-up` is a validated form scaffold. Empty count
 badges are omitted, and cart data remains unwired.
-Roboto and Poppins load via `next/font/google` in the root layout, which sets
-MicroShop metadata. The body, header search, and auth controls use Roboto; the
-brand and auth headings use Poppins. Shared `Input` adds an accessible eye/eye-off
+DM Sans is bundled in `packages/assets/fonts/` and loaded by shared CSS. The
+root layout sets Eshop metadata. All client text uses the shared family. Shared `Input` adds an accessible eye/eye-off
 button automatically for `type="password"`, with flex positioning and scoped
 `::-ms-reveal` suppression. Its visibility state lives inside its client boundary.
 See [shared UI](../reference/shared-ui.md) and
@@ -55,11 +54,13 @@ The diagram below covers backend auth ownership.
 one themed box per digit, an active-slot highlight, and a caret. The primitive
 keeps a single accessible native field underneath the visual boxes for selection,
 paste, keyboard editing, form semantics, and autocomplete. The sign-up page
-continues to use a controlled code string and remains an OTP-preview scaffold.
+continues to use a controlled code string. Registration posts validated details
+to `/api/user-registration` and opens OTP entry only after a successful response.
+Pending requests disable submission; failures appear on the registration form.
 The sign-up page owns the Verify code form and a 60-second resend countdown,
 including cleanup and visibility updates. Its `otpCodeSchema` accepts exactly
-four numeric characters, preserving leading zeros. Actions show unavailable
-feedback until backend calls are connected; `OtpInput` does not submit, resend,
+four numeric characters, preserving leading zeros. Verification and resend show
+unavailable feedback until those calls are connected; `OtpInput` does not submit, resend,
 or enforce server rate limits.
 
 ```mermaid
@@ -131,10 +132,13 @@ The [Prisma wrapper](../../packages/libs/prisma/index.ts) reuses
 Generate `@prisma/client` from the schema before starting auth. The wrapper has
 no custom connection readiness or shutdown lifecycle.
 
-The [Redis module](../../packages/libs/redis/index.ts) directly constructs
-`new Redis(process.env.REDIS_DATABASE_URL!)`. The TypeScript non-null assertion
-does not validate runtime configuration. Sequential GET/SET operations implement
-OTP restrictions and counters; there is no atomic admission or gateway Redis store.
+The [Redis module](../../packages/libs/redis/index.ts) uses `REDIS_DATABASE_URL`
+with five-second connection/command timeouts, one retry per request, and no
+offline command queue. Background reconnection remains enabled. Connection
+errors log only the error code/name. OTP admission returns 503 while Redis is
+not ready instead of queuing a registration request. The TypeScript non-null
+assertion does not validate runtime configuration. Sequential GET/SET operations
+implement OTP restrictions and counters; there is no atomic admission or gateway Redis store.
 
 The [mail client](../../apps/auth-service/src/mail/mail.client.ts) creates one
 Nodemailer transport. It renders EJS from `templates` beside the bundled output,

@@ -1,9 +1,10 @@
 # Shared UI design
 
 **Status:** Implemented v1 source and Storybook configuration; app composition
-documentation updated 2026-11-03. Browser/accessibility verification remains open.
+documentation updated 2026-11-04. Browser/accessibility verification remains open.
 **Owners:** `packages/ui` owns React components and tokens; `packages/assets`
-owns SVG source. Apps own business behavior, fonts, routing, data and forms.
+owns icons and the bundled DM Sans font. Apps own business behavior, routing,
+data and forms.
 
 [Usage and recipes](../reference/common-components.md) ·
 [Storybook workflow](../development/storybook.md) ·
@@ -86,46 +87,33 @@ onCheckedChange`, or `open/defaultOpen/onOpenChange` through Radix. Do not
   switch an instance between controlled and uncontrolled while mounted.
 - Form data, validation, asynchronous actions, errors and persistence remain
   application responsibilities. No component assumes React Hook Form or Zod.
-- Shared controls use the shared Inter/system font preference. Client-only
-  Roboto/Poppins utilities remain local overrides.
+- Shared controls and client compositions use bundled DM Sans through the shared
+  `font-sans` token. The library does not depend on Next.js font loading.
 
 ## Tokens and visual behavior
 
-`packages/ui/theme.css` is the code source of truth. Import it once after
-Tailwind and scan `packages/ui`. Existing palette, spacing, radius, breakpoints
-and theme selectors remain available.
+`packages/ui/theme.css` is the runtime source of truth for the monochrome design.
+See [the colour/type/layout specification](eshop-monochrome.md) and
+[component contracts](common-ui.md). Import the theme after Tailwind and scan
+`packages/ui`; its font-face resolves `packages/assets/fonts/DM-Sans-Variable.ttf`.
+The font is bundled with its licence and works in the client and Storybook.
 
-| Token                          | Light                             | Dark         | Purpose                              |
-| ------------------------------ | --------------------------------- | ------------ | ------------------------------------ |
-| action                         | `#4f46e5`                         | same         | Primary action and selected controls |
-| action-hover                   | `#4338ca`                         | same         | Primary hover                        |
-| action-active                  | `#3730a3`                         | same         | Primary active/pressed               |
-| on-action                      | `#ffffff`                         | same         | Action labels and switch thumb       |
-| danger-action / hover / active | `#b91c1c` / `#991b1b` / `#7f1d1d` | same         | Destructive button states            |
-| success-foreground             | `#15803d`                         | `#4ade80`    | Readable success label               |
-| warning-foreground             | `#92400e`                         | `#fbbf24`    | Readable warning label               |
-| danger-foreground              | `#b91c1c`                         | `#f87171`    | Error and danger label               |
-| overlay                        | slate 900 at 60%                  | black at 70% | Modal backdrop                       |
+Actions are black with white labels in light mode, and white with black labels
+in dark mode. `border-border` is structural; `border-control-border` gives
+interactive controls a visible boundary. Status colours are functional accents.
+Danger buttons retain white labels in both themes.
 
-Foreground roles are separate from the existing status palette. Badge still
-uses the status color at 10% for its surface and 30% for its border. Do not
-communicate meaning through color alone.
+Button sizes are 36/44/48px minimum heights; icon buttons are 44px square.
+Input/Select defaults are 48px. Small visual choices use full labelled touch
+rows. Focus is a 2px ring with a 2px surface offset. OTP uses four 60x64px cells
+by default; cells shrink within a bounded group for six digits on narrow screens.
+Disabled/loading native buttons prevent activation; loading preserves the label.
+Hover/active overrides still merge through `cn`, and reduced-motion styles remain.
 
-Button heights are 32/40/48px; icon size is 40px. Radius `sm` is 8px and `md` is
-12px. Small controls may need larger surrounding hit areas for touch contexts.
-Focus is visible through `focus-visible` rings. Transitions and the loading
-spinner respect reduced motion. Disabled/loading buttons use the native
-disabled attribute, `disabled:pointer-events-none`, 50% opacity, and cannot activate.
-Button variants use `hover:bg-*` and `active:bg-*` so consumer `hover:bg-*` and
-`active:bg-*` overrides merge cleanly through `cn`. Loading sets `aria-busy`
-without replacing the accessible label. Icon-only loading visually hides its
-icon to keep the spinner within the fixed control size. Apps may announce long operations with
-a separate live status region. Hover/active are CSS states, not component props.
-
-Modals and menus use z-40/z-50. Portals default to `document.body`, so set the
-theme and direction on the document root. With a locally themed subtree, supply
-an appropriate portal container. Scrollable content is bounded by the viewport;
-menus/selects use Radix available-height values.
+The header is z-20, dialog backdrop z-40, dialog and menu/select portals z-50,
+and tooltips z-60. Equal portal levels permit nested menus above a dialog in
+DOM order. Portals default to `document.body`; set theme/direction on the root
+or provide `container` for locally themed subtrees. Overlays contain scrolling.
 
 ## Accessibility responsibilities
 
@@ -163,6 +151,11 @@ checks cover disabled/loading activation, checkbox toggling, Select and Tabs
 keyboard use, Modal focus/Escape restoration and menu selection. They are
 authored examples/checks, not evidence that tests have run. Do not automatically
 run lint, builds or tests; follow the repository's explicit-request policy.
+
+The historical Figma draft below was not updated by the monochrome implementation.
+The user imported the new visual handoff into Penpot; no project URL is recorded
+in this repository. Runtime tokens and [the coding specification](eshop-monochrome.md)
+are the current local reference.
 
 ## Figma contract
 

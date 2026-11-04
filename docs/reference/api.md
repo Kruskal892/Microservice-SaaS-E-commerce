@@ -11,10 +11,10 @@ The table below covers the Express backend. The Next.js client separately serves
 `GET http://localhost:3000/api/hello`, returning plain text `Hello, from API!`
 from [route.ts](../../apps/client/src/app/api/hello/route.ts). It is a scaffold
 handler, excluded from auth Swagger, with no auth, database, or gateway wiring.
-The client home page and `/login` and `/sign-up` form scaffolds do not call any
-backend route. The forms validate locally and show unavailable feedback;
-client-side schemas and password confirmation are separate from these backend
-contracts.
+The client `/sign-up` form posts validated registration details to
+`${NEXT_PUBLIC_API_URL}/api/user-registration` and opens OTP entry on success.
+Login, OTP verification, and resend remain unavailable previews. Client-side
+schemas and password confirmation are separate from these backend contracts.
 
 | Method | Path                               | Handler            | Source-defined result                                              |
 | ------ | ---------------------------------- | ------------------ | ------------------------------------------------------------------ |

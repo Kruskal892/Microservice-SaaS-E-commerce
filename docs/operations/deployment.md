@@ -42,8 +42,8 @@ Theme selectors and scales live in
 [global.css](../../apps/client/src/app/global.css); there is no runtime token
 service or build-time secret needed for styling. The client uses `next-themes`
 for runtime theme selection and local preference persistence, with no backend
-theme service. `next/font/google` downloads Roboto/Poppins during builds and
-self-hosts the generated assets; builds therefore need font download access.
+theme service. DM Sans is bundled under `packages/assets/fonts/` and loaded by the shared
+theme, so font loading does not require an external download.
 No production build or browser/theme deployment check was run for this refresh.
 See the
 [token reference](../reference/design-tokens.md) and

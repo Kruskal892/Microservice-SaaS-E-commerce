@@ -20,7 +20,7 @@ export default function Login() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -28,14 +28,20 @@ export default function Login() {
 
   return (
     <AuthCard
-      title="Welcome back"
-      description="Enter your details to sign in to your account."
+      title="Welcome back."
+      description={
+        <>
+          Sign in to your Eshop account.
+          <br />
+          Your next find is waiting.
+        </>
+      }
       footer={
         <>
           New to Eshop?{' '}
           <Link
             href="/sign-up"
-            className="rounded-sm font-semibold text-action underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus dark:text-focus"
+            className="rounded-xs font-medium text-text underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-focus"
           >
             Create an account
           </Link>
@@ -45,17 +51,18 @@ export default function Login() {
       <form
         onSubmit={handleSubmit(() => setSubmitted(true))}
         noValidate
-        className="flex flex-col gap-5"
+        className="flex flex-col gap-6"
       >
-        <Field className="font-roboto">
+        <Field>
           <Label htmlFor="email">Email address</Label>
           <Input
             id="email"
             type="email"
-            placeholder="you@example.com"
+            placeholder="alex@example.com"
             autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
             required
-            className="h-12 rounded-lg font-roboto"
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? 'email-error' : undefined}
             {...register('email')}
@@ -64,16 +71,14 @@ export default function Login() {
             <FieldError id="email-error">{errors.email.message}</FieldError>
           )}
         </Field>
-
-        <Field className="font-roboto">
+        <Field>
           <Label htmlFor="password">Password</Label>
           <Input
             id="password"
             type="password"
             placeholder="Enter your password"
-            // autoComplete="current-password"
+            autoComplete="current-password"
             required
-            className="h-12 rounded-lg font-roboto"
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? 'password-error' : undefined}
             {...register('password')}
@@ -84,33 +89,35 @@ export default function Login() {
             </FieldError>
           )}
         </Field>
-
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <div className="flex items-center gap-2">
+          <div className="flex min-h-11 items-center gap-2">
             <Checkbox id="remember-me" name="rememberMe" />
-            <Label htmlFor="remember-me" className="cursor-pointer font-normal">
+            <Label
+              htmlFor="remember-me"
+              className="flex min-h-11 cursor-pointer items-center font-normal"
+            >
               Remember me
             </Label>
           </div>
           <Link
             href="/forgot-password"
-            className="rounded-sm font-medium text-action underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-focus dark:text-focus"
+            className="rounded-xs font-medium text-text underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-focus"
           >
             Forgot password?
           </Link>
         </div>
-
         <Button
           type="submit"
           size="lg"
-          className="w-full rounded-lg font-roboto font-semibold shadow-sm"
+          loading={isSubmitting}
+          className="w-full"
         >
           Sign in
         </Button>
         {submitted && (
           <p
             role="status"
-            className="rounded-lg bg-surface-alt p-3 text-sm text-muted"
+            className="rounded-sm bg-surface-alt p-4 text-sm text-muted"
           >
             Sign-in is not available yet. Your details have not been sent.
           </p>

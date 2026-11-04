@@ -31,6 +31,10 @@ dotenv through [prisma.config.ts](../../prisma.config.ts).
 The Redis non-null assertion is a TypeScript annotation, not a runtime check.
 Supply a TCP `redis://` or `rediss://` URL for the existing client. No central
 configuration parser validates missing inputs or waits for dependencies.
+Redis connection and command timeouts are five seconds, the offline command
+queue is disabled, and requests allow one retry. The client reconnects in the
+background; OTP admission returns 503 until Redis is ready.
+Signup's browser request times out after 15 seconds and does not retry automatically.
 
 Set distinct JWT signing secrets in your local `.env` or deployment environment;
 the `.env.example` values are placeholders. Login passes the values directly to
@@ -85,11 +89,8 @@ environment variable. The provider owns initial selection, persistence,
 cross-tab synchronization, and live system tracking while `system` is selected.
 `ThemeToggle` reads `resolvedTheme`, calls `setTheme()`, and stays disabled until
 mounted. Keep theme changes inside this API instead of directly editing the DOM.
-The root layout loads Roboto and Poppins through `next/font/google`; client CSS
-exposes `font-roboto` and `font-poppins`. The body, header search, and auth
-controls use Roboto; the brand and auth headings use Poppins. Inter
-remains an unbundled shared fallback preference. Builds require network access
-for Google font downloads.
+The shared theme bundles DM Sans from `packages/assets/fonts/`; all client and
+shared UI text uses `font-sans`. Font loading does not require Google downloads.
 
 ## Fixed backend policy
 

@@ -240,8 +240,8 @@ See the
 The sizing and dark-mode comments have been addressed in source. Named SVGs
 receive an overridable default size from the shared `Icon`, monochrome icons
 use `currentColor`, and the header uses `bg-surface`, `ThemeToggle`, and the
-client-local Roboto/Poppins fonts backed by `next/font/google`. Header search
-uses Roboto; branding and auth headings use Poppins. The outdated parent
+shared bundled DM Sans font. Header search, branding, auth headings and
+controls share `font-sans`. The outdated parent
 size-selector restriction and claims of rendering specs have been removed.
 Storybook now contains examples and permanent play checks. No headless UI test
 runner is configured; these checks have not been run. Runtime and browser

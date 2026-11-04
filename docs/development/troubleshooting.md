@@ -11,7 +11,7 @@
 `iconContainerClassName` for icon-area background/padding, and `iconClassName`
 for a registered SVG. Named icons get an overridable `size-5` default from
 the shared `Icon`; give custom React elements their own SVG size. The header
-uses `bg-surface` and the client-local `font-poppins` override. See
+uses `bg-surface` and the bundled `font-sans` token. See
 [review status](../reference/shared-ui.md#review-status).
 
 If a no-emit client check reports `TS6305` for shared UI declarations, the
@@ -41,10 +41,9 @@ default `sm/md/lg/xl/2xl` viewport variants were replaced. Dark colors use
 `ThemeProvider` in `layout.tsx` to manage `data-theme`, the saved `theme`
 preference, and system-theme detection. Use `useTheme().setTheme()` instead of
 changing the DOM attribute directly. `ThemeToggle` waits until mounting before
-enabling its switch to avoid hydration mismatches. Roboto and Poppins load through
-`next/font/google`. If a build cannot fetch Google fonts, check build-time
-network access; the shared `font-sans` Inter/system stack is a separate fallback
-token.
+enabling its button to avoid hydration mismatches. DM Sans is loaded from
+`packages/assets/fonts/` by the shared theme. If it is missing, check the CSS
+font URL and asset handling; no Google font fetch is required.
 
 The header search input and placeholder page are intentional; product search is not implemented. A token setup does
 not add catalog, authentication, cart, or checkout screens. Backend CORS still
@@ -157,6 +156,25 @@ Both entry points load dotenv at startup. Run from the repository root and use
 .env.example as a placeholder guide. Existing shell variables take precedence.
 Redis keeps its original client; there is no shared config package or custom
 port parser. Auth defaults to 6001, gateway to 8080; PORT overrides that process.
+
+## Registration waits and Redis reports ETIMEDOUT
+
+Registration checks Redis before sending an OTP email. Repeated connection
+timeouts followed by `MaxRetriesPerRequestError` mean the Redis connection did
+not become available; they do not establish a password or SMTP failure.
+
+For Upstash, confirm that the database is active and copy its current TCP
+connection URL into `REDIS_DATABASE_URL`. Keep TLS enabled (`rediss://`) and use
+the hostname/port provided by Upstash. Check whether the network, VPN, or
+firewall permits outbound access to that endpoint. Restart the auth service
+after changing environment variables. Do not share the URL's password/token.
+
+The client now limits Redis connection/command waits to five seconds and does
+not queue commands while disconnected. OTP admission responds with 503 while
+Redis is unavailable; the browser also stops waiting after 15 seconds. These
+limits expose the outage promptly; successful registration still requires a
+reachable Redis database. A browser timeout does not cancel backend email work,
+so check for an arriving code before retrying.
 
 ## MongoDB SCRAM authentication failed
 

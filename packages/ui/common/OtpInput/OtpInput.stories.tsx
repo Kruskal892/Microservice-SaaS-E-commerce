@@ -100,6 +100,22 @@ export const Disabled: Story = {
 
 export const ReadOnly: Story = {
   args: { readOnly: true, defaultValue: '0123' },
+  play: async ({ canvasElement }) => {
+    const input = within(canvasElement).getByRole('textbox');
+    await userEvent.click(input);
+    await expect(input).toHaveFocus();
+    await userEvent.keyboard('9{Backspace}');
+    await expect(input).toHaveValue('0123');
+  },
+};
+
+export const NarrowSixDigits: Story = {
+  args: { length: 6, defaultValue: '001234' },
+  render: (args) => (
+    <div className="w-72 max-w-full">
+      <OtpInput {...args} />
+    </div>
+  ),
 };
 
 export const Invalid: Story = {

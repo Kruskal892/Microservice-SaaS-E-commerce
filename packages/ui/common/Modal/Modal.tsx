@@ -29,7 +29,7 @@ function ModalContent({
         {...props}
         data-slot="modal-content"
         className={cn(
-          'fixed start-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-md border border-border bg-surface p-6 font-sans text-text shadow-lg outline-none rtl:translate-x-1/2',
+          'fixed start-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2.5rem)] w-[calc(100%-2.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-6 overflow-y-auto overscroll-contain rounded-md border border-border bg-surface p-6 font-sans text-text shadow-overlay outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background tablet:p-8 rtl:translate-x-1/2',
           className,
         )}
       >
@@ -45,7 +45,10 @@ function ModalTitle({
   return (
     <Primitive.Title
       {...props}
-      className={cn('text-xl font-semibold', className)}
+      className={cn(
+        'text-2xl font-semibold text-balance break-words',
+        className,
+      )}
     />
   );
 }
@@ -56,7 +59,7 @@ function ModalDescription({
   return (
     <Primitive.Description
       {...props}
-      className={cn('text-sm text-muted', className)}
+      className={cn('text-sm leading-5 break-words text-muted', className)}
     />
   );
 }

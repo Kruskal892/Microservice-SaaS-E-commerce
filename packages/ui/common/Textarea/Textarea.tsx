@@ -12,7 +12,7 @@ function Textarea({
       rows={rows}
       data-slot="textarea"
       className={cn(
-        'w-full min-w-0 resize-y rounded-sm border border-border bg-surface px-3 py-2 font-sans text-base text-text outline-none transition-colors placeholder:text-muted focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus/50 disabled:cursor-not-allowed disabled:bg-surface-alt disabled:opacity-50 aria-invalid:border-danger aria-invalid:ring-2 aria-invalid:ring-danger/20 motion-reduce:transition-none',
+        'min-h-30 w-full min-w-0 resize-y rounded-sm border border-control-border bg-surface px-3.5 py-3 font-sans text-base text-text outline-none transition-colors placeholder:text-muted focus-visible:border-focus focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:bg-surface-alt disabled:opacity-50 aria-invalid:border-danger aria-invalid:ring-2 aria-invalid:ring-danger/20 motion-reduce:transition-none',
         className,
       )}
     />

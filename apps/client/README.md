@@ -1,7 +1,7 @@
 # Client
 
 Next.js App Router scaffold with React and Tailwind CSS v4. The current UI
-includes `Header` (with `HeaderBottom` sticky navigation, search input,
+includes `Header` (with desktop navigation, product search,
 account/wishlist/cart links, and a light/dark `ThemeToggle`), a placeholder `/`
 page, and `/login` and `/sign-up` forms built with shared `@packages/ui`
 controls, `AuthCard`, React Hook Form, and Zod validation. Storefront
@@ -42,20 +42,19 @@ on the document root.
 `attribute="data-theme"` and `defaultTheme="system"`. The provider supplies the
 startup script, persists the preference under the existing `localStorage`
 `theme` key, and synchronizes browser tabs. System changes are followed while
-the preference is `system`. Selecting a mode with the binary switch saves an
+the preference is `system`. Selecting a mode with the theme button saves an
 explicit preference. There is no System option in the current UI; use
 `setTheme('system')` to resume following the OS.
 [`ThemeToggle`](src/components/common/ThemeToggle/ThemeToggle.tsx) uses
 `useTheme().resolvedTheme` to display the effective mode and `setTheme()` to
-select `"light"` or `"dark"`. The switch is disabled until mounted to keep the
+select `"light"` or `"dark"`. The button is disabled until mounted to keep the
 server and initial browser markup consistent. Existing CSS tokens and
 `dark:*` selectors continue to work without a custom DOM observer.
 
-The root layout loads Roboto and Poppins with `next/font/google`.
-The body, header search, and auth controls use `font-roboto`; the brand and auth
-headings use `font-poppins`. These app-local utilities map to font variables in
-`global.css`. Builds need network access for
-Google font downloads.
+The shared theme bundles DM Sans from `packages/assets/fonts/` with its OFL
+licence. The client and Storybook use the same `font-sans` family, including
+headings, controls and wordmark; no Google font download is needed. See the
+[monochrome design specification](../../docs/design/eshop-monochrome.md).
 
 See the [complete token reference](../../docs/reference/design-tokens.md) for
 colors, type, spacing, radii, breakpoints, and utility examples. Use the client
@@ -77,15 +76,18 @@ See [component recipes](../../docs/reference/common-components.md),
 `OtpInput` is exported from `@packages/ui` and displays one box per digit, with
 active-slot highlighting and a caret. Its `input-otp` primitive owns keyboard
 editing, selection, paste, and one-time-code autocomplete. The
-sign-up page uses `value={otp}` and `onValueChange={setOtp}` with a single string;
+sign-up page uses a controlled string value and `onValueChange` with a single string;
 it no longer keeps an array of digits, input refs, or focus/Backspace handlers.
-The current `showOTP` flag is still initialized to `true` for the OTP preview.
-The OTP form has a Verify code submit button enabled only for four numeric
-digits. Resend code is disabled during a 60-second countdown and restarts the
-cooldown when activated. The countdown uses a wall-clock deadline and catches
-up on tab visibility changes. Delivery/verification/resend API calls are not
-wired: both actions display explicit unavailable feedback. No email delivery or
-verification success is claimed. The timer is UI feedback, not server rate limiting.
+Registration is the initial state. Validated details are posted to
+`${NEXT_PUBLIC_API_URL}/api/user-registration`; only a successful response opens
+the OTP UI. The submit button stays busy during the request, and server errors
+appear on the registration form with a fallback for network failures. Both
+branches remain in the sign-up route. Change email returns to the preserved
+registration details. OTP submission validates exactly four numeric digits,
+focuses invalid input and preserves leading zeros. Verification and resend
+requests remain unwired; no account creation or verification success is claimed.
+Resend uses a 60-second wall-clock countdown with visibility catch-up. The timer
+is UI feedback, not server rate limiting.
 See the [OTP recipe](../../docs/reference/common-components.md#otp-input).
 
 Import `Input`, `Field`, `Label`, `FieldError`, and `Checkbox` from `@packages/ui`.
@@ -93,8 +95,8 @@ Import `Input`, `Field`, `Label`, `FieldError`, and `Checkbox` from `@packages/u
 defaults. `className` styles the flex field wrapper; `inputClassName` styles the
 native input. Optional icons occupy their own flex space at the start or end.
 `iconContainerClassName` styles the icon container; `iconClassName` styles
-registered SVG icons. The header uses it for an accessible search field; search
-behavior is not implemented. See [shared UI](../../docs/reference/shared-ui.md)
+registered SVG icons. The header uses it in a labelled search form; the results route/backend
+remain unimplemented. See [shared UI](../../docs/reference/shared-ui.md)
 for examples and setup in other apps.
 
 Client form schemas live in `src/schemas/` (`loginSchema` and `signUpSchema` in
@@ -115,25 +117,22 @@ shared `Icon` supplies an overridable `size-5` default; see
 ## Header and common components
 
 The root layout renders the default export from `components/layout/Header`.
-Its folder contains `Header.tsx` (brand, search, and account actions),
-`HeaderBottom.tsx` (CSS-sticky navigation with active-page links and a mobile
-`<details>` menu), and `HeaderActions.tsx` (shared account/cart/theme controls).
-The navigation is a sibling of the top header so it can remain sticky through
-the page. Quick actions appear when the navigation reaches the viewport top.
-Wishlist is available in the mobile menu; the unused Departments button and
-empty count badges are omitted. The menu closes when a link is selected.
-`components/common/GoogleButton` provides a reusable Google sign-in UI button
-combining `@packages/ui` `Button` and `<Icon name="GoogleIcon" />`.
-`components/common/ThemeToggle` uses the shared Radix-backed `Switch` with a
-stable "Dark mode" label, an announced checked state, and sun/moon indicators.
+Its folder contains `Header.tsx` (sticky wordmark/search/actions shell),
+`HeaderBottom.tsx` (desktop links and a compact Radix dialog navigation), and
+`HeaderActions.tsx` (account/cart/wishlist/theme actions). Full navigation starts
+at 1024px. Below 390px, the account shortcut moves into the navigation menu.
+The mobile dialog closes after navigation or Escape and restores focus through
+the shared Modal. There is one theme action, a native toggle
+button with a stable Dark mode label and `aria-pressed`. `AuthCard` uses a split
+introduction/form at desktop widths and one column on mobile.
+`GoogleButton` remains disabled until OAuth is implemented.
 Both `common` and `layout` are re-exported from `src/components/index.ts`.
 
 The header links to `/login`, `/wishlist`, and `/cart`. `/login` renders the
 login form UI and `/sign-up` renders a registration form scaffold; `/wishlist`, `/cart`,
 and `/forgot-password` do not exist yet and return the not-found page.
-Wishlist/cart are not connected to data. Search has an editable field
-without submission or API calls. Metadata uses MicroShop; the visible header
-brand remains Eshop.
+Wishlist/cart are not connected to data. Search submits `q` to `/products`, which is still a planned route. Metadata and
+visible branding both use Eshop. No search backend is connected.
 
 ## Routes
 
@@ -144,8 +143,9 @@ brand remains Eshop.
 | `/sign-up`   | Name/email/password/confirmation form scaffold with Zod/RHF validation and password visibility controls |
 | `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler                                              |
 
-Both auth forms validate locally and show an unavailable status on valid
-submission; no credentials are logged or sent. Google sign-in is visibly
+Both auth forms validate locally. Signup sends validated registration details
+to request an email code; login still shows an unavailable status without
+sending credentials. Neither form logs credentials. Google sign-in is visibly
 unavailable. `AuthCard` shares the page shell. Both pages use the shared
 `<Input type="password" />`, which retains native input props and refs while
 adding an accessible `EyeIcon`/`EyeOffIcon` button in the field's flex layout.

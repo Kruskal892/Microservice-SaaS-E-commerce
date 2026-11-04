@@ -6,7 +6,7 @@ function Field({ className, ...props }: ComponentProps<'div'>) {
     <div
       {...props}
       data-slot="field"
-      className={cn('flex flex-col gap-2 font-sans', className)}
+      className={cn('flex min-w-0 flex-col gap-2 font-sans', className)}
     />
   );
 }
@@ -24,16 +24,20 @@ function FieldDescription({ className, ...props }: ComponentProps<'p'>) {
     <p
       {...props}
       data-slot="field-description"
-      className={cn('text-sm text-muted', className)}
+      className={cn('text-sm leading-5 wrap-break-word text-muted', className)}
     />
   );
 }
 function FieldError({ className, ...props }: ComponentProps<'p'>) {
   return (
     <p
+      aria-live="polite"
       {...props}
       data-slot="field-error"
-      className={cn('text-sm text-danger-foreground', className)}
+      className={cn(
+        'text-sm leading-5 wrap-break-word text-danger-foreground',
+        className,
+      )}
     />
   );
 }

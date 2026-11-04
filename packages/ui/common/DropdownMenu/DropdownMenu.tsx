@@ -27,7 +27,7 @@ function DropdownMenuContent({
         collisionPadding={collisionPadding}
         data-slot="dropdown-menu-content"
         className={cn(
-          'z-50 min-w-40 max-w-[calc(100vw-1rem)] max-h-(--radix-dropdown-menu-content-available-height) overflow-y-auto rounded-sm border border-border bg-surface p-1 font-sans text-sm text-text shadow-lg outline-none',
+          'z-50 min-w-50 max-w-[calc(100vw-1rem)] max-h-(--radix-dropdown-menu-content-available-height) overflow-y-auto overscroll-contain rounded-sm border border-border bg-surface p-2 font-sans text-sm text-text shadow-overlay outline-none',
           className,
         )}
       />
@@ -35,7 +35,7 @@ function DropdownMenuContent({
   );
 }
 const itemClassName =
-  'relative flex cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 outline-none data-[highlighted]:bg-surface-alt data-[disabled]:pointer-events-none data-[disabled]:opacity-50';
+  'relative flex min-h-11 cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 wrap-anywhere outline-none data-[highlighted]:bg-surface-alt data-[disabled]:pointer-events-none data-[disabled]:opacity-50';
 function DropdownMenuItem({
   className,
   ...props
@@ -50,7 +50,7 @@ function DropdownMenuCheckboxItem({
   return (
     <Primitive.CheckboxItem {...props} className={cn(itemClassName, className)}>
       <span
-        className="flex size-4 items-center justify-center"
+        className="flex size-4 shrink-0 items-center justify-center"
         aria-hidden="true"
       >
         <Primitive.ItemIndicator className="data-[state=checked]:before:content-['✓'] data-[state=indeterminate]:before:content-['−']" />
@@ -67,7 +67,7 @@ function DropdownMenuRadioItem({
   return (
     <Primitive.RadioItem {...props} className={cn(itemClassName, className)}>
       <span
-        className="flex size-4 items-center justify-center"
+        className="flex size-4 shrink-0 items-center justify-center"
         aria-hidden="true"
       >
         <Primitive.ItemIndicator>●</Primitive.ItemIndicator>

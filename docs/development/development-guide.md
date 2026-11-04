@@ -177,11 +177,9 @@ equivalent loader, while `packages/assets/icons/index.ts` exports define the typ
 consumed automatically by `packages/ui/icons/Icon.tsx`.
 The existing `clsx` and `tailwind-merge` dependencies in the shared manifest
 support `cn`; no separate UI/assets package manifest is required.
-The shared `font-sans` retains its Inter/system fallback. The client loads
-Roboto and Poppins with `next/font/google`; `font-roboto` styles the body and
-`font-poppins` styles the brand and auth headings. Header search and auth
-controls use Roboto. The header uses `bg-surface`.
-Keep these app-local font mappings in client CSS.
+The shared `font-sans` uses bundled DM Sans from `packages/assets/fonts/`.
+Controls, body copy, headings and wordmark share the same family. The header
+uses `bg-surface`; monochrome tokens live in the shared theme.
 
 Auth page composition uses client `AuthCard` and the shared password-enabled
 `Input`. Password visibility state and its accessible flex button belong to

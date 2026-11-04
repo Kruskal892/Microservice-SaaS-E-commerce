@@ -8,7 +8,7 @@ const colors = {
   Hover: 'bg-action-hover text-on-action',
   Active: 'bg-action-active text-on-action',
   Danger: 'bg-danger-action text-on-action',
-  Focus: 'bg-focus text-text',
+  Focus: 'bg-focus text-on-action',
 };
 const meta = {
   title: 'Foundations/Theme',
@@ -16,7 +16,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Shared semantic color roles, spacing, radius and type. Set .dark or data-theme="dark" on the document root, including portaled content. Client Google fonts remain app-local.',
+          'Monochrome semantic roles, spacing, radius and bundled DM Sans type. Set .dark or data-theme="dark" on the document root, including portaled content.',
       },
     },
   },
@@ -38,7 +38,7 @@ export const Tokens: Story = {
         ))}
       </div>
       <h2 className="text-xl font-semibold">Type and shape</h2>
-      <p className="text-base">Body: 16px / native Inter or system fallback</p>
+      <p className="text-base">Body: 16px / 24px / DM Sans</p>
       <p className="text-sm text-muted">Secondary: 14px</p>
       <div className="flex gap-4">
         <div className="rounded-sm border border-border bg-surface p-4">

@@ -3,13 +3,12 @@
 
 @source '../../../../packages/ui';
 
-@theme inline {
-  --font-roboto: var(--font-roboto-next);
-  --font-poppins: var(--font-poppins-next);
-}
-
 @layer base {
   body {
-    @apply bg-background font-roboto text-text transition-colors duration-200 motion-reduce:transition-none;
+    @apply bg-background font-sans text-text antialiased;
+  }
+
+  html {
+    scroll-padding-top: 9rem;
   }
 }

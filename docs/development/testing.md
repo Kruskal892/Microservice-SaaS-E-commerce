@@ -86,15 +86,19 @@ behavior or accessibility conformance can be inferred from generated CSS.
 
 The following browser checks are suggested, not completed for this change:
 
-1. Check `ThemeToggle` in the top header and sticky navigation. Verify reload
+1. Check `ThemeToggle` in the sticky header. Verify reload
    persistence, same-origin cross-tab synchronization, and live OS updates while
-   the preference is `system`. Selecting the binary switch saves an explicit
+   the preference is `system`. Selecting the theme button saves an explicit
    mode; restore `system` through `setTheme('system')` when checking OS tracking.
-2. Check keyboard operation, announced switch state, and hydration warnings on
-   reload in both themes. The switch remains disabled until mounted.
+2. Check keyboard operation, announced pressed state, and hydration warnings on
+   reload in both themes. The theme button remains disabled until mounted.
 3. Open `/login` and `/sign-up`. Check required fields, invalid email, password
-   length, mismatched confirmation, and error-to-field associations. Valid
-   submissions show unavailable feedback; no credentials should be logged or sent.
+   length, mismatched confirmation, and error-to-field associations. Login shows
+   unavailable feedback without sending credentials. Signup posts validated
+   details to `/api/user-registration`; verify the button remains busy during
+   a slow request, failures are visible on the registration form, and only a
+   successful response opens OTP entry. Neither form should log credentials.
+   At 320px, check that the header fits and sign-in is available in the menu.
 4. Check password eye/eye-off controls by pointer and keyboard. In Edge, typing
    should show only the custom reveal button. Inspect password-manager overlays
    and confirm that toggling visibility never submits the form.
@@ -107,7 +111,7 @@ The following browser checks are suggested, not completed for this change:
 5. Check widths below/at 390px, 768px, and 1440px, including 320px. Inspect header
    overflow, CSS-sticky positioning, compact actions, active navigation, mobile
    wishlist access, and menu closing after selection.
-6. Check Roboto body/search/auth controls, Poppins branding/auth headings, and
+6. Check bundled DM Sans body/search/auth controls and headings, and
    `currentColor` icon contrast in both themes. Wishlist/cart/forgot-password
    routes remain missing; empty count badges are omitted.
 
