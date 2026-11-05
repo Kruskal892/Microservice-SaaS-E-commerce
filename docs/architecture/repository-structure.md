@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [System architecture](overview.md)
 
-**Status:** Current files and configuration. **Reviewed:** 2026-11-03.
+**Status:** Current files and configuration. **Reviewed:** 2026-11-05.
 
 ## Source layout
 
@@ -10,11 +10,17 @@
 .
 |-- apps/
 |   |-- client/
-|   |   |-- src/app/layout.tsx          # Global CSS, next-themes provider, and Header
+|   |   |-- src/api/
+|   |   |   |-- client.ts               # Shared Axios instance (NEXT_PUBLIC_API_URL, 15s timeout)
+|   |   |   |-- auth.ts                 # registrationMutation and verifyOtpMutation options
+|   |   |   |-- messages.ts             # Validated server/timeout/fallback message helpers
+|   |   |   `-- messages.test.ts        # Permanent standalone Node tests for API message helpers
+|   |   |-- src/app/layout.tsx          # Global CSS, Providers, and Header
+|   |   |-- src/app/providers.tsx       # QueryClientProvider and next-themes ThemeProvider
 |   |   |-- src/app/page.tsx            # Placeholder page
 |   |   |-- src/app/global.css          # Tailwind, shared theme import/source, body styles
 |   |   |-- src/app/(routes)/login/page.tsx # Login page UI with RHF + Zod validation
-|   |   |-- src/app/(routes)/sign-up/page.tsx # Sign-up form scaffold with RHF + Zod
+|   |   |-- src/app/(routes)/sign-up/page.tsx # Sign-up and OTP verification flow with RHF, Zod, and TanStack Query
 |   |   |-- src/app/constants/navigation-menu.ts # Header navigation items
 |   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
 |   |   |-- src/components/index.ts     # Common and layout exports
@@ -25,8 +31,8 @@
 |   |   |   |-- HeaderActions.tsx      # Shared account, wishlist/cart links, and theme switch
 |   |   |   |-- HeaderBottom.tsx       # CSS-sticky navigation, mobile menu, and compact actions
 |   |   |   `-- index.ts               # Default Header and named HeaderBottom
-|   |   |-- src/schemas/                # Client Zod validation schemas (auth.schema.ts)
-|   |   |   `-- auth.schema.test.ts     # Permanent standalone Node validation tests (unrun)
+|   |   |-- src/schemas/                # Client Zod validation schemas (login, signUp, otpCode, verifyOtp)
+|   |   |   `-- auth.schema.test.ts     # Permanent standalone Node validation tests
 |   |   |-- src/utils/zod-resolver.ts   # Zod v4 resolver adapter for react-hook-form
 |   |   |-- postcss.config.mjs          # @tailwindcss/postcss
 |   |   |-- next.config.js

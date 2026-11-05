@@ -1,7 +1,7 @@
 // Run explicitly: node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { otpCodeSchema, signUpSchema } from './auth.schema.ts';
+import { otpCodeSchema, signUpSchema, verifyOtpSchema } from './auth.schema.ts';
 
 const valid = {
   name: ' Alex Smith ',
@@ -48,5 +48,30 @@ test('sign-up rejects invalid details and mismatched passwords', () => {
         (issue) => issue.path[0] === 'confirmPassword',
       ),
     );
+  }
+});
+
+test('OTP verification sends complete registration details and matches normalized email keys', () => {
+  assert.deepEqual(
+    verifyOtpSchema.parse({
+      ...valid,
+      email: ' Alex@Example.com ',
+      otp: '0012',
+    }),
+    {
+      name: 'Alex Smith',
+      email: 'alex@example.com',
+      password: valid.password,
+      otp: '0012',
+    },
+  );
+
+  for (const values of [
+    { ...valid, name: undefined, otp: '1234' },
+    { ...valid, email: '', otp: '1234' },
+    { ...valid, password: '', otp: '1234' },
+    { ...valid, otp: '12a4' },
+  ]) {
+    assert.equal(verifyOtpSchema.safeParse(values).success, false);
   }
 });

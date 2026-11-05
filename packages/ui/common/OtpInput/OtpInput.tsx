@@ -53,7 +53,7 @@ function OtpInput({
               data-slot="otp-slot"
               data-active={slot.isActive}
               className={cn(
-                'flex h-16 w-15 min-w-0 items-center justify-center rounded-sm border border-control-border bg-surface font-sans text-[26px] tabular-nums font-semibold text-text transition-colors motion-reduce:transition-none',
+                'flex h-16 w-15 min-w-0 items-center justify-center rounded-sm border border-control-border bg-surface font-sans text-callout tabular-nums font-semibold text-text transition-colors motion-reduce:transition-none',
                 slot.isActive &&
                   !props.disabled &&
                   'border-focus ring-2 ring-focus ring-offset-2 ring-offset-background',

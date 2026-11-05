@@ -39,3 +39,12 @@ export const otpCodeSchema = z
   .string()
   .length(4, 'Enter the four-digit code')
   .regex(/^[0-9]+$/, 'Use digits only');
+
+export const verifyOtpSchema = z.object({
+  name: signUpSchema.shape.name,
+  email: signUpSchema.shape.email.transform((email) => email.toLowerCase()),
+  password: signUpSchema.shape.password,
+  otp: otpCodeSchema,
+});
+
+export type VerifyOtpPayload = z.infer<typeof verifyOtpSchema>;

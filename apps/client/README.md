@@ -4,9 +4,9 @@ Next.js App Router scaffold with React and Tailwind CSS v4. The current UI
 includes `Header` (with desktop navigation, product search,
 account/wishlist/cart links, and a light/dark `ThemeToggle`), a placeholder `/`
 page, and `/login` and `/sign-up` forms built with shared `@packages/ui`
-controls, `AuthCard`, React Hook Form, and Zod validation. Storefront
-screens, backend API integration, authentication submission handlers, commerce
-flows, and localization are not implemented.
+controls, `AuthCard`, React Hook Form, and Zod validation. Registration and OTP
+verification requests are connected. Resend, login submission, storefront screens,
+commerce flows, and localization are not implemented.
 
 ## Run and check
 
@@ -17,8 +17,10 @@ npm run client
 ```
 
 Open `http://localhost:3000`. `npm run dev` starts the backend `serve` targets;
-the client uses a separate `dev` target. The client scaffold does not require
-MongoDB, Redis, SMTP, JWT secrets, or a client environment file.
+the client uses a separate `dev` target. The placeholder UI renders without backend
+credentials. To use registration, set `NEXT_PUBLIC_API_URL` to the API gateway
+origin (for example, `http://localhost:8080`) in `apps/client/.env`, and start the
+backend services with their required MongoDB, Redis, and SMTP configuration.
 
 ```sh
 npx nx build @microservice-eshop/client
@@ -28,6 +30,43 @@ node node_modules/typescript/bin/tsc -p apps/client/tsconfig.json --noEmit
 
 Run these commands from the repository root. Use `npm.cmd` or `npx.cmd` if
 PowerShell blocks the `.ps1` wrappers. Build before using `start`.
+
+## API requests and TanStack Query
+
+Use [`src/api/client.ts`](src/api/client.ts) for HTTP requests. It configures
+`NEXT_PUBLIC_API_URL` and a 15-second timeout once. API feature modules such as
+[`src/api/auth.ts`](src/api/auth.ts) own request payloads, response data, and
+TanStack options. Define each request inline in its `mutationFn` or `queryFn`,
+return the response data, and let failures reject so TanStack can track the error
+state.
+
+Export `mutationOptions({ mutationKey, mutationFn, ... })` for writes, and
+`queryOptions({ queryKey, queryFn, ... })` for reads. Consumers pass those options
+to `useMutation` or `useQuery`; a custom hook is only needed when it adds shared
+behavior. Include the resource and operation in keys, and include request
+parameters in query keys. Never put passwords or OTP codes in keys.
+
+The sign-up page spreads `registrationMutation` and `verifyOtpMutation` into
+`useMutation` and owns its OTP transitions, form errors, and `/login` redirect.
+Use `getApiErrorMessage` from [`src/api/messages.ts`](src/api/messages.ts) for
+validated server messages, timeout guidance, and an operation-specific fallback.
+The helper preserves the original error for status/code checks and does not
+expose arbitrary error text.
+
+Keep shared cache invalidation in the feature's mutation options. For page-only
+navigation or messages, `mutate(variables, { onSuccess, onError })` adds callbacks
+without replacing shared callbacks; these run only while the consumer remains
+mounted. If overriding callbacks through an options spread, call the shared
+callback explicitly when one exists. Use `onMutate` for optimistic updates only
+when the feature needs them, with rollback in `onError`. Both registration and
+OTP verification set `retry: false` so failed requests do not send duplicate OTPs
+or consume extra verification attempts.
+
+Permanent API message regression tests can be run explicitly:
+
+```sh
+node --experimental-strip-types --test apps/client/src/api/messages.test.ts
+```
 
 ## Styling and theme switching
 
@@ -81,11 +120,18 @@ it no longer keeps an array of digits, input refs, or focus/Backspace handlers.
 Registration is the initial state. Validated details are posted to
 `${NEXT_PUBLIC_API_URL}/api/user-registration`; only a successful response opens
 the OTP UI. The submit button stays busy during the request, and server errors
-appear on the registration form with a fallback for network failures. Both
+appear on the registration form with a fallback for network failures. A successful
+response supplies the visible OTP status message, with fallback text if the
+server omits a usable message. Both
 branches remain in the sign-up route. Change email returns to the preserved
-registration details. OTP submission validates exactly four numeric digits,
-focuses invalid input and preserves leading zeros. Verification and resend
-requests remain unwired; no account creation or verification success is claimed.
+registration details. The OTP description and verification payload use the
+submitted mutation variables, so edits made while registration is pending do not
+change the email or credentials being verified. OTP submission validates exactly four numeric digits,
+focuses invalid input and preserves leading zeros. Verification posts name, email,
+password, and OTP to `/api/verify-registration`. It normalizes email to match the
+backend's OTP storage key, disables conflicting actions while pending, displays
+request errors, and redirects to `/login` on success. Login submission and resend
+requests remain unwired.
 Resend uses a 60-second wall-clock countdown with visibility catch-up. The timer
 is UI feedback, not server rate limiting.
 See the [OTP recipe](../../docs/reference/common-components.md#otp-input).
@@ -99,7 +145,8 @@ registered SVG icons. The header uses it in a labelled search form; the results 
 remain unimplemented. See [shared UI](../../docs/reference/shared-ui.md)
 for examples and setup in other apps.
 
-Client form schemas live in `src/schemas/` (`loginSchema` and `signUpSchema` in
+Client form schemas live in `src/schemas/` (`loginSchema`, `signUpSchema`,
+`otpCodeSchema`, and `verifyOtpSchema` in
 [auth.schema.ts](src/schemas/auth.schema.ts)) using `zod`, paired with the local
 [`zodResolver`](src/utils/zod-resolver.ts) for `react-hook-form`.
 
@@ -136,16 +183,17 @@ visible branding both use Eshop. No search backend is connected.
 
 ## Routes
 
-| Route        | Current response                                                                                        |
-| ------------ | ------------------------------------------------------------------------------------------------------- |
-| `/`          | Placeholder page with the header, `ThemeToggle`, and sticky `HeaderBottom` navigation                   |
-| `/login`     | Login card UI with `GoogleButton`, email/password `Field`/`Input`, `Checkbox`, and Zod/RHF validation   |
-| `/sign-up`   | Name/email/password/confirmation form scaffold with Zod/RHF validation and password visibility controls |
-| `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler                                              |
+| Route        | Current response                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `/`          | Placeholder page with the header, `ThemeToggle`, and sticky `HeaderBottom` navigation                               |
+| `/login`     | Login card UI with `GoogleButton`, email/password `Field`/`Input`, `Checkbox`, and Zod/RHF validation               |
+| `/sign-up`   | Registration and 4-digit `OtpInput` verification flow with Zod/RHF validation, TanStack Query mutations, and reveal |
+| `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler                                                          |
 
 Both auth forms validate locally. Signup sends validated registration details
-to request an email code; login still shows an unavailable status without
-sending credentials. Neither form logs credentials. Google sign-in is visibly
+to request an email code and verifies the 4-digit OTP to create the account and
+redirect to `/login`; login and OTP resend still show an unavailable status without
+sending requests. Neither form logs credentials. Google sign-in is visibly
 unavailable. `AuthCard` shares the page shell. Both pages use the shared
 `<Input type="password" />`, which retains native input props and refs while
 adding an accessible `EyeIcon`/`EyeOffIcon` button in the field's flex layout.
@@ -155,7 +203,9 @@ length limits.
 `signUpSchema` trims name/email, requires a name of 1–100 characters and a valid
 email of at most 254 characters, and accepts passwords of 8–128 characters.
 Confirmation must match the password; password whitespace is preserved.
-Client validation is scaffolding and does not replace backend validation.
+`verifyOtpSchema` re-validates name, email, password, and the 4-digit `otpCodeSchema`
+while normalizing email to lowercase. Client validation does not replace backend
+validation.
 
 For password fields, shared `Input` suppresses Edge's native `::-ms-reveal`
 button so it does not duplicate the custom eye control. Other input types keep
@@ -163,14 +213,14 @@ their existing rendering. The reveal button follows `disabled` and never submits
 the form. Keyboard access, password-manager overlays, and rendering still need
 browser verification. The app-specific password wrapper has been removed.
 
-A permanent focused schema test is available but has not been run for this change:
+A permanent focused schema test is available:
 
 ```sh
 node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
 ```
 
-The forms do not call the backend auth endpoints. The hello handler is separate from
-the Express gateway and auth endpoints.
+The `/login` form and OTP resend button do not call the backend auth endpoints yet.
+The hello handler is separate from the Express gateway and auth endpoints.
 
 Project-wide setup, architecture, checks, and limitations live in the
 [documentation hub](../../docs/README.md).

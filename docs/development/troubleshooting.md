@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-11-03. Configuration defaults belong to the
+**Reviewed:** 2026-11-05. Configuration defaults belong to the
 [configuration reference](../reference/configuration.md).
 
 ## Shared input styling and compiler errors
@@ -91,7 +91,7 @@ The `/gateway-health` route does not call auth. Confirm auth responds at `http:/
 
 ## Browser CORS errors
 
-Only `http://localhost:3000` is allowed as a credentialed browser origin. `http://127.0.0.1:3000` and other ports are different origins. The client scaffold defaults to the allowed origin but makes no backend requests yet. Update the intended allowlist when changing the frontend origin; do not treat CORS as authentication.
+Only `http://localhost:3000` is allowed as a credentialed browser origin. `http://127.0.0.1:3000` and other ports are different origins. The client defaults to the allowed origin and `/sign-up` sends registration and OTP verification requests to `NEXT_PUBLIC_API_URL`. Update the intended allowlist when changing the frontend origin; do not treat CORS as authentication.
 
 ## Registration fails while destructuring email
 

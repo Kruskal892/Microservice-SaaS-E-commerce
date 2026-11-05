@@ -20,23 +20,23 @@ export function AuthCard({
     <main
       id="main-content"
       tabIndex={-1}
-      className="mx-auto grid min-h-[calc(100svh-8rem)] w-full max-w-[1216px] content-start gap-12 px-4 py-12 mobile:px-5 tablet:px-8 min-[64rem]:grid-cols-[minmax(0,1fr)_minmax(0,536px)] min-[64rem]:px-12 min-[64rem]:py-24"
+      className="mx-auto grid min-h-[calc(100svh-8rem)] w-full max-w-304 content-start gap-12 px-4 py-12 mobile:px-5 tablet:px-8 desktop:grid-cols-[minmax(0,1fr)_minmax(0,536px)] desktop:px-12 desktop:py-24"
     >
-      <div className="flex min-w-0 flex-col gap-28 min-[64rem]:pt-6">
+      <div className="flex min-w-0 flex-col gap-28 desktop:pt-6">
         <div className="flex flex-col gap-6">
-          <h1 className="text-mobile-h1 font-semibold text-balance break-words min-[64rem]:text-auth-display">
+          <h1 className="text-mobile-h1 font-semibold text-balance wrap-break-word desktop:text-auth-display">
             {title}
           </h1>
-          <p className="max-w-[40ch] text-base leading-7 break-words text-muted min-[64rem]:text-lg">
+          <p className="max-w-[40ch] text-base leading-7 wrap-break-word text-muted desktop:text-lg">
             {description}
           </p>
         </div>
-        <p className="hidden text-[26px] leading-[37px] font-medium tracking-[-0.025em] min-[64rem]:block">
+        <p className="hidden text-callout leading-9.25 font-medium tracking-tight desktop:block">
           Considered finds.
           <br />A place to call yours.
         </p>
       </div>
-      <div className="flex min-w-0 flex-col gap-8 min-[64rem]:border-l min-[64rem]:border-border min-[64rem]:pl-[87px]">
+      <div className="flex min-w-0 flex-col gap-8 desktop:border-l desktop:border-border desktop:pl-21.75">
         {showSocialSignIn && (
           <>
             <div className="flex flex-col gap-3">

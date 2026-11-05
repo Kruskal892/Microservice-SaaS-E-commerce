@@ -3,25 +3,24 @@
 [Documentation hub](../README.md) · [Registration & verification sequence diagrams](../architecture/request-flows.md#registration-and-otp-delivery)
 
 **Status:** Source implementation, not a verified live integration.
-**Backend snapshot:** 2026-11-02. **Client UI updated:** 2026-11-03.
+**Backend snapshot:** 2026-11-02. **Client UI updated:** 2026-11-05.
 
-The Next.js client includes `/login` and `/sign-up` form scaffolds with a shared
+The Next.js client includes `/login` and `/sign-up` forms with a shared
 `AuthCard`, shared `Input type="password"` eye/eye-off controls, and React Hook Form + Zod
-validation (`loginSchema` and `signUpSchema`). Login includes a remember-me
-checkbox; sign-up collects name, email, password, and password confirmation.
-Both forms show unavailable feedback after valid submission and do not send or
-log credentials. Google sign-in is disabled with a visible coming-soon message.
-The sign-up page currently previews a shared `OtpInput` code field. Its code is
-a string with configurable digit length; paste/editing and numeric filtering
-belong to the shared component. There are no backend auth requests, session
-handling, cookie consumption, OTP delivery/verification/resend API integration,
-or recovery page. The OTP preview now has Verify code submission guarded by a
-four-digit schema and a Resend code control with a 60-second cooldown. The
-countdown uses elapsed wall time and updates when the tab becomes visible.
-Both actions display unavailable feedback while their API calls are unwired;
-no code is sent or verified. This client timer does not replace the backend
-cooldown. The forgot-password link still targets a missing route.
-The backend contracts below remain independent of the client UI. Use the
+validation (`loginSchema`, `signUpSchema`, `otpCodeSchema`, and `verifyOtpSchema`).
+Login includes a remember-me checkbox and still shows unavailable feedback on
+submission without sending credentials. Sign-up collects name, email, password,
+and password confirmation, posts validated details to `/api/user-registration`
+via `registrationMutation`, and opens the `OtpInput` verification view on
+success. Verification validates a four-digit code, combines it with the
+submitted registration variables (normalizing email to lowercase via
+`verifyOtpSchema` to match Redis OTP keys), posts to `/api/verify-registration`
+via `verifyOtpMutation`, disables conflicting actions while pending or
+succeeded, and redirects to `/login` on success. Resend uses a 60-second
+wall-clock cooldown with tab-visibility catch-up and still shows unavailable
+feedback without sending a request. Neither form logs credentials, Google
+sign-in is disabled, and the forgot-password link still targets a missing route.
+There is no client session handling or cookie consumption yet. Use the
 [client README](../../apps/client/README.md) for frontend setup.
 
 ## Current registration behavior
@@ -184,7 +183,7 @@ The current Dockerfile has no explicit Prisma-generation step; inspect the
 With registration, verification, and login/token issuance present in source, the remaining authentication
 capabilities include:
 
-- Connect the client `/login` form and future registration/recovery screens to the backend auth endpoints.
+- Connect the client `/login` form, OTP resend action, and future recovery screens to the backend auth endpoints.
 - Consistent input validation/normalization and generic login credential failures.
 - JWT verification middleware, protected routes, and current-user lookup.
 - Refresh-token validation/rotation and persisted revocation policy.

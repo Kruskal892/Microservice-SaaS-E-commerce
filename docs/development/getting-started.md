@@ -2,7 +2,7 @@
 
 [Documentation index](../README.md)
 
-**Reviewed:** 2026-11-03. Commands describe setup; live integrations have not
+**Reviewed:** 2026-11-05. Commands describe setup; live integrations have not
 been verified by this documentation refresh.
 
 ## Requirements
@@ -90,13 +90,13 @@ Open `http://localhost:3000`. The root script selects
 `nx dev @microservice-eshop/client`; `npm run dev` selects backend `serve` targets
 and does not start this client. Its current pages include the header (with a shared
 search input, sticky `HeaderBottom`, and `ThemeToggle`), a `/` placeholder,
-and `/login` and `/sign-up` form scaffolds. See [shared UI](../reference/shared-ui.md)
-for reuse in other apps. No backend auth calls, catalog, cart, checkout, or
-orders are present. The client also has a standalone `/api/hello` text handler.
+and `/login` and `/sign-up` forms. See [shared UI](../reference/shared-ui.md)
+for reuse in other apps. Catalog, cart, checkout, and orders are not present yet.
+The client also has a standalone `/api/hello` text handler.
 
 No database, Redis, SMTP, signing secret, or custom client environment variable
-is required for this scaffold. In PowerShell, use `npm.cmd`/`npx.cmd` when script
-execution policy blocks their `.ps1` wrappers.
+is required just to render the placeholder and form UI. In PowerShell, use
+`npm.cmd`/`npx.cmd` when script execution policy blocks their `.ps1` wrappers.
 
 The [client README](../../apps/client/README.md) owns client commands;
 [design tokens](../reference/design-tokens.md) documents the Tailwind palette,
@@ -106,9 +106,11 @@ future UI work.
 The root `next-themes` provider defaults to the OS theme and retains a saved
 light/dark preference under `localStorage.theme`. The header theme button is
 disabled until mounting. Both auth forms validate locally. Signup requires
-`NEXT_PUBLIC_API_URL` pointing to the backend and requests a registration OTP;
-the backend needs its database, Redis, and email services configured. Login,
-OTP verification, and resend remain unavailable previews. Google sign-in is disabled.
+`NEXT_PUBLIC_API_URL` in `apps/client/.env` pointing to the backend (for example,
+`http://localhost:8080`) and connects both registration (`POST /api/user-registration`)
+and OTP verification (`POST /api/verify-registration`); the backend needs its
+database, Redis, and email services configured. Login and OTP resend remain
+unavailable previews. Google sign-in is disabled.
 
 ## Environment variables
 
@@ -171,7 +173,7 @@ For authentication failures see
 
 ## Browser requests
 
-Both backend applications allow credentialed CORS requests from `http://localhost:3000`, with `Authorization` and `Content-Type` request headers. This is also the default client origin, but the scaffold makes no backend requests. CORS does not authenticate clients or restrict non-browser callers. A different client port requires a deliberate backend CORS update before integration.
+Both backend applications allow credentialed CORS requests from `http://localhost:3000`, with `Authorization` and `Content-Type` request headers. This matches the default client origin used by `/sign-up` registration and OTP verification requests. CORS does not authenticate clients or restrict non-browser callers. A different client port requires a deliberate backend CORS update before integration.
 
 ## Try the auth API documentation
 

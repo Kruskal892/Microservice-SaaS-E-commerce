@@ -2,26 +2,29 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current source. **Reviewed:** 2026-11-03. The system is a backend
-foundation plus a Next.js/Tailwind client scaffold; backend integrations shown below are wired in code and remain unverified
+**Status:** Current source. **Reviewed:** 2026-11-05. The system is a backend
+foundation plus a Next.js/Tailwind client; backend integrations shown below are wired in code and remain unverified
 against live services.
 
 ## System context
 
 An HTTP client can call auth directly or use the gateway. `apps/client` contains
-a Next.js App Router scaffold with shared design tokens, a header with sticky
+a Next.js App Router application with shared design tokens, a header with sticky
 navigation, search Input, and a `next-themes`-backed light/dark switch, `/login`
 and `/sign-up` forms sharing `AuthCard` and the shared password-enabled `Input`, a placeholder `/`
-page, and a local hello route. The forms use Zod/React Hook Form validation and
-show unavailable feedback instead of submitting credentials. Google sign-in is
-disabled, and no frontend/backend API integration exists yet.
+page, and a local hello route. Both forms use Zod/React Hook Form validation.
+`/sign-up` connects registration (`POST /api/user-registration`) and OTP
+verification (`POST /api/verify-registration`) via Axios and TanStack Query;
+`/login` submission and OTP resend show unavailable feedback, and Google sign-in
+is disabled.
 The gateway has one upstream, auth; it does not yet route among multiple
 business services or authenticate users.
 
 ```mermaid
 flowchart LR
-    Browser["Browser"] --> Frontend["Next.js client :3000<br/>Header, ThemeToggle, /login UI, and Tailwind tokens"]
-    Client["HTTP client"] --> Gateway["API gateway<br/>Express :8080"]
+    Browser["Browser"] --> Frontend["Next.js client :3000<br/>Header, ThemeToggle, /login UI, /sign-up auth flow, and Tailwind tokens"]
+    Frontend -->|"NEXT_PUBLIC_API_URL (/sign-up registration & OTP verify)"| Gateway["API gateway<br/>Express :8080"]
+    Client["HTTP client"] --> Gateway
     Client --> Auth["Auth service<br/>Express :6001"]
     Gateway -->|"All paths except local health"| Auth
     Gateway --> Health["GET /gateway-health<br/>Local JSON response"]
@@ -36,11 +39,11 @@ See [request flows](request-flows.md) for execution order and failure paths.
 
 ## Boundaries and responsibilities
 
-| Component      | Current responsibility                                                                                                          | Source                                                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                                       | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
-| Client         | Next.js App Router, shared UI/icons/theme, Header, `ThemeToggle`, `/login` form UI (RHF + Zod), hello handler; no backend calls | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
-| Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies           | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
+| Component      | Current responsibility                                                                                                                       | Source                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                                                    | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
+| Client         | Next.js App Router, shared UI/icons/theme, Header, `ThemeToggle`, `/sign-up` registration & OTP verify (`src/api/`), `/login` UI, `/api/hello` | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
+| Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies                        | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
 | Shared errors  | Error classes and JSON error middleware used by both apps                                                                       | [error-handler](../../packages/error-handler/index.ts)                                                                  |
 | Shared clients | Prisma client reuse and a simple ioredis instance                                                                               | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
 | MongoDB schema | Identity fields and optional avatar relation                                                                                    | [schema.prisma](../../prisma/schema.prisma)                                                                             |
@@ -58,27 +61,28 @@ those business rules. See [repository structure](repository-structure.md) and
 
 ## Technology in use
 
-| Area                 | Current choice                                                                      |
-| -------------------- | ----------------------------------------------------------------------------------- |
-| Runtime and HTTP     | Node.js, Express 5, TypeScript; CI selects Node 24                                  |
-| Workspace and builds | Nx/npm, auth esbuild, gateway Webpack                                               |
-| Client               | Next.js 16.4, React 19, Tailwind CSS 4.3 via PostCSS, React Hook Form 7.91, Zod 4.6 |
-| Gateway              | express-http-proxy, express-rate-limit, cors, Morgan                                |
-| Persistence          | Prisma 6.19 and MongoDB; email lookup & persistence                                 |
-| Security             | bcryptjs password hashing/comparison; jsonwebtoken signing; HTTP-only JWT cookies   |
-| Transient data       | ioredis with string OTPs, counters, cooldowns                                       |
-| Email                | Nodemailer transport and EJS activation template                                    |
-| API discovery        | Committed Swagger 2.0 JSON, swagger-ui-express                                      |
-| Validation tooling   | Jest/SWC/Axios, ESLint, Prettier, strict TypeScript                                 |
-| Delivery tooling     | GitHub Actions checks and an auth-service Dockerfile                                |
+| Area                 | Current choice                                                                                                 |
+| -------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Runtime and HTTP     | Node.js, Express 5, TypeScript; CI selects Node 24                                                             |
+| Workspace and builds | Nx/npm, auth esbuild, gateway Webpack                                                                          |
+| Client               | Next.js 16.4, React 19, Tailwind CSS 4.3 via PostCSS, React Hook Form 7.91, Zod 4.6, TanStack Query 5, Axios |
+| Gateway              | express-http-proxy, express-rate-limit, cors, Morgan                                                           |
+| Persistence          | Prisma 6.19 and MongoDB; email lookup & persistence                                                            |
+| Security             | bcryptjs password hashing/comparison; jsonwebtoken signing; HTTP-only JWT cookies                              |
+| Transient data       | ioredis with string OTPs, counters, cooldowns                                                                  |
+| Email                | Nodemailer transport and EJS activation template                                                               |
+| API discovery        | Committed Swagger 2.0 JSON, swagger-ui-express                                                                 |
+| Validation tooling   | Jest/SWC/Axios, ESLint, Prettier, strict TypeScript                                                            |
+| Delivery tooling     | GitHub Actions checks and an auth-service Dockerfile                                                           |
 
 The [root manifest](../../package.json) and [lockfile](../../package-lock.json)
-own versions. A dependency being installed does not imply an active feature;
+own versions. A dependency being installed does not imply every feature is wired;
 for example, cookie-parser is installed but neither entry point mounts it, and
-`@tanstack/react-query` is installed at the root while client API hooks are not
-yet wired. Auth login does use jsonwebtoken and Express cookie writing. There is
-no incoming cookie parsing, token verification middleware, or protected route
-consumer yet.
+client TanStack Query mutations currently cover `/sign-up` registration and OTP
+verification (`registrationMutation` and `verifyOtpMutation`) while `/login` and
+OTP resend are not yet connected. Auth login does use jsonwebtoken and Express
+cookie writing. There is no incoming cookie parsing, token verification
+middleware, or protected route consumer yet.
 
 ## Runtime constraints
 

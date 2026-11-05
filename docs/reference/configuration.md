@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Setup](../development/getting-started.md)
 
 **Status:** Inputs read by current source. **Backend snapshot:** 2026-10-25;
-**client configuration updated:** 2026-11-03.
+**client configuration updated:** 2026-11-05.
 
 Both backend application entry points import `dotenv/config`. Use a root `.env` based on
 [.env.example](../../.env.example) and run development commands from the root.
@@ -26,6 +26,7 @@ dotenv through [prisma.config.ts](../../prisma.config.ts).
 | `JWT_ACCESS_TOKEN_SECRET`  | Auth login                     | Signing secret for access JWTs; no fallback; token expires in 15 minutes                                          |
 | `JWT_REFRESH_TOKEN_SECRET` | Auth login                     | Signing secret for refresh JWTs; no fallback; token expires in 7 days                                             |
 | `NODE_ENV`                 | Prisma wrapper / gateway build | Prisma global reuse outside production; gateway source-map configuration checks production                        |
+| `NEXT_PUBLIC_API_URL`      | Client Axios instance          | Base URL for browser requests (`apps/client/src/api/client.ts`), e.g. `http://localhost:8080`; 15-second timeout  |
 | `HOST`                     | E2E setup only                 | Test destination defaults to `localhost`; HTTP apps do not read it as a bind address                              |
 
 The Redis non-null assertion is a TypeScript annotation, not a runtime check.
@@ -34,7 +35,7 @@ configuration parser validates missing inputs or waits for dependencies.
 Redis connection and command timeouts are five seconds, the offline command
 queue is disabled, and requests allow one retry. The client reconnects in the
 background; OTP admission returns 503 until Redis is ready.
-Signup's browser request times out after 15 seconds and does not retry automatically.
+Signup's registration and OTP verification browser requests time out after 15 seconds and do not retry automatically.
 
 Set distinct JWT signing secrets in your local `.env` or deployment environment;
 the `.env.example` values are placeholders. Login passes the values directly to
@@ -46,7 +47,7 @@ logs, screenshots, and PR evidence.
 
 ```mermaid
 flowchart LR
-    Browser["Next.js client scaffold<br/>localhost:3000"] -.->|"Allowed CORS origin; API integration planned"| Gateway["Gateway HTTP<br/>:8080"]
+    Browser["Next.js client<br/>localhost:3000"] -->|"NEXT_PUBLIC_API_URL (/sign-up registration & OTP verify)"| Gateway["Gateway HTTP<br/>:8080"]
     Gateway -->|"AUTH_SERVICE_URL"| Auth["Auth HTTP<br/>:6001"]
     AuthDebug["Nx inspector :9229"] -.-> Auth
     GatewayDebug["Nx inspector :9230"] -.-> Gateway
@@ -65,11 +66,13 @@ and packaging limits.
 
 ## Client configuration
 
-The client has no application-defined API URL, auth, locale, or theme environment
-variables. `npm run client` starts Next.js development on port 3000 by default.
-The framework can accept a different port through its CLI/environment; keep
-backend CORS aligned if adding browser API integration. Avoid a shared `PORT`
-override when launching the backend and client together.
+[`apps/client/src/api/client.ts`](../../apps/client/src/api/client.ts) reads
+`NEXT_PUBLIC_API_URL` (typically configured in `apps/client/.env`, for example
+`http://localhost:8080`) and configures a 15-second Axios timeout. The client has
+no locale or theme environment variables. `npm run client` starts Next.js
+development on port 3000 by default. The framework can accept a different port
+through its CLI/environment; keep backend CORS aligned when calling the API.
+Avoid a shared `PORT` override when launching the backend and client together.
 
 Client dependencies are installed at the root npm workspace. Its
 [Next config](../../apps/client/next.config.js) configures `@svgr/webpack` for SVG
