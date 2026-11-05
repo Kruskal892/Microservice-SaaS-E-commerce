@@ -54,14 +54,15 @@ DM Sans is bundled with its OFL licence in `packages/assets/fonts/` and loaded
 by the shared theme's `@font-face`. Client and Storybook both use `font-sans`.
 No `next/font/google` download or app-specific font utility is required.
 
-| Utility                              | Size                   |
-| ------------------------------------ | ---------------------- |
-| `text-xs` / `text-sm` / `text-base`  | 12 / 14 / 16px         |
-| `text-lg` / `text-xl` / `text-2xl`   | 18 / 20 / 24px         |
-| `text-3xl` / `text-4xl` / `text-5xl` | 30 / 36 / 48px         |
-| `text-6xl`                           | 64px, 78px line height |
-| `text-auth-display`                  | 54px, 60px line height |
-| `text-mobile-h1`                     | 32px, 40px line height |
+| Utility                              | Size                              |
+| ------------------------------------ | --------------------------------- |
+| `text-xs` / `text-sm` / `text-base`  | 12 / 14 / 16px                    |
+| `text-lg` / `text-xl` / `text-2xl`   | 18 / 20 / 24px                    |
+| `text-callout`                       | 26px, auth tagline and OTP digits |
+| `text-3xl` / `text-4xl` / `text-5xl` | 30 / 36 / 48px                    |
+| `text-6xl`                           | 64px, 78px line height            |
+| `text-auth-display`                  | 54px, 60px line height            |
+| `text-mobile-h1`                     | 32px, 40px line height            |
 
 Use 400 for reading copy, 500 for labels, 600 for headings/actions and 700 for
 the wordmark. Use tabular figures for countdowns and changing amounts.
@@ -77,9 +78,9 @@ Transitions default to 120ms with a reduced-motion alternative in components.
 ## Breakpoints
 
 Named prefixes are `mobile:` 390px, `tablet:` 768px and `desktop:` 1440px.
-These replace Tailwind's default viewport prefix names. The storefront uses
-`min-[64rem]:` (1024px) for the full header navigation and split auth layout.
-At narrower widths, navigation uses a dialog and auth content uses one column.
+These replace Tailwind's default viewport prefix names. The split auth layout
+uses `desktop:` (1440px); below it, auth content uses one column. The full header
+navigation activates at 1024px and uses a dialog at narrower widths.
 Keep visible controls and product names within the viewport at 320px.
 
 ## Usage example

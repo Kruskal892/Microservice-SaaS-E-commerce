@@ -7,11 +7,13 @@ These diagrams explain code behavior, not a successful end-to-end run.
 
 These are backend execution paths. The Next.js client renders a responsive
 header, persisted theme switching, a placeholder home page, and `/login` and
-`/sign-up` form scaffolds with [Tailwind tokens](../reference/design-tokens.md).
+`/sign-up` forms with [Tailwind tokens](../reference/design-tokens.md).
 Both forms validate locally. Signup initiates the registration OTP request through
-`/api/user-registration`; login, OTP verification, and resend still show
-unavailable feedback. Its local `/api/hello` text route
-is independent of the gateway and is described in the [API reference](../reference/api.md).
+`/api/user-registration` and verifies the four-digit code through
+`/api/verify-registration` (normalizing email to lowercase and redirecting to
+`/login` on success); login and OTP resend still show unavailable feedback.
+Its local `/api/hello` text route is independent of the gateway and is described
+in the [API reference](../reference/api.md).
 
 ## Gateway request lifecycle
 

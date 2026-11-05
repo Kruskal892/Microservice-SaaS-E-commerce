@@ -84,6 +84,10 @@ The type tokens include line heights and letter spacing. SVG text stores
 baseline positions; recreate text boxes with the specified line heights in
 Figma rather than treating those baselines as a text-style definition.
 
+The auth tagline and OTP digits share a 26px optical size, exposed as `text-callout`.
+Their line heights remain component-specific. Other one-off optical adjustments
+should use the nearest named role from the scale above.
+
 ## Spacing, grid & responsive layout
 
 Base increment: **4 px**. The 2 px value is reserved for borders, focus offsets
@@ -114,8 +118,8 @@ Allow names to wrap; prices and controls remain visible. If large text needs
 more room, move to one product column rather than clipping content.
 
 Auth forms use a maximum width of 448 px; the desktop introduction and form
-are divided by whitespace and one structural rule. Collapse the split below
-1024 px. Product detail collapses gallery → product information → purchasing
+are divided by whitespace and one structural rule. Collapse the split below the
+predefined `desktop:` breakpoint (1440px). Product detail collapses gallery → product information → purchasing
 controls → details → related items. Checkout puts its summary after all form
 sections on mobile; keep a visible path to the final order action.
 

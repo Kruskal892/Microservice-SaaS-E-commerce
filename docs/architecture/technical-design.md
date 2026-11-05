@@ -2,22 +2,25 @@
 
 [Documentation hub](../README.md) · [Architecture overview](overview.md)
 
-**Status:** Current source and configuration. **Reviewed:** 2026-11-03.
+**Status:** Current source and configuration. **Reviewed:** 2026-11-05.
 Future design decisions live in [future plans](../future-plans/README.md).
 
 ## Implementation ownership
 
-The client is a Next.js App Router scaffold, separate from the Express services.
-Its root layout imports Tailwind global CSS, wraps the app in `next-themes`
-`ThemeProvider` to initialize the stored or OS-preferred theme through
-`data-theme`, and renders the header (`Header` and sticky `HeaderBottom`, both
-containing `ThemeToggle`) before page routes (`/` placeholder and `/login` and
-`/sign-up` form scaffolds). `/api/hello` is a local Next route handler. `/login` renders a
-form card with `GoogleButton`, `@packages/ui` form controls (`Field`, `Label`,
-`Input`, `FieldError`, `Checkbox`, `Button`), and client-side validation via
-`react-hook-form` and `zod` (`loginSchema` in `src/schemas/auth.schema.ts` with
-`zodResolver` in `src/utils/zod-resolver.ts`). There are no browser calls to
-auth/gateway yet and no commerce or session state.
+The client is a Next.js App Router application, separate from the Express services.
+Its root layout imports Tailwind global CSS, wraps the app in `Providers`
+(`QueryClientProvider` and `next-themes` `ThemeProvider` to initialize the stored
+or OS-preferred theme through `data-theme`), and renders the header (`Header` and
+sticky `HeaderBottom`, both containing `ThemeToggle`) before page routes (`/`
+placeholder and `/login` and `/sign-up` pages). `/api/hello` is a local Next
+route handler. `/login` renders a form card with `GoogleButton`, `@packages/ui`
+form controls (`Field`, `Label`, `Input`, `FieldError`, `Checkbox`, `Button`),
+and client-side validation via `react-hook-form` and `zod` (`loginSchema` in
+`src/schemas/auth.schema.ts` with `zodResolver` in `src/utils/zod-resolver.ts`).
+`/sign-up` connects registration (`POST /api/user-registration`) and OTP
+verification (`POST /api/verify-registration`) through `src/api/` (`client.ts`,
+`auth.ts`, and `messages.ts`); `/login` submission, OTP resend, session state,
+and commerce flows remain unwired.
 
 The shared `packages/ui/theme.css`, imported by client global CSS, owns the
 Tailwind CSS-first `@theme` that registers brand/status colors, font, spacing,
@@ -55,13 +58,18 @@ one themed box per digit, an active-slot highlight, and a caret. The primitive
 keeps a single accessible native field underneath the visual boxes for selection,
 paste, keyboard editing, form semantics, and autocomplete. The sign-up page
 continues to use a controlled code string. Registration posts validated details
-to `/api/user-registration` and opens OTP entry only after a successful response.
-Pending requests disable submission; failures appear on the registration form.
-The sign-up page owns the Verify code form and a 60-second resend countdown,
-including cleanup and visibility updates. Its `otpCodeSchema` accepts exactly
-four numeric characters, preserving leading zeros. Verification and resend show
-unavailable feedback until those calls are connected; `OtpInput` does not submit, resend,
-or enforce server rate limits.
+to `/api/user-registration` (`registrationMutation`) and opens OTP entry only
+after a successful response, displaying the validated server message. Pending
+requests disable submission; failures appear on the registration form via
+`getApiErrorMessage`. The sign-up page owns the Verify email form and a 60-second
+resend countdown, including cleanup and visibility updates. Its `otpCodeSchema`
+accepts exactly four numeric characters, preserving leading zeros, while
+`verifyOtpSchema` pairs those digits with the submitted `signUpMutation.variables`
+and normalizes `email` to lowercase before `verifyOtpMutation` posts to
+`/api/verify-registration`. Verification disables conflicting controls while
+pending or succeeded, focuses `OtpInput` on error, and redirects to `/login` on
+success. Resend still shows unavailable feedback; `OtpInput` itself does not
+submit, resend, or enforce server rate limits.
 
 ```mermaid
 flowchart LR

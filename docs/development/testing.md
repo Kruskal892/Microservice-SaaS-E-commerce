@@ -2,40 +2,50 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current test files and target configuration. **Reviewed:** 2026-11-03.
+**Status:** Current test files and target configuration. **Reviewed:** 2026-11-05.
 
 ## Existing coverage
 
-| Project      | Present coverage                                              | Limits                                                                       |
-| ------------ | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Auth service | Jest/SWC configuration, `passWithNoTests: true` target option | No unit-test files; a successful empty run would not prove auth behavior     |
-| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`     | Greeting only; no registration or external-service assertions                |
-| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                | Default port 3000 differs from gateway 8080; only gateway is started         |
-| Client       | Focused Node test for `signUpSchema` validation               | No client browser or E2E suite configured; schema test unrun for this change |
+| Project      | Present coverage                                                        | Limits                                                                     |
+| ------------ | ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Auth service | Jest/SWC configuration, `passWithNoTests: true` target option           | No unit-test files; a successful empty run would not prove auth behavior   |
+| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`               | Greeting only; no registration or external-service assertions              |
+| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                          | Default port 3000 differs from gateway 8080; only gateway is started       |
+| Client       | Focused Node tests for `auth.schema.ts` and `api/messages.ts`           | No client browser or E2E suite configured; standalone tests run explicitly |
 
 Source: [auth Jest config](../../apps/auth-service/jest.config.cts),
 [auth E2E spec](../../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts),
-[gateway E2E spec](../../apps/api-gateway-e2e/src/api-gateway/api-gateway.spec.ts).
+[gateway E2E spec](../../apps/api-gateway-e2e/src/api-gateway/api-gateway.spec.ts),
+[client schema test](../../apps/client/src/schemas/auth.schema.test.ts),
+[client API messages test](../../apps/client/src/api/messages.test.ts).
 No permanent Redis integration, OTP validation, login/JWT/cookie, or mail-failure
 suites are present.
 
 ## Focused checks
 
-The standalone client schema check uses Node's built-in test runner and type
-stripping (Node 24, as selected in CI). Run it explicitly from the root:
+The standalone client schema and API message checks use Node's built-in test
+runner and type stripping (Node 24, as selected in CI). Run them explicitly from
+the root:
 
 ```sh
 node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
+node --experimental-strip-types --test apps/client/src/api/messages.test.ts
 ```
 
-It is not wired into the Nx Jest targets and has not been run for this change.
-The schema test also covers OTP submission: exactly four digits, leading zeros,
-and rejection of short, long, non-numeric, and whitespace-padded codes.
+They are not wired into the Nx Jest targets. The schema test covers registration
+field limits, password confirmation, four-digit OTP codes (including leading
+zeros and rejection of short, long, non-numeric, and whitespace-padded codes),
+and `verifyOtpSchema` payload validation with lowercase email normalization. The
+API message test covers validated server message extraction, safe fallbacks for
+non-string/blank payloads, and `ECONNABORTED`/`ETIMEDOUT` timeout guidance.
 
 For the sign-up OTP controls, manually check that incomplete codes cannot submit,
-four digits enable Verify code, and submitting shows unavailable feedback with
-no API request. Resend should count down from 60 seconds, enable at zero, and
-restart when activated without clearing the current code. Check background-tab
+four digits submit `POST /api/verify-registration` with the normalized email from
+the registration variables, conflicting controls are disabled while verification
+is pending or succeeded, server/timeout errors focus the OTP input and display an
+alert, and a successful response redirects to `/login`. Resend should count down
+from 60 seconds, enable at zero, and restart when activated with unavailable
+preview feedback without clearing the current code. Check background-tab
 catch-up, screen-reader availability feedback, and interval cleanup on navigation.
 These browser and timer checks have not been run.
 
@@ -97,7 +107,10 @@ The following browser checks are suggested, not completed for this change:
    unavailable feedback without sending credentials. Signup posts validated
    details to `/api/user-registration`; verify the button remains busy during
    a slow request, failures are visible on the registration form, and only a
-   successful response opens OTP entry. Neither form should log credentials.
+   successful response opens OTP entry. In OTP entry, verify that submitting a
+   four-digit code posts to `/api/verify-registration`, disables OTP controls
+   while pending, shows server/timeout errors, and redirects to `/login` on
+   success. Neither form should log credentials.
    At 320px, check that the header fits and sign-in is available in the menu.
 4. Check password eye/eye-off controls by pointer and keyboard. In Edge, typing
    should show only the custom reveal button. Inspect password-manager overlays

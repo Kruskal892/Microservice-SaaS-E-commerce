@@ -1,5 +1,7 @@
 'use client';
 
+import { registrationMutation, verifyOtpMutation } from '@/api/auth';
+import { getApiErrorMessage } from '@/api/messages';
 import { AuthCard } from '@/components';
 import { type SignUpFormValues, otpCodeSchema, signUpSchema } from '@/schemas';
 import { zodResolver } from '@/utils/zod-resolver';
@@ -13,70 +15,100 @@ import {
   OtpInput,
 } from '@packages/ui';
 import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [otp, setOtp] = useState('');
   const [showOTP, setShowOTP] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [resendIn, setResendIn] = useState(60);
   const [resendAttempt, setResendAttempt] = useState(0);
   const otpRef = useRef<HTMLInputElement>(null);
-  // shortcut: OTP verification and resend are previews; connect those requests before claiming account creation.
+  // shortcut: Resend is a preview; connect its request before claiming another code was sent.
   const [otpMessage, setOtpMessage] = useState('');
   const {
     register,
     handleSubmit,
-    getValues,
     setFocus,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   });
 
   const signUpMutation = useMutation({
-    mutationFn: async (data: SignUpFormValues) => {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/user-registration`,
-        data,
-        { timeout: 15_000 },
-      );
-      return response.data;
-    },
-    onSuccess: () => {
+    ...registrationMutation,
+    onSuccess: (data) => {
       setShowOTP(true);
       setResendIn(60);
       setOtp('');
       setOtpError('');
-      setOtpMessage('');
+      setOtpMessage(data.message);
+      otpVerifyMutation.reset();
     },
     onError: (error) => {
-      const timedOut =
-        axios.isAxiosError(error) &&
-        (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT');
-      const message = axios.isAxiosError<{ message?: unknown }>(error)
-        ? error.response?.data?.message
-        : undefined;
       setError('root.registration', {
-        message:
-          timedOut
-            ? 'The registration request timed out. Check your email before trying again.'
-            : typeof message === 'string' && message.trim()
-              ? message
-              : 'Unable to request a verification code. Please try again.',
+        message: getApiErrorMessage(
+          error,
+          'Unable to request a verification code. Please try again.',
+          'The registration request timed out. Check your email before trying again.',
+        ),
       });
     },
   });
 
-  const onSubmit = (data: SignUpFormValues) => {
+  const otpVerifyMutation = useMutation({
+    ...verifyOtpMutation,
+    onSuccess: (data) => {
+      setOtpMessage(data.message);
+      router.replace('/login');
+    },
+    onError: (error) => {
+      setOtpError(
+        getApiErrorMessage(
+          error,
+          'Unable to verify your email. Please try again.',
+          'Verification timed out. Try signing in before submitting again.',
+        ),
+      );
+    },
+  });
+
+  function handleSignUpSubmit(data: SignUpFormValues) {
     if (signUpMutation.isPending) return;
     signUpMutation.mutate(data);
-  };
+  }
+
+  function handleOtpSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const registration = signUpMutation.variables;
+    if (
+      !registration ||
+      otpVerifyMutation.isPending ||
+      otpVerifyMutation.isSuccess
+    )
+      return;
+
+    const result = otpCodeSchema.safeParse(otp);
+    if (!result.success) {
+      setOtpError(result.error.issues[0].message);
+      otpRef.current?.focus();
+      return;
+    }
+
+    setOtpError('');
+    const { name, email, password } = registration;
+    otpVerifyMutation.mutate({ name, email, password, otp: result.data });
+  }
+
+  useEffect(() => {
+    if (otpError && !otpVerifyMutation.isPending) otpRef.current?.focus();
+  }, [otpError, otpVerifyMutation.isPending]);
 
   useEffect(() => {
     if (showOTP) otpRef.current?.focus();
@@ -105,7 +137,8 @@ export default function SignUpPage() {
         showOTP ? (
           <>
             Code entry for{' '}
-            <span className="break-all">{getValues('email').trim()}</span>.
+            <span className="break-all">{signUpMutation.variables?.email}</span>
+            .
           </>
         ) : (
           <>
@@ -129,7 +162,7 @@ export default function SignUpPage() {
     >
       {!showOTP ? (
         <form
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(handleSignUpSubmit)}
           noValidate
           className="flex flex-col gap-6"
         >
@@ -218,7 +251,7 @@ export default function SignUpPage() {
           <Button
             type="submit"
             size="lg"
-            loading={isSubmitting || signUpMutation.isPending}
+            loading={signUpMutation.isPending}
             className="w-full"
           >
             Create account
@@ -233,28 +266,20 @@ export default function SignUpPage() {
         <form
           noValidate
           className="flex flex-col gap-6"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const result = otpCodeSchema.safeParse(otp);
-            if (!result.success) {
-              setOtpError(result.error.issues[0].message);
-              otpRef.current?.focus();
-              return;
-            }
-            setOtpError('');
-            setOtpMessage(
-              'Code verification is not connected yet. Your account has not been created.',
-            );
-          }}
+          onSubmit={handleOtpSubmit}
         >
           <Field>
             <Label htmlFor="registration-otp">Verification code</Label>
             <OtpInput
               ref={otpRef}
               id="registration-otp"
+              className="w-full flex items-center justify-center"
               name="otp"
               length={4}
               value={otp}
+              disabled={
+                otpVerifyMutation.isPending || otpVerifyMutation.isSuccess
+              }
               onValueChange={(value) => {
                 setOtp(value);
                 setOtpError('');
@@ -273,17 +298,29 @@ export default function SignUpPage() {
               Use the 4-digit code from your email.
             </FieldDescription>
             {otpError && (
-              <FieldError id="registration-otp-error">{otpError}</FieldError>
+              <FieldError id="registration-otp-error" role="alert">
+                {otpError}
+              </FieldError>
             )}
           </Field>
-          <Button type="submit" size="lg" className="w-full">
+          <Button
+            type="submit"
+            size="lg"
+            loading={otpVerifyMutation.isPending}
+            disabled={otpVerifyMutation.isSuccess}
+            className="w-full"
+          >
             Verify email
           </Button>
           <div className="flex flex-col items-center gap-3 text-sm">
             <Button
               variant="ghost"
               size="sm"
-              disabled={resendIn > 0}
+              disabled={
+                resendIn > 0 ||
+                otpVerifyMutation.isPending ||
+                otpVerifyMutation.isSuccess
+              }
               onClick={() => {
                 setResendIn(60);
                 setResendAttempt((attempt) => attempt + 1);
@@ -300,6 +337,9 @@ export default function SignUpPage() {
             </span>
             <Button
               variant="ghost"
+              disabled={
+                otpVerifyMutation.isPending || otpVerifyMutation.isSuccess
+              }
               onClick={() => {
                 setShowOTP(false);
                 requestAnimationFrame(() => setFocus('email'));
