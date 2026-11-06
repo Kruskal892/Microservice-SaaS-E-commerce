@@ -11,16 +11,16 @@ an OTP using Redis and SMTP. Registration verification (`POST /api/verify-regist
 validates the OTP, enforces attempt locks (30-minute lock after 3 failed attempts),
 hashes passwords with bcrypt, and creates user accounts in MongoDB. Login
 (`POST /api/login`) checks credentials and issues access/refresh JWT cookies.
-Three password-recovery routes are also mounted, but reset still requires no
-verification proof. See the
+Three password-recovery routes are mounted; password reset always returns 503
+until secure single-use authorization is implemented. See the
 [recovery blockers](docs/development/authentication.md#password-recovery-blockers).
 The client renders its header (with sticky navigation, search input, and a
 light/dark `ThemeToggle`), a placeholder home page, and `/login` and `/sign-up`
 pages with shared controls and React Hook Form + Zod validation.
 `/sign-up` connects registration (`POST /api/user-registration`) and four-digit
 OTP verification (`POST /api/verify-registration`) using Axios and TanStack Query;
-`/login` submission and OTP resend show explicit unavailable feedback, and Google
-sign-in is disabled. Storefront features are not implemented. See the
+`/login` posts credentials with cookies enabled and redirects to `/` on success.
+OTP resend and Google sign-in remain disabled. Storefront features are not implemented. See the
 [client guide](apps/client/README.md) for API setup, theme behavior,
 password visibility controls, header navigation, and registration fields.
 Token verification on protected routes, refresh, logout, and
@@ -72,19 +72,19 @@ npm run client
 
 The client defaults to `http://localhost:3000` and renders its placeholder,
 `/login`, and `/sign-up` UI pages without backend credentials. Submitting `/sign-up`
-requires `NEXT_PUBLIC_API_URL` in `apps/client/.env` and running backend services.
+or `/login` requires `NEXT_PUBLIC_API_URL` in `apps/client/.env` and running backend services.
 `npm run dev` starts backend `serve` targets; it does not start the client's `dev` target.
 
 Leave `PORT` unset when starting both backend applications together. Each service reads
 the same variable in its own process. See [setup](docs/development/getting-started.md)
 for separate startup, configuration, and database synchronization instructions.
 
-| Application     | Default URL                          | Source-defined response                                                                                     |
-| --------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                                                                |
-| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                                                                  |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations                                                     |
-| Client          | http://localhost:3000/               | Responsive header, theme switch, `/login` form UI, `/sign-up` registration & OTP flow, placeholder home     |
+| Application     | Default URL                          | Source-defined response                                                                                 |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                                                            |
+| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                                                              |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations                                                 |
+| Client          | http://localhost:3000/               | Responsive header, theme switch, `/login` form UI, `/sign-up` registration & OTP flow, placeholder home |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any
@@ -120,6 +120,8 @@ docs/       # Architecture, references, guides, operations, future plans
 Common Nx commands and build ownership are in the
 [development guide](docs/development/development-guide.md). The
 [CI workflow](.github/workflows/ci.yml) runs `lint test build typecheck`; it does
-not explicitly run E2E targets or deploy. Auth has no unit-test files, and the
+not explicitly run E2E targets or deploy. Auth has focused controller/helper
+regression tests with mocked dependencies; these have not been run for the latest
+changes. The
 gateway's generated E2E test has a known port/contract mismatch. Consult
 [testing](docs/development/testing.md) before relying on those checks.

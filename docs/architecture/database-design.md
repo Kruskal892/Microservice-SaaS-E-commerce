@@ -54,8 +54,9 @@ Registration (`POST /api/user-registration`) queries
 `users.findUnique({ where: { email } })` using a trimmed, lowercased email to
 reject duplicates. It does not write to the database.
 
-Registration verification (`POST /api/verify-registration`) performs an existing
-user lookup, validates the OTP in Redis, hashes the password with bcrypt (10 rounds),
+Registration verification (`POST /api/verify-registration`) reuses registration
+validation and email normalization, performs an existing-user lookup, validates
+the OTP in Redis, hashes the password with bcrypt (10 rounds),
 and persists the new record via:
 
 ```ts
@@ -63,6 +64,11 @@ await prisma.users.create({
   data: { name, email, password: hashedPassword },
 });
 ```
+
+Matching OTP/attempt keys are consumed after the user write; hashing/database
+failures preserve the code until expiry. Concurrent duplicate writes are mapped
+to the existing-user error through Prisma's `P2002` code. This relies on the email
+unique index being applied to the database; its live state has not been verified.
 
 OTP values, request counts, attempt tracking, and cooldowns live in Redis outside
 this schema. Their key/expiry contract is in

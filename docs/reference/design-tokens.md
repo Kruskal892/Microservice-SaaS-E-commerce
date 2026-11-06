@@ -34,7 +34,7 @@ The shared CSS supports `.dark` and `data-theme="dark"`; light is the default.
 Choose one convention on the document root so portals inherit the same theme.
 `color-scheme` follows the active mode for native controls.
 
-The client uses `next-themes` with `attribute="data-theme"` and
+The client uses `next-themes` in `src/app/providers.tsx` with `attribute="data-theme"` and
 `defaultTheme="system"`. Use `setTheme('light' | 'dark' | 'system')` rather than
 editing the DOM attribute directly. The header's Dark mode toggle button uses
 `aria-pressed`, stays disabled until mounted, and saves an explicit preference.

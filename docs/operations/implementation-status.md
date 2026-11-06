@@ -2,41 +2,40 @@
 
 [Documentation hub](../README.md) · [Future implementation plan](../future-plans/implementation-plan.md)
 
-**Reviewed:** Backend snapshot 2026-10-25; client/shared UI/assets source 2026-11-05.
+**Reviewed:** Auth/client source and documentation 2026-11-06; other areas retain their dated snapshots.
 This inventory reflects source/configuration inspection, not full runtime verification.
-The capability inventory and 2026-11-05 client section describe the current UI.
+The capability inventory and dated client sections describe the current UI.
 Older dated sections retain historical implementation and validation records;
 their UI details and command results do not verify the current working tree.
 
 ## Capability inventory
 
-| Area                      | Present in source/configuration                                                                                                                                                                                    | Remaining work                                                                                                                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                                                                                   | Verify relevant targets as code changes                                                                                         |
-| Client scaffold           | Next.js App Router, Header (`Header.tsx` + sticky `HeaderBottom.tsx`), `ThemeToggle` (`next-themes`), `/sign-up` registration + OTP verification (`src/api/`), `/login` form UI, `/` placeholder, `/api/hello`     | Connect `/login` and OTP resend to backend, implement `/forgot-password`, storefront routes/components, localization, E2E tests |
-| Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales (`--text-callout`), named breakpoints (`desktop:` 1440px auth split), pre-paint `data-theme` initialization                | Component styling across future storefront screens, font/browser and accessibility verification                                 |
-| Shared UI                 | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, overridable Button hover/active classes, Storybook states and play checks                                                                   | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps                   |
-| Shared assets             | Repo-wide SVG files and exports in `packages/assets` (all monochrome icons use `currentColor`, plus `GoogleIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, `EyeOffIcon`), typed SVG declarations, client SVGR rules       | Additional-app bundler adoption and production validation                                                                       |
-| Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                                                                                         | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                              |
-| Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                                                                                         | Concurrency, partial failures, permanent behavior coverage                                                                      |
-| Verification and identity | Routed verification, Redis OTP check, 3-attempt lock, bcrypt hashing, Prisma user persistence                                                                                                                      | Consistent validation/normalization, OTP error contract and concurrency coverage                                                |
-| Login and JWT cookies     | `POST /api/login`, bcrypt comparison, 15-minute access/7-day refresh signing, HTTP-only JWT cookies, public user response                                                                                          | Protected routes/token verification, refresh/rotation, logout/revocation, browser/CSRF validation                               |
-| Password recovery         | Three public routes; recovery email template, corrected mail arguments, awaited OTP verification, and bcrypt password update                                                                                       | Critical: reset requires no verification proof; validation, purpose separation, token invalidation, live delivery, and coverage |
-| Data                      | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                                                                                        | Verify live connectivity, applied indexes, and seed/migration workflow                                                          |
-| Redis                     | Simple ioredis instance; string OTP, cooldown, attempt count, and lock keys                                                                                                                                        | Atomic admission, bounded failure policy, lifecycle cleanup                                                                     |
-| API docs                  | Swagger 2.0 greeting and all six auth POSTs; required fields/examples; recovery defects and 400/500 responses; static `npm run auth-docs` generator                                                                | Cookie headers and complete validation/error contracts; permanent contract-alignment tests                                      |
-| Tests                     | Two greeting E2E specs; auth Jest/SWC configuration; permanent standalone client schema (`auth.schema.test.ts`) and API message (`messages.test.ts`) tests                                                         | Auth unit tests; correct gateway E2E; integration/failure-path coverage                                                         |
-| Packaging                 | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                                                                                         | Verify generated dependencies, Prisma runtime and image startup                                                                 |
-| CI                        | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                                                                             | Explicit reliable E2E and delivery pipeline                                                                                     |
-| Product                   | Draft requirements and proposed designs                                                                                                                                                                      | Storefront, catalog, cart, orders, payments, tenancy decisions                                                                  |
-| Operations                | Local greetings and listener error logs/exitCode                                                                                                                                                             | Readiness, drain/cleanup, ingress, monitoring, backups, production deployment                                                   |
+| Area                      | Present in source/configuration                                                                                                                                                                              | Remaining work                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                                                                             | Verify relevant targets as code changes                                                                             |
+| Client scaffold           | Next.js App Router, shared Header/ThemeToggle, registration and OTP verification, login credential POST with cookies enabled, placeholder home                                                               | OTP resend, session-aware UI, recovery, storefront, localization, browser/E2E checks                                |
+| Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales (`--text-callout`), named breakpoints (`desktop:` 1440px auth split), pre-paint `data-theme` initialization         | Component styling across future storefront screens, font/browser and accessibility verification                     |
+| Shared UI                 | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, overridable Button hover/active classes, Storybook states and play checks                                                             | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps       |
+| Shared assets             | Repo-wide SVG files and exports in `packages/assets` (all monochrome icons use `currentColor`, plus `GoogleIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, `EyeOffIcon`), typed SVG declarations, client SVGR rules | Additional-app bundler adoption and production validation                                                           |
+| Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                                                                                   | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                  |
+| Registration              | Input validation/normalization, Prisma email lookup, Redis restrictions/counters, SMTP OTP                                                                                                                   | Concurrency, partial failures, permanent behavior coverage                                                          |
+| Verification and identity | Shared registration validation/normalization, OTP validation, post-persistence matching-code cleanup, bcrypt hashing, unique email persistence                                                               | Run regression tests; verify live database indexes and failure handling                                             |
+| Login and JWT cookies     | Client login POST and redirect to /; backend bcrypt comparison, access/refresh JWT cookies, public user response                                                                                             | Loading/error lifecycle, remember-me behavior, protected requests, refresh/logout, browser cookie/CSRF verification |
+| Password recovery         | Recovery email and OTP verification; reset always returns 503 without account access                                                                                                                         | Single-use reset authorization, validation, purpose separation, token invalidation, live delivery                   |
+| Data                      | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                                                                                  | Verify live connectivity, applied indexes, and seed/migration workflow                                              |
+| Redis                     | Simple ioredis instance; string OTP, cooldown, attempt count, and lock keys                                                                                                                                  | Atomic admission, bounded failure policy, lifecycle cleanup                                                         |
+| API docs                  | Swagger 2.0 greeting and auth routes; disabled reset documented with 503                                                                                                                                     | Cookie headers and complete validation/error contracts; contract-alignment tests                                    |
+| Tests                     | Greeting E2E specs, auth controller/helper regressions, standalone client schema and API message tests                                                                                                       | Run authored regressions; correct gateway E2E; integration/failure-path coverage                                    |
+| Packaging                 | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                                                                                         | Verify generated dependencies, Prisma runtime and image startup                                                     |
+| CI                        | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                                                                             | Explicit reliable E2E and delivery pipeline                                                                         |
+| Product                   | Draft requirements and proposed designs                                                                                                                                                                      | Storefront, catalog, cart, orders, payments, tenancy decisions                                                      |
+| Operations                | Local greetings and listener error logs/exitCode                                                                                                                                                             | Readiness, drain/cleanup, ingress, monitoring, backups, production deployment                                       |
 
 ## Known source limitations
 
-- Recovery reset accepts a known email and replacement password without OTP,
-  token, or session authorization. Verification now awaits the OTP result but
-  creates no reset proof. Recovery mail arguments/template are corrected;
-  live delivery remains unverified. Missing reset authorization is a release blocker; see
+- Password reset is disabled and always returns 503 without account access.
+  Recovery verification creates no reset proof; single-use authorization must be
+  implemented before reset is enabled. Live delivery remains unverified; see
   [recovery details](../development/authentication.md#password-recovery-blockers).
 - OTP checks/counters are sequential and can race. SMTP acceptance precedes OTP
   storage; a later Redis failure can leave an email without matching state.
@@ -49,12 +48,17 @@ their UI details and command results do not verify the current working tree.
 - Both JWT cookies always use Secure/HttpOnly/SameSite=None and a 7-day lifetime;
   access JWT validity is only 15 minutes. There is no environment override,
   refresh/logout consumer, persisted revocation state, or browser/CSRF verification.
-- Verification forwards OTP errors with `next(error)` and then throws its return
-  value; input normalization and error propagation need a consistent contract.
+- Client login's remember-me checkbox is not submitted. Its loading indicator
+  uses `isSubmitting` while the handler starts a mutation without awaiting it;
+  mutation pending state does not lock the form. Local server errors persist on
+  retry, and the user projection is not stored as client session state.
+- The theme provider's executable-server/inert-client bootstrap workaround is
+  present in `src/app/providers.tsx`; no browser/hydration verification followed it.
 - Database synchronization and successful persistence against live MongoDB
   instances have no recorded evidence.
-- Auth Jest has no shared-alias mapper or unit-test files. Gateway E2E defaults
-  to port 3000 and expects auth's greeting while starting only gateway.
+- Auth Jest has a shared-alias mapper and focused controller/helper regression
+  tests, not run for this update. Gateway E2E defaults to port 3000 and expects
+  auth's greeting while starting only gateway.
 - Docker uses a floating `node:lts-alpine` base and `npm --omit=dev -f install`.
   No explicit Prisma-generation step or non-root user is configured. Pruned
   runtime dependencies and container startup remain unverified.
@@ -65,7 +69,41 @@ Detailed behavior belongs in [architecture](../architecture/overview.md),
 [request flows](../architecture/request-flows.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
 
+## Client login and theme provider: 2026-11-06
+
+- `loginMutation` posts credentials to `/api/login` with `withCredentials: true`,
+  `retry: false`, and the shared Axios timeout. The login page uses
+  `next/navigation`, stores a server error locally, and redirects to `/` on success.
+  It does not store the user projection, implement remember-me behavior, or protect routes.
+- Query and theme providers now live in `src/app/providers.tsx`, mounted by the
+  root layout. Theme bootstrap uses `text/javascript` on the server and
+  `application/json` in the browser to avoid a client-created executable script.
+  Theme preferences, system tracking, and cross-tab updates remain provider-owned.
+- Updated current documentation and proposal baselines. Documentation formatting,
+  stale-claim searches, and local link/diff inspection are static checks only.
+  Tests, lint, builds, browser checks, and external services were not run for this refresh.
+  Static checks passed across 39 Markdown files: 411 local file/heading links,
+  13 JSON examples, balanced code fences, documentation formatting, and
+  `git diff --check`. External URLs and Mermaid rendering were not checked.
+
+## Signup reliability and safety: 2026-11-06
+
+- Verification reuses registration validation and normalization. OTP helpers throw
+  errors directly, and matching codes are consumed atomically after persistence.
+  Hashing/database failures preserve the OTP; cleanup failure after account creation
+  is logged without changing the successful response. Duplicate email writes are rejected.
+- Password reset returns 503 until secure verification is implemented. Removed the
+  unused recovery controller wrapper and updated Swagger/API documentation.
+- Failed registration requests offer **I received a code**, using submitted details.
+  Removed the resend preview timer; resend remains disabled with an explanation.
+- Added permanent auth regression tests; they were not run. Source-only auth/client
+  TypeScript validation passed at that stage; later login/theme edits were not
+  covered by those results. No lint, build, browser, or live API checks ran.
+
 ## Client registration/OTP verification and design token updates: 2026-11-05
+
+Historical implementation record; current behavior is described in the
+2026-11-06 sections above.
 
 - Added `apps/client/src/api/` (`client.ts`, `auth.ts`, `messages.ts`, and
   `messages.test.ts`). `client.ts` configures an Axios instance with

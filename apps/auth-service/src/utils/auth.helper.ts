@@ -96,14 +96,13 @@ export const sendOtp = async (
   await redis.set(`otp_cooldown:${email}`, 'true', 'EX', 60);
 };
 
-export const verifyOtp = async (
-  email: string,
-  otp: string,
-  next: NextFunction,
-) => {
+export const verifyOtp = async (email: string, otp: unknown) => {
+  if (typeof otp !== 'string' || otp.length !== 4 || !/^[0-9]+$/.test(otp)) {
+    throw new ValidationError('Enter the four-digit code');
+  }
   const storedOtp = await redis.get(`otp:${email}`);
   if (!storedOtp) {
-    throw next(new ValidationError('Expired or invalid OTP!'));
+    throw new ValidationError('Expired or invalid OTP!');
   }
 
   const failedAttemptKey = `otp_attempts:${email}`;
@@ -114,19 +113,29 @@ export const verifyOtp = async (
       await redis.set(`otp_lock:${email}`, 'locked', 'EX', 1800);
       await redis.del(`otp:${email}`, failedAttemptKey);
 
-      throw next(
-        new ValidationError(
-          'Too many failed attempts. Your account is locked for 30 minutes',
-        ),
+      throw new ValidationError(
+        'Too many failed attempts. Your account is locked for 30 minutes',
       );
     }
     await redis.set(failedAttemptKey, failedAttempt + 1, 'EX', 300);
-    throw next(
-      new ValidationError(`Incorrect OTP. ${2 - failedAttempt} attempts left`),
+    throw new ValidationError(
+      `Incorrect OTP. ${2 - failedAttempt} attempts left`,
     );
   }
+};
 
-  await redis.del(`otp:${email}`, failedAttemptKey);
+export const consumeOtp = async (email: string, otp: string) => {
+  // Compare and delete atomically so a newer code cannot be removed.
+  await redis.eval(
+    `if redis.call('GET', KEYS[1]) == ARGV[1] then
+       return redis.call('DEL', KEYS[1], KEYS[2])
+     end
+     return 0`,
+    2,
+    `otp:${email}`,
+    `otp_attempts:${email}`,
+    otp,
+  );
 };
 
 export const handleForgotPassword = async (
@@ -171,9 +180,10 @@ export const verifyForgotPasswordOtp = async (
       throw new ValidationError('Email and otp are required!');
     }
 
-    await verifyOtp(email, otp, next);
+    await verifyOtp(email, otp);
+    await consumeOtp(email, otp);
     res.status(200).json({
-      message: 'Verify OTP successfully. You can nơ reset your password',
+      message: 'OTP verified. Password reset is not available yet.',
     });
   } catch (error) {
     return next(error);

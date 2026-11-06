@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "title": "Auth Service API",
-    "description": "Authentication, registration, email verification, and incomplete password recovery API. Password reset does not yet enforce verification proof; see endpoint descriptions.",
+    "description": "Authentication, registration, email verification, and incomplete password recovery API. Password reset is disabled until secure verification is implemented; see endpoint descriptions.",
     "version": "1.0.0"
   },
   "host": "localhost:6001",
@@ -231,7 +231,7 @@
           "Authentication"
         ],
         "summary": "Request a password-recovery OTP",
-        "description": "Sends a four-digit OTP using the recovery email template. The code expires after five minutes. Email is used unchanged and shares registration OTP keys and limits. Request counters are incremented before delivery, so failures may still consume a request. Password reset does not yet enforce verification proof.",
+        "description": "Sends a four-digit OTP using the recovery email template. The code expires after five minutes. Email is used unchanged and shares registration OTP keys and limits. Request counters are incremented before delivery, so failures may still consume a request. Password reset is disabled until secure verification is implemented.",
         "parameters": [
           {
             "name": "body",
@@ -309,50 +309,11 @@
         "tags": [
           "Authentication"
         ],
-        "summary": "Reset a user password (unsafe: no verification required)",
-        "description": "Critical limitation: this public handler accepts email and newPassword without an OTP, reset token, or authenticated session. Anyone knowing an existing email can change its password. Only field truthiness and reuse of the old password are checked; password length/type and email normalization are not enforced. Existing JWTs are not revoked.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "type": "string",
-                  "example": "customer@example.com"
-                },
-                "newPassword": {
-                  "type": "string",
-                  "example": "new-example-password"
-                }
-              },
-              "required": [
-                "email",
-                "newPassword"
-              ]
-            }
-          }
-        ],
+        "summary": "Password reset is temporarily unavailable",
+        "description": "Always rejects requests without reading or updating an account. Secure single-use reset authorization must be implemented before this endpoint is enabled.",
         "responses": {
-          "200": {
-            "description": "Password hashed with bcrypt (10 rounds) and stored for the supplied email.",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string",
-                  "example": "Password reset successfully"
-                }
-              },
-              "xml": {
-                "name": "main"
-              }
-            }
-          },
-          "400": {
-            "description": "Missing fields, unknown user, or new password equals the old password.",
+          "503": {
+            "description": "Password reset is disabled.",
             "schema": {
               "type": "object",
               "properties": {
@@ -362,22 +323,7 @@
                 },
                 "message": {
                   "type": "string",
-                  "example": "Email and new password are required!"
-                }
-              },
-              "xml": {
-                "name": "main"
-              }
-            }
-          },
-          "500": {
-            "description": "Unexpected body, database, or bcrypt failure.",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string",
-                  "example": "Something went wrong please try again"
+                  "example": "Password reset is unavailable until secure verification is implemented."
                 }
               },
               "xml": {
@@ -394,7 +340,7 @@
           "Authentication"
         ],
         "summary": "Verify a password-recovery OTP",
-        "description": "Awaits the shared OTP verification and consumes the code on success. No reset authorization is issued or stored, and the reset route does not require verification proof. The router calls the helper directly; verifyUserForgotPassword is unused.",
+        "description": "Awaits shared OTP validation and then consumes the matching code. No reset authorization is issued or stored. Password reset remains disabled.",
         "parameters": [
           {
             "name": "body",
@@ -427,7 +373,7 @@
               "properties": {
                 "message": {
                   "type": "string",
-                  "example": "Verify OTP successfully. You can nơ reset your password"
+                  "example": "OTP verified. Password reset is not available yet."
                 }
               },
               "xml": {

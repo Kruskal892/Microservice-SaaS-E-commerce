@@ -25,10 +25,7 @@ export default function SignUpPage() {
   const [otp, setOtp] = useState('');
   const [showOTP, setShowOTP] = useState(false);
   const [otpError, setOtpError] = useState('');
-  const [resendIn, setResendIn] = useState(60);
-  const [resendAttempt, setResendAttempt] = useState(0);
   const otpRef = useRef<HTMLInputElement>(null);
-  // shortcut: Resend is a preview; connect its request before claiming another code was sent.
   const [otpMessage, setOtpMessage] = useState('');
   const {
     register,
@@ -44,12 +41,7 @@ export default function SignUpPage() {
   const signUpMutation = useMutation({
     ...registrationMutation,
     onSuccess: (data) => {
-      setShowOTP(true);
-      setResendIn(60);
-      setOtp('');
-      setOtpError('');
-      setOtpMessage(data.message);
-      otpVerifyMutation.reset();
+      openOtpForm(data.message);
     },
     onError: (error) => {
       setError('root.registration', {
@@ -78,6 +70,18 @@ export default function SignUpPage() {
       );
     },
   });
+
+  function openOtpForm(message: string) {
+    setOtp('');
+    setOtpError('');
+    setOtpMessage(message);
+    otpVerifyMutation.reset();
+    setShowOTP(true);
+  }
+
+  function handleReceivedCode() {
+    openOtpForm('If you received a code, enter it below to verify your email.');
+  }
 
   function handleSignUpSubmit(data: SignUpFormValues) {
     if (signUpMutation.isPending) return;
@@ -113,22 +117,6 @@ export default function SignUpPage() {
   useEffect(() => {
     if (showOTP) otpRef.current?.focus();
   }, [showOTP]);
-
-  useEffect(() => {
-    if (!showOTP) return;
-    const deadline = Date.now() + 60_000;
-    const updateCountdown = () => {
-      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-      setResendIn(remaining);
-      if (remaining === 0) window.clearInterval(interval);
-    };
-    const interval = window.setInterval(updateCountdown, 1000);
-    document.addEventListener('visibilitychange', updateCountdown);
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener('visibilitychange', updateCountdown);
-    };
-  }, [showOTP, resendAttempt]);
 
   return (
     <AuthCard
@@ -261,6 +249,11 @@ export default function SignUpPage() {
               {errors.root.registration.message}
             </FieldError>
           )}
+          {signUpMutation.isError && signUpMutation.variables && (
+            <Button variant="ghost" onClick={handleReceivedCode}>
+              I received a code
+            </Button>
+          )}
         </form>
       ) : (
         <form
@@ -316,25 +309,14 @@ export default function SignUpPage() {
             <Button
               variant="ghost"
               size="sm"
-              disabled={
-                resendIn > 0 ||
-                otpVerifyMutation.isPending ||
-                otpVerifyMutation.isSuccess
-              }
-              onClick={() => {
-                setResendIn(60);
-                setResendAttempt((attempt) => attempt + 1);
-                setOtpMessage(
-                  'Resending is not available yet. No new code has been sent.',
-                );
-              }}
-              className="min-h-11 tabular-nums"
+              disabled
+              aria-describedby="registration-resend-help"
             >
-              {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
+              Resend code
             </Button>
-            <span className="sr-only" role="status">
-              {resendIn === 0 ? 'You can request a new code now.' : ''}
-            </span>
+            <p id="registration-resend-help" className="text-muted">
+              Resending is not available yet. Codes expire after 5 minutes.
+            </p>
             <Button
               variant="ghost"
               disabled={

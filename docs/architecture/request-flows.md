@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [API reference](../reference/api.md)
 
-**Status:** Current source execution paths. **Reviewed:** 2026-10-25.
+**Status:** Current source execution paths. **Reviewed:** 2026-11-06.
 These diagrams explain code behavior, not a successful end-to-end run.
 
 These are backend execution paths. The Next.js client renders a responsive
@@ -11,7 +11,9 @@ header, persisted theme switching, a placeholder home page, and `/login` and
 Both forms validate locally. Signup initiates the registration OTP request through
 `/api/user-registration` and verifies the four-digit code through
 `/api/verify-registration` (normalizing email to lowercase and redirecting to
-`/login` on success); login and OTP resend still show unavailable feedback.
+`/login` on success). Failed registration requests offer **I received a code**
+using the submitted details. Login posts credentials with cookies enabled and
+redirects to `/` on success; OTP resend stays disabled.
 Its local `/api/hello` text route is independent of the gateway and is described
 in the [API reference](../reference/api.md).
 
@@ -56,7 +58,7 @@ flowchart TD
     Route -->|"POST /api/login"| Login["Login controller<br/>bcrypt, JWT signing, cookies"]
     Route -->|"POST /api/forgot-password-user"| Forgot["Recovery helper<br/>Recovery email and OTP storage"]
     Route -->|"POST /api/verify-forgot-password-user"| RecoveryOTP["OTP helper directly<br/>Await verification; no reset proof"]
-    Route -->|"POST /api/reset-password-user"| Reset["Reset controller<br/>No verification proof required"]
+    Route -->|"POST /api/reset-password-user"| Reset["Reset controller<br/>Always returns 503; no account access"]
     Route -->|No| Missing["Express default 404"]
     JSON -->|Parse or size error| Errors["Shared error middleware"]
     Registration -->|Error forwarded| Errors
@@ -139,10 +141,10 @@ sequenceDiagram
     participant DB as Prisma / MongoDB
     participant Redis
     Client->>Auth: POST /api/verify-registration (name, email, otp, password)
-    Auth->>Auth: Validate required fields (name, email, otp, password)
-    alt Any missing field
-        Auth-->>Client: 400 validation error (All fields are required!)
-    else All fields present
+    Auth->>Auth: Validate registration details and normalize email
+    alt Invalid registration details
+        Auth-->>Client: 400 validation error
+    else Valid registration details
         Auth->>DB: users.findUnique(email)
         DB-->>Auth: Existing user or null
         alt Existing user
@@ -165,10 +167,10 @@ sequenceDiagram
                         Auth-->>Client: 400 validation error (Incorrect OTP. N attempts left)
                     end
                 else Stored OTP matches
-                    Auth->>Redis: DEL otp:email, otp_attempts:email
                     Auth->>Auth: bcrypt.hash(password, 10)
                     Auth->>DB: users.create({ name, email, password })
                     DB-->>Auth: User record created
+                    Auth->>Redis: Atomically delete OTP and attempts if code still matches
                     Auth-->>Client: 200 User registered successfully!
                 end
             end
@@ -176,12 +178,11 @@ sequenceDiagram
     end
 ```
 
-Missing fields and existing users are forwarded with `return next(error)`.
-For missing/expired/mismatched OTPs, `verifyOtp` calls `next(ValidationError)`
-and then throws the return value; it still stops before account creation, but
-this Express-dependent error contract needs cleanup. On match,
-the OTP is deleted from Redis (single-use consumption), the password is
-hashed with `bcryptjs` (10 rounds), and the user record is written to MongoDB.
+Registration validation is reused before account lookup; OTP format is checked
+before Redis access. The helper throws validation errors and the controller forwards
+them once. Matching OTPs are consumed after persistence, so hashing/database failures
+preserve the code until expiry. The unique email index prevents duplicate accounts.
+OTP cleanup failure after persistence is logged while the response remains successful.
 
 ## Login and JWT issuance
 
@@ -243,9 +244,7 @@ flowchart TD
     Presence --> Launch["Await verifyOtp<br/>Validate and consume Redis OTP"]
     Launch -->|Success| Verified["200 verified<br/>No reset authorization issued"]
     Launch -->|Failure| Error["Forward error; no success response"]
-    Reset["POST /api/reset-password-user<br/>email, newPassword"] --> User["Check fields and user<br/>Reject same password"]
-    User --> Hash["bcrypt hash and Prisma update<br/>No OTP, token, or session check"]
-    Hash --> Done["200 Password reset successfully<br/>Existing JWTs not revoked"]
+    Reset["POST /api/reset-password-user"] --> Disabled["503 Password reset unavailable<br/>No account access or password writes"]
 ```
 
 The recovery template uses the same responsive layout as activation mail and

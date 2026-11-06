@@ -10,8 +10,11 @@ Protected routes, refresh, logout, storefront, and commerce remain
 unfinished. The client renders a header with sticky navigation and `ThemeToggle`,
 a placeholder `/` page, and `/login` and `/sign-up` pages with shared
 controls and Zod/React Hook Form validation; `/sign-up` connects registration and
-OTP verification to the backend via Axios and TanStack Query, while `/login`,
-OTP resend, and shopping flows are not connected yet. **Backend source reviewed: 2026-10-25; client/shared UI/assets source reviewed: 2026-11-05.** Live integrations are unverified.
+OTP verification to the backend via Axios and TanStack Query. `/login` now posts
+credentials with cookies enabled and redirects to `/` on success. OTP resend,
+Google sign-in, session-aware UI, and shopping flows remain incomplete. Password
+reset is disabled with HTTP 503. **Auth/client baseline reviewed: 2026-11-06.**
+Live integrations are unverified.
 
 The [client guide](../apps/client/README.md) owns the current `ThemeProvider`
 configuration, mounted switch behavior, auth form limits, password reveal
@@ -21,7 +24,7 @@ separate from browser, accessibility, test, and production-build validation.
 Shared UI and SVG assets are owned by `packages/ui` and `packages/assets`.
 See the [shared UI contract](reference/shared-ui.md),
 [assets guide](../packages/assets/README.md), and
-[current validation and review findings](operations/implementation-status.md#client-registrationotp-verification-and-design-token-updates-2026-11-05).
+[current validation and review findings](operations/implementation-status.md#client-login-and-theme-provider-2026-11-06).
 
 ## Shared component library
 

@@ -4,8 +4,8 @@ Next.js App Router scaffold with React and Tailwind CSS v4. The current UI
 includes `Header` (with desktop navigation, product search,
 account/wishlist/cart links, and a light/dark `ThemeToggle`), a placeholder `/`
 page, and `/login` and `/sign-up` forms built with shared `@packages/ui`
-controls, `AuthCard`, React Hook Form, and Zod validation. Registration and OTP
-verification requests are connected. Resend, login submission, storefront screens,
+controls, `AuthCard`, React Hook Form, and Zod validation. Registration, OTP
+verification, and login requests are connected. Resend, storefront screens,
 commerce flows, and localization are not implemented.
 
 ## Run and check
@@ -18,7 +18,7 @@ npm run client
 
 Open `http://localhost:3000`. `npm run dev` starts the backend `serve` targets;
 the client uses a separate `dev` target. The placeholder UI renders without backend
-credentials. To use registration, set `NEXT_PUBLIC_API_URL` to the API gateway
+credentials. To use registration or login, set `NEXT_PUBLIC_API_URL` to the API gateway
 origin (for example, `http://localhost:8080`) in `apps/client/.env`, and start the
 backend services with their required MongoDB, Redis, and SMTP configuration.
 
@@ -48,6 +48,11 @@ parameters in query keys. Never put passwords or OTP codes in keys.
 
 The sign-up page spreads `registrationMutation` and `verifyOtpMutation` into
 `useMutation` and owns its OTP transitions, form errors, and `/login` redirect.
+The login page uses `loginMutation` to post `{ email, password }` to `/api/login`
+with `withCredentials: true`, then navigates to `/` with `next/navigation`.
+The mutation returns a validated message; it does not store the response's user
+projection or establish client session state. The page currently owns a
+`serverError` message and reads the Axios response message with a fallback.
 Use `getApiErrorMessage` from [`src/api/messages.ts`](src/api/messages.ts) for
 validated server messages, timeout guidance, and an operation-specific fallback.
 The helper preserves the original error for status/code checks and does not
@@ -58,9 +63,8 @@ navigation or messages, `mutate(variables, { onSuccess, onError })` adds callbac
 without replacing shared callbacks; these run only while the consumer remains
 mounted. If overriding callbacks through an options spread, call the shared
 callback explicitly when one exists. Use `onMutate` for optimistic updates only
-when the feature needs them, with rollback in `onError`. Both registration and
-OTP verification set `retry: false` so failed requests do not send duplicate OTPs
-or consume extra verification attempts.
+when the feature needs them, with rollback in `onError`. All three auth mutations
+set `retry: false` so failed requests are not automatically repeated.
 
 Permanent API message regression tests can be run explicitly:
 
@@ -77,13 +81,15 @@ Use semantic utilities such as `bg-background`, `bg-surface`, `text-text`,
 `text-muted`, and `border-border`. They follow `data-theme="dark"` or `.dark`
 on the document root.
 
-`layout.tsx` wraps the app in `next-themes` `ThemeProvider` with
+`providers.tsx` wraps the app in `next-themes` `ThemeProvider` with
 `attribute="data-theme"` and `defaultTheme="system"`. The provider supplies the
 startup script, persists the preference under the existing `localStorage`
 `theme` key, and synchronizes browser tabs. System changes are followed while
 the preference is `system`. Selecting a mode with the theme button saves an
 explicit preference. There is no System option in the current UI; use
 `setTheme('system')` to resume following the OS.
+The startup script is executable in server HTML and inert on client remounts;
+the provider's effects apply theme changes in the browser.
 [`ThemeToggle`](src/components/common/ThemeToggle/ThemeToggle.tsx) uses
 `useTheme().resolvedTheme` to display the effective mode and `setTheme()` to
 select `"light"` or `"dark"`. The button is disabled until mounted to keep the
@@ -118,8 +124,8 @@ editing, selection, paste, and one-time-code autocomplete. The
 sign-up page uses a controlled string value and `onValueChange` with a single string;
 it no longer keeps an array of digits, input refs, or focus/Backspace handlers.
 Registration is the initial state. Validated details are posted to
-`${NEXT_PUBLIC_API_URL}/api/user-registration`; only a successful response opens
-the OTP UI. The submit button stays busy during the request, and server errors
+`${NEXT_PUBLIC_API_URL}/api/user-registration`; a successful response opens
+the OTP UI automatically. The submit button stays busy during the request, and server errors
 appear on the registration form with a fallback for network failures. A successful
 response supplies the visible OTP status message, with fallback text if the
 server omits a usable message. Both
@@ -130,10 +136,10 @@ change the email or credentials being verified. OTP submission validates exactly
 focuses invalid input and preserves leading zeros. Verification posts name, email,
 password, and OTP to `/api/verify-registration`. It normalizes email to match the
 backend's OTP storage key, disables conflicting actions while pending, displays
-request errors, and redirects to `/login` on success. Login submission and resend
-requests remain unwired.
-Resend uses a 60-second wall-clock countdown with visibility catch-up. The timer
-is UI feedback, not server rate limiting.
+request errors, and redirects to `/login` on success. Resend requests remain unwired.
+After a failed registration request, **I received a code** opens OTP entry using
+the submitted details, so a lost response does not strand an emailed code.
+Resend stays disabled with an explanation until its request is implemented.
 See the [OTP recipe](../../docs/reference/common-components.md#otp-input).
 
 Import `Input`, `Field`, `Label`, `FieldError`, and `Checkbox` from `@packages/ui`.
@@ -176,7 +182,7 @@ introduction/form at desktop widths and one column on mobile.
 Both `common` and `layout` are re-exported from `src/components/index.ts`.
 
 The header links to `/login`, `/wishlist`, and `/cart`. `/login` renders the
-login form UI and `/sign-up` renders a registration form scaffold; `/wishlist`, `/cart`,
+login form with backend submission and `/sign-up` renders registration and OTP verification; `/wishlist`, `/cart`,
 and `/forgot-password` do not exist yet and return the not-found page.
 Wishlist/cart are not connected to data. Search submits `q` to `/products`, which is still a planned route. Metadata and
 visible branding both use Eshop. No search backend is connected.
@@ -186,14 +192,14 @@ visible branding both use Eshop. No search backend is connected.
 | Route        | Current response                                                                                                    |
 | ------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `/`          | Placeholder page with the header, `ThemeToggle`, and sticky `HeaderBottom` navigation                               |
-| `/login`     | Login card UI with `GoogleButton`, email/password `Field`/`Input`, `Checkbox`, and Zod/RHF validation               |
+| `/login`     | Validated credential POST to `/api/login`, server error feedback, and redirect to `/` on success                    |
 | `/sign-up`   | Registration and 4-digit `OtpInput` verification flow with Zod/RHF validation, TanStack Query mutations, and reveal |
 | `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler                                                          |
 
 Both auth forms validate locally. Signup sends validated registration details
 to request an email code and verifies the 4-digit OTP to create the account and
-redirect to `/login`; login and OTP resend still show an unavailable status without
-sending requests. Neither form logs credentials. Google sign-in is visibly
+redirect to `/login`. Login submits credentials with cookies enabled and redirects
+to `/`; OTP resend stays disabled. Neither form logs credentials. Google sign-in is visibly
 unavailable. `AuthCard` shares the page shell. Both pages use the shared
 `<Input type="password" />`, which retains native input props and refs while
 adding an accessible `EyeIcon`/`EyeOffIcon` button in the field's flex layout.
@@ -219,7 +225,16 @@ A permanent focused schema test is available:
 node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
 ```
 
-The `/login` form and OTP resend button do not call the backend auth endpoints yet.
+Login's **Remember me** checkbox is not included in the request and does not
+change the backend's fixed cookie lifetime. Its loading indicator currently uses
+React Hook Form's `isSubmitting`, while the submit handler starts a mutation
+without awaiting it; a pending-request lock is not implemented on this page.
+Server errors are stored locally and are not cleared when another attempt starts.
+The backend login lookup does not normalize email case. Browser cookie acceptance,
+redirect behavior, and the theme script remount workaround remain unverified.
+
+OTP resend and recovery UI remain unimplemented. The reset API deliberately
+returns 503 until secure single-use reset authorization exists.
 The hello handler is separate from the Express gateway and auth endpoints.
 
 Project-wide setup, architecture, checks, and limitations live in the

@@ -3,22 +3,26 @@
 [Documentation hub](../README.md) · [Registration & verification sequence diagrams](../architecture/request-flows.md#registration-and-otp-delivery)
 
 **Status:** Source implementation, not a verified live integration.
-**Backend snapshot:** 2026-11-02. **Client UI updated:** 2026-11-05.
+**Auth backend and client reviewed:** 2026-11-06.
 
 The Next.js client includes `/login` and `/sign-up` forms with a shared
 `AuthCard`, shared `Input type="password"` eye/eye-off controls, and React Hook Form + Zod
 validation (`loginSchema`, `signUpSchema`, `otpCodeSchema`, and `verifyOtpSchema`).
-Login includes a remember-me checkbox and still shows unavailable feedback on
-submission without sending credentials. Sign-up collects name, email, password,
+Login posts `{ email, password }` through `loginMutation` with cookies enabled,
+shows a local server error on failure, and navigates to `/` on success. Its
+remember-me checkbox does not change the request or fixed cookie lifetime.
+The loading indicator uses React Hook Form's `isSubmitting` rather than mutation
+pending state, and server errors are not cleared on retry. These remain limitations.
+Sign-up collects name, email, password,
 and password confirmation, posts validated details to `/api/user-registration`
 via `registrationMutation`, and opens the `OtpInput` verification view on
 success. Verification validates a four-digit code, combines it with the
 submitted registration variables (normalizing email to lowercase via
 `verifyOtpSchema` to match Redis OTP keys), posts to `/api/verify-registration`
 via `verifyOtpMutation`, disables conflicting actions while pending or
-succeeded, and redirects to `/login` on success. Resend uses a 60-second
-wall-clock cooldown with tab-visibility catch-up and still shows unavailable
-feedback without sending a request. Neither form logs credentials, Google
+succeeded, and redirects to `/login` on success. After a failed registration
+request, **I received a code** opens OTP entry with the submitted details.
+Resend stays disabled with unavailable feedback. Neither form logs credentials, Google
 sign-in is disabled, and the forgot-password link still targets a missing route.
 There is no client session handling or cookie consumption yet. Use the
 [client README](../../apps/client/README.md) for frontend setup.
@@ -41,24 +45,26 @@ helper but has no route. Invalid input stops before infrastructure calls.
 `POST /api/verify-registration` completes user registration by validating the
 submitted OTP, hashing credentials, and persisting the user in MongoDB:
 
-1. **Payload validation:** Verifies that `name`, `email`, `otp`, and `password`
-   are present. Missing fields return 400 with `'All fields are required!'`.
+1. **Payload validation:** Reuses registration's body, name, email, and password
+   checks, including trimming and lowercase email normalization. OTP must be a four-digit string.
 2. **Account existence check:** Queries MongoDB via
    `prisma.users.findUnique({ where: { email } })`. If an account already
    exists for that email, returns 400 with `'The user is already existed!'`.
 3. **OTP verification (`verifyOtp`):** Validates the four-digit code against Redis,
    tracks failed attempts up to 3 tries, locks the account for 30 minutes on
-   exceeded attempts, and cleans up Redis keys on match.
+   exceeded attempts. Matching codes remain available until account creation succeeds.
 4. **Password hashing:** Hashes the plaintext password with `bcrypt.hash(password, 10)`
    using `bcryptjs`.
 5. **Persistence:** Creates the new user in MongoDB via `prisma.users.create`
    with `name`, `email`, and `password: hashedPassword`.
-6. **Response:** Returns HTTP 200 `{ "success": true, "message": "User registered successfully!" }`.
+6. **Cleanup and response:** Atomically deletes OTP/attempt keys only if the stored
+   code still matches, then returns HTTP 200 `{ "success": true, "message": "User registered successfully!" }`.
 
-Verification validates field truthiness only; it does not reuse registration's
-normalization or length checks. `verifyOtp(email, otp, next)` forwards validation
-errors with `next(error)` and then throws that call's return value. Keep this
-Express-dependent error contract visible when extracting the helper into a service.
+`verifyOtp(email, otp)` throws validation errors; controllers forward them once.
+Hashing or database failures leave the OTP available until its original expiry.
+The database's unique email index prevents concurrent duplicate accounts; a
+duplicate-key error becomes the existing-user validation response. A Redis cleanup
+failure after account creation is logged without changing the successful response.
 
 ## Current login and cookie issuance
 
@@ -90,16 +96,14 @@ the emitted cookies, enforce protected routes, rotate refresh tokens, or log out
 
 ## Password recovery blockers
 
-Three recovery routes now exist in source, but the flow is incomplete and unsafe.
+Three recovery routes exist in source, but password reset is disabled.
 Exact payloads, messages, and failure behavior are in the
 [API reference](../reference/api.md#password-recovery-incomplete-and-unsafe).
 
-- `POST /api/reset-password-user` changes a password using only email and
-  `newPassword`. It does not check OTP verification, a reset token, or a session.
-  Bind reset to short-lived, single-use verification proof before exposing it.
+- `POST /api/reset-password-user` always returns 503 without reading or updating
+  an account. Bind reset to short-lived, single-use verification proof before enabling it.
 - `POST /api/verify-forgot-password-user` awaits `verifyOtp`, then returns 200,
-  but issues no reset authorization. The router calls the helper
-  directly; `verifyUserForgotPassword` in the controller is unused.
+  but issues no reset authorization. The router calls the helper directly.
 - `POST /api/forgot-password-user` now passes `(user.name, email, ...)` to
   `sendOtp` and uses `forgot-password-user-email.ejs`. The template follows the
   activation email design with escaped name/OTP values and a five-minute expiry
@@ -110,17 +114,18 @@ Exact payloads, messages, and failure behavior are in the
 - The helper accepts a seller type but only queries users for `'user'`; there
   are no mounted seller recovery routes.
 
-Reset currently hashes with bcrypt (10 rounds), rejects the old password, and
-updates Prisma. It does not clear cookies or revoke existing JWTs. No recovery
-integration or security checks have been run for this refresh.
+The disabled reset handler performs no hashing, database access, cookie changes,
+or token revocation. A future implementation needs password validation and an
+explicit existing-session policy. No recovery integration or security checks
+have been run for this refresh.
 
 ## Swagger maintenance
 
 Run `npm run auth-docs` after route or contract changes. The generator scans
 `main.ts`, follows the `/api` router mount, and reads `#swagger` controller/router
 annotations for required request fields and concrete request/200-response
-examples. Recovery router annotations include current defects and 400/500
-responses; they do not claim a verified or secure recovery flow. Generation also
+examples. Recovery OTP annotations include 400/500 responses; disabled reset
+documents its 503 response. They do not claim a verified or secure recovery flow. Generation also
 documents the greeting and excludes the Swagger UI/JSON routes.
 Commit the generated JSON, restart auth, and reload `/api-docs`. Cookie headers
 and detailed error/validation contracts remain outside the generated schemas.
@@ -129,8 +134,7 @@ and detailed error/validation contracts remain outside the generated schemas.
 
 The [ioredis client](../../packages/libs/redis/index.ts) is a direct module-level
 instance. [auth.helper.ts](../../apps/auth-service/src/utils/auth.helper.ts) owns
-the following keys. Registration normalizes email; verification uses the submitted
-email unchanged, so callers must send the same normalized email. Recovery reuses
+the following keys. Registration and account verification normalize email. Recovery reuses
 these keys without a purpose namespace:
 
 | Key                         | Value / expiry                 | Current use                                                       |
@@ -147,15 +151,16 @@ Restriction checks run in lock → spam lock → cooldown order. Helpers throw
 are allowed; a later request that passes cooldown checks sets the spam lock.
 This is an expiry refreshed on updates, not a fixed calendar-hour quota.
 
-Verification inspects `otp:${email}`. If the key is absent or expired, it forwards
-an error through `next(new ValidationError('Expired or invalid OTP!'))` and then
-throws the return value. On incorrect OTP entry, it reads
+Verification validates the code format and inspects `otp:${email}`. If the key is
+absent or expired, it throws `ValidationError('Expired or invalid OTP!')`.
+On incorrect OTP entry, it reads
 `otp_attempts:${email}`. When failed attempts reach 2 (the 3rd attempt), it
 writes `otp_lock:${email}` with a 1,800-second (30-minute) TTL, deletes the OTP
 and attempt keys, and returns a 30-minute lockout error. When fewer attempts have
 failed, it increments `otp_attempts:${email}` (300-second TTL) and returns the
-remaining attempts count. On a matching OTP, it deletes both `otp:${email}` and
-`otp_attempts:${email}` for single-use consumption.
+remaining attempts count. Account registration consumes the matching OTP and
+attempt keys after persistence using `consumeOtp`; recovery consumes them after
+validation. The atomic comparison prevents cleanup from deleting a newer code.
 
 The sequential GET/SET operations can race under high concurrency. Request count
 is increased before SMTP, so a mail failure can still consume a request. A partial
@@ -183,7 +188,9 @@ The current Dockerfile has no explicit Prisma-generation step; inspect the
 With registration, verification, and login/token issuance present in source, the remaining authentication
 capabilities include:
 
-- Connect the client `/login` form, OTP resend action, and future recovery screens to the backend auth endpoints.
+- Connect OTP resend and future recovery screens to the backend auth endpoints.
+- Align login loading/error reset with mutation state, implement remember-me
+  behavior if required, and add session-aware UI/current-user state.
 - Consistent input validation/normalization and generic login credential failures.
 - JWT verification middleware, protected routes, and current-user lookup.
 - Refresh-token validation/rotation and persisted revocation policy.
@@ -195,5 +202,6 @@ capabilities include:
 The [future structure plan](../future-plans/architecture/auth-service-structure-plan.md)
 proposes separating app creation, validation, and OTP orchestration. Current code
 still uses `routes/`, `controller/`, `utils/`, and `mail/`.
-No auth unit-test files are present. See [testing](testing.md) for actual coverage
+Focused auth controller/helper regression tests are present but were not run for
+this update. See [testing](testing.md) for actual coverage
 and [implementation status](../operations/implementation-status.md) for gaps.

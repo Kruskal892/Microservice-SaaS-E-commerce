@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [System architecture](overview.md)
 
-**Status:** Current files and configuration. **Reviewed:** 2026-11-05.
+**Status:** Current files and configuration. **Reviewed:** 2026-11-06.
 
 ## Source layout
 
@@ -12,14 +12,14 @@
 |   |-- client/
 |   |   |-- src/api/
 |   |   |   |-- client.ts               # Shared Axios instance (NEXT_PUBLIC_API_URL, 15s timeout)
-|   |   |   |-- auth.ts                 # registrationMutation and verifyOtpMutation options
+|   |   |   |-- auth.ts                 # Registration, OTP verification, and login mutation options
 |   |   |   |-- messages.ts             # Validated server/timeout/fallback message helpers
 |   |   |   `-- messages.test.ts        # Permanent standalone Node tests for API message helpers
 |   |   |-- src/app/layout.tsx          # Global CSS, Providers, and Header
 |   |   |-- src/app/providers.tsx       # QueryClientProvider and next-themes ThemeProvider
 |   |   |-- src/app/page.tsx            # Placeholder page
 |   |   |-- src/app/global.css          # Tailwind, shared theme import/source, body styles
-|   |   |-- src/app/(routes)/login/page.tsx # Login page UI with RHF + Zod validation
+|   |   |-- src/app/(routes)/login/page.tsx # RHF + Zod login, credential POST, errors, redirect to /
 |   |   |-- src/app/(routes)/sign-up/page.tsx # Sign-up and OTP verification flow with RHF, Zod, and TanStack Query
 |   |   |-- src/app/constants/navigation-menu.ts # Header navigation items
 |   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
@@ -48,6 +48,7 @@
 |   |   |   |-- main.ts                  # Express wiring, Swagger, listener
 |   |   |   |-- routes/auth.router.ts    # Six /api POST routes; recovery Swagger annotations
 |   |   |   |-- controller/auth.controller.ts
+|   |   |   |-- controller/auth.controller.spec.ts # Permanent mocked auth/OTP regressions
 |   |   |   |-- utils/auth.helper.ts     # Validation, OTP policy, incomplete recovery handlers
 |   |   |   |-- utils/cookies/setCookies.ts # Access/refresh cookie policy within auth
 |   |   |   |-- mail/
@@ -59,7 +60,7 @@
 |   |   |   `-- swagger-output.json      # Committed Swagger 2.0 document
 |   |   |-- package.json                 # esbuild, serve, prune, Docker targets
 |   |   |-- tsconfig.app.json            # App compiler config and shared reference
-|   |   |-- jest.config.cts
+|   |   |-- jest.config.cts              # SWC and @packages/* source mapping
 |   |   `-- Dockerfile
 |   |-- api-gateway-e2e/                 # Generated gateway test and port lifecycle
 |   `-- auth-service-e2e/                # Auth greeting test and port lifecycle

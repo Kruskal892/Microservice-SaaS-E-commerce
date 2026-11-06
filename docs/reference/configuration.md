@@ -35,7 +35,9 @@ configuration parser validates missing inputs or waits for dependencies.
 Redis connection and command timeouts are five seconds, the offline command
 queue is disabled, and requests allow one retry. The client reconnects in the
 background; OTP admission returns 503 until Redis is ready.
-Signup's registration and OTP verification browser requests time out after 15 seconds and do not retry automatically.
+Registration, OTP verification, and login browser requests time out after 15
+seconds and do not retry automatically. Login enables Axios `withCredentials`
+for the request; the shared Axios instance does not enable it globally.
 
 Set distinct JWT signing secrets in your local `.env` or deployment environment;
 the `.env.example` values are placeholders. Login passes the values directly to
@@ -47,7 +49,7 @@ logs, screenshots, and PR evidence.
 
 ```mermaid
 flowchart LR
-    Browser["Next.js client<br/>localhost:3000"] -->|"NEXT_PUBLIC_API_URL (/sign-up registration & OTP verify)"| Gateway["Gateway HTTP<br/>:8080"]
+    Browser["Next.js client<br/>localhost:3000"] -->|"NEXT_PUBLIC_API_URL (registration, OTP verification, login)"| Gateway["Gateway HTTP<br/>:8080"]
     Gateway -->|"AUTH_SERVICE_URL"| Auth["Auth HTTP<br/>:6001"]
     AuthDebug["Nx inspector :9229"] -.-> Auth
     GatewayDebug["Nx inspector :9230"] -.-> Gateway
@@ -86,10 +88,13 @@ SVG declarations with `import '@packages/assets/svg'`, satisfying the client's
 `@packages/*`, includes shared TSX, and references the shared composite project;
 its declaration outputs must exist for the standalone no-emit check. See [design tokens](design-tokens.md) for exact utilities and
 light/dark selectors. The client declares `next-themes` in its workspace
-dependencies and mounts `ThemeProvider` with `attribute="data-theme"` and
+dependencies and mounts `ThemeProvider` in `src/app/providers.tsx` with `attribute="data-theme"` and
 `defaultTheme="system"`. It uses the `theme` localStorage key and needs no theme
 environment variable. The provider owns initial selection, persistence,
 cross-tab synchronization, and live system tracking while `system` is selected.
+The inline bootstrap uses `text/javascript` during server rendering and inert
+`application/json` during client rendering. This workaround for the script-tag
+console warning is present in source; browser/hydration behavior is unverified.
 `ThemeToggle` reads `resolvedTheme`, calls `setTheme()`, and stays disabled until
 mounted. Keep theme changes inside this API instead of directly editing the DOM.
 The shared theme bundles DM Sans from `packages/assets/fonts/`; all client and

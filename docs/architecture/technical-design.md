@@ -2,7 +2,7 @@
 
 [Documentation hub](../README.md) · [Architecture overview](overview.md)
 
-**Status:** Current source and configuration. **Reviewed:** 2026-11-05.
+**Status:** Current source and configuration. **Reviewed:** 2026-11-06.
 Future design decisions live in [future plans](../future-plans/README.md).
 
 ## Implementation ownership
@@ -19,8 +19,9 @@ and client-side validation via `react-hook-form` and `zod` (`loginSchema` in
 `src/schemas/auth.schema.ts` with `zodResolver` in `src/utils/zod-resolver.ts`).
 `/sign-up` connects registration (`POST /api/user-registration`) and OTP
 verification (`POST /api/verify-registration`) through `src/api/` (`client.ts`,
-`auth.ts`, and `messages.ts`); `/login` submission, OTP resend, session state,
-and commerce flows remain unwired.
+`auth.ts`, and `messages.ts`). `/login` uses `loginMutation` to post credentials
+with `withCredentials: true` and navigates to `/` on success. OTP resend,
+session-aware UI, and commerce flows remain unwired.
 
 The shared `packages/ui/theme.css`, imported by client global CSS, owns the
 Tailwind CSS-first `@theme` that registers brand/status colors, font, spacing,
@@ -31,7 +32,10 @@ uses `useTheme()` for the resolved mode and theme updates. The provider owns
 initialization, persistence, cross-tab synchronization, and system-theme
 tracking. The theme button is disabled until mounted to avoid hydration mismatches.
 System tracking applies while the preference is `system`; the theme button
-saves an explicit light/dark preference.
+saves an explicit light/dark preference. `ThemeProvider` lives in `providers.tsx`;
+its bootstrap script uses `text/javascript` on the server and `application/json`
+in the browser to avoid executing a script during client remounts. Theme effects
+remain active. This workaround has not been verified in a browser.
 Client CSS explicitly scans `packages/ui`. The header and login page use the shared
 native `Input` exported from `@packages/ui`. Its flex wrapper owns field styling and
 reacts to native input focus/disabled/invalid state through `:has()` selectors.
@@ -42,7 +46,7 @@ and imported through a typed UI registry using the client's SVGR loaders. There
 is no search backend. `Header` is the CSS-sticky shell containing desktop navigation and shared
 `HeaderActions`. Compact navigation uses the shared Modal, closing on link
 selection or Escape with focus restoration. `/wishlist`, `/cart`, and `/forgot-password`
-links target missing routes; `/sign-up` is a validated form scaffold. Empty count
+links target missing routes; `/sign-up` connects registration and verification. Empty count
 badges are omitted, and cart data remains unwired.
 DM Sans is bundled in `packages/assets/fonts/` and loaded by shared CSS. The
 root layout sets Eshop metadata. All client text uses the shared family. Shared `Input` adds an accessible eye/eye-off
@@ -58,17 +62,19 @@ one themed box per digit, an active-slot highlight, and a caret. The primitive
 keeps a single accessible native field underneath the visual boxes for selection,
 paste, keyboard editing, form semantics, and autocomplete. The sign-up page
 continues to use a controlled code string. Registration posts validated details
-to `/api/user-registration` (`registrationMutation`) and opens OTP entry only
-after a successful response, displaying the validated server message. Pending
+to `/api/user-registration` (`registrationMutation`) and opens OTP entry
+after a successful response, displaying the validated server message. Failed
+requests expose **I received a code**, using the submitted registration snapshot.
+Pending
 requests disable submission; failures appear on the registration form via
-`getApiErrorMessage`. The sign-up page owns the Verify email form and a 60-second
-resend countdown, including cleanup and visibility updates. Its `otpCodeSchema`
+`getApiErrorMessage`. The sign-up page owns the Verify email form; resend remains
+disabled with an explanation and no countdown. Its `otpCodeSchema`
 accepts exactly four numeric characters, preserving leading zeros, while
 `verifyOtpSchema` pairs those digits with the submitted `signUpMutation.variables`
 and normalizes `email` to lowercase before `verifyOtpMutation` posts to
 `/api/verify-registration`. Verification disables conflicting controls while
 pending or succeeded, focuses `OtpInput` on error, and redirects to `/login` on
-success. Resend still shows unavailable feedback; `OtpInput` itself does not
+success. `OtpInput` itself does not
 submit, resend, or enforce server rate limits.
 
 ```mermaid
@@ -167,11 +173,11 @@ policy, generic credential errors, input normalization, refresh/rotation, logout
 and request authentication remain follow-ups. Exact behavior is in the
 [login contract](../reference/api.md#login-and-jwt-cookies).
 
-Recovery adds Express-aware helpers for OTP request and submission plus a
-controller for password updates. The submission route bypasses its unused
-controller wrapper and invokes the helper directly. Verification is awaited and
-mail uses the recovery template with correct name/email arguments. Reset still
-has no verification gate. See [recovery blockers](../development/authentication.md#password-recovery-blockers).
+Recovery uses Express-aware request/submission helpers; the submission route calls
+its helper directly. The unused controller wrapper was removed. Verification is
+awaited and mail uses the recovery template. Reset always returns 503 without
+reading or updating accounts until single-use reset authorization exists. See
+[recovery blockers](../development/authentication.md#password-recovery-blockers).
 
 `npm run auth-docs` statically scans `main.ts` to retain router prefixes, then
 reads controller/router `#swagger` annotations for required fields and example payloads.
@@ -187,8 +193,9 @@ Swagger host/scheme remain fixed at `http://localhost:6001`.
 One `packages/` workspace contains shared source. `@packages/*` resolves through
 TypeScript paths, auth's esbuild bundle, and gateway's explicit Webpack alias.
 Auth and gateway app compiler configs reference the shared library. Plain Node
-does not resolve the alias on its own; auth's Jest config currently has no
-`moduleNameMapper` for it.
+does not resolve the alias on its own; auth's Jest config maps `@packages/*` to
+shared source. Controller/helper regressions mock Prisma, Redis, mail, and bcrypt
+so those tests do not connect to live services. They have not been run for this update.
 
 Auth esbuild emits a CommonJS bundle and copies EJS templates and the Prisma
 schema as assets. Gateway Webpack emits to its own dist and enables generated

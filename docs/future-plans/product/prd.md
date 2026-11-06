@@ -3,7 +3,7 @@
 [Documentation index](../../README.md)
 
 **Priority:** Critical. **Status:** Proposed baseline based on repository direction,
-not an approved business brief. **Reviewed:** 2026-10-25.
+not an approved business brief. **Baseline reviewed:** 2026-11-06; product requirements remain proposed.
 
 ## 1. Product context and problem
 
@@ -18,8 +18,10 @@ unfinished; live identity integrations are unverified. See
 
 The client now has `/login` and `/sign-up` form scaffolds, local validation,
 password visibility controls, a responsive header, and persisted `next-themes`
-switching. Those forms do not submit to backend auth, and Google sign-in is
-disabled. This is frontend foundation work, not a completed identity flow.
+switching. Registration, OTP verification, and login submit to backend auth;
+login enables cookie credentials and redirects to `/`. OTP resend and Google
+sign-in are disabled, session-aware UI is absent, and password reset returns 503
+until secure authorization exists. This is not a completed identity flow.
 
 The repository name includes SaaS, but tenant isolation, subscriptions, merchant
 onboarding, and billing are undefined. This draft assumes one storefront for the
