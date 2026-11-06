@@ -2,23 +2,24 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current test files and target configuration. **Reviewed:** 2026-11-05.
+**Status:** Current test files and target configuration. **Reviewed:** 2026-11-06.
 
 ## Existing coverage
 
-| Project      | Present coverage                                                        | Limits                                                                     |
-| ------------ | ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Auth service | Jest/SWC configuration, `passWithNoTests: true` target option           | No unit-test files; a successful empty run would not prove auth behavior   |
-| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`               | Greeting only; no registration or external-service assertions              |
-| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                          | Default port 3000 differs from gateway 8080; only gateway is started       |
-| Client       | Focused Node tests for `auth.schema.ts` and `api/messages.ts`           | No client browser or E2E suite configured; standalone tests run explicitly |
+| Project      | Present coverage                                                     | Limits                                                                     |
+| ------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Auth service | Jest/SWC controller/helper regression tests with mocked dependencies | Not run for this update; no live Redis, database, or SMTP assertions       |
+| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`            | Greeting only; no registration or external-service assertions              |
+| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                       | Default port 3000 differs from gateway 8080; only gateway is started       |
+| Client       | Focused Node tests for `auth.schema.ts` and `api/messages.ts`        | No client browser or E2E suite configured; standalone tests run explicitly |
 
 Source: [auth Jest config](../../apps/auth-service/jest.config.cts),
+[auth controller/helper regressions](../../apps/auth-service/src/controller/auth.controller.spec.ts),
 [auth E2E spec](../../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts),
 [gateway E2E spec](../../apps/api-gateway-e2e/src/api-gateway/api-gateway.spec.ts),
 [client schema test](../../apps/client/src/schemas/auth.schema.test.ts),
 [client API messages test](../../apps/client/src/api/messages.test.ts).
-No permanent Redis integration, OTP validation, login/JWT/cookie, or mail-failure
+No permanent Redis integration, login/JWT/cookie, or mail-failure
 suites are present.
 
 ## Focused checks
@@ -43,11 +44,16 @@ For the sign-up OTP controls, manually check that incomplete codes cannot submit
 four digits submit `POST /api/verify-registration` with the normalized email from
 the registration variables, conflicting controls are disabled while verification
 is pending or succeeded, server/timeout errors focus the OTP input and display an
-alert, and a successful response redirects to `/login`. Resend should count down
-from 60 seconds, enable at zero, and restart when activated with unavailable
-preview feedback without clearing the current code. Check background-tab
-catch-up, screen-reader availability feedback, and interval cleanup on navigation.
-These browser and timer checks have not been run.
+alert, and a successful response redirects to `/login`. After a failed signup
+request, **I received a code** must open OTP entry for the submitted email even
+if the form was subsequently edited. Resend stays disabled with an explanation.
+These browser checks have not been run.
+
+Auth regression tests in `auth.controller.spec.ts` cover server validation,
+normalized details, OTP preservation after hashing/database failures, error
+forwarding, expiry/lockout, concurrent duplicate creation, cleanup failure after
+persistence, recovery consumption, and disabled password reset. They use mocked
+Redis/database/mail dependencies and have not been run for this update.
 
 Run commands from the repository root, choosing checks relevant to the change:
 
@@ -61,7 +67,7 @@ npx nx lint @microservice-eshop/api-gateway
 
 Build commands and compiler ownership are in the [development guide](development-guide.md).
 Registration verification (`POST /api/verify-registration`) actively routes to
-`userVerification` and invokes `verifyOtp(email, otp, next)`. Run focused typecheck
+`userVerification` and invokes `verifyOtp(email, otp)`. Run focused typecheck
 or test commands to verify changes against compiler and test suites.
 
 For the shared-library and auth compiler projects directly:
@@ -101,13 +107,21 @@ The following browser checks are suggested, not completed for this change:
    the preference is `system`. Selecting the theme button saves an explicit
    mode; restore `system` through `setTheme('system')` when checking OS tracking.
 2. Check keyboard operation, announced pressed state, and hydration warnings on
-   reload in both themes. The theme button remains disabled until mounted.
+   reload in both themes and after client navigation/remounts. The provider lives
+   in `src/app/providers.tsx`; its bootstrap is executable in server HTML and inert
+   on client render. Confirm the script-tag warning is absent without losing
+   initial theme selection. This workaround has not been browser-verified.
+   The theme button remains disabled until mounted.
 3. Open `/login` and `/sign-up`. Check required fields, invalid email, password
-   length, mismatched confirmation, and error-to-field associations. Login shows
-   unavailable feedback without sending credentials. Signup posts validated
+   length, mismatched confirmation, and error-to-field associations. Login posts
+   `{ email, password }` to `/api/login` with credentials enabled; check server
+   errors and redirect to `/` on success. Remember-me is not submitted, no
+   session-aware UI exists, and mutation pending state is not currently used by
+   the login loading indicator. Signup posts validated
    details to `/api/user-registration`; verify the button remains busy during
-   a slow request, failures are visible on the registration form, and only a
-   successful response opens OTP entry. In OTP entry, verify that submitting a
+   a slow request and failures are visible on the registration form. A successful
+   response opens OTP entry automatically; **I received a code** also opens it
+   after a failed request using submitted details. In OTP entry, verify that submitting a
    four-digit code posts to `/api/verify-registration`, disables OTP controls
    while pending, shows server/timeout errors, and redirects to `/login` on
    success. Neither form should log credentials.
@@ -182,10 +196,9 @@ Run `npm run auth-docs` and inspect the generated paths:
 - `POST /api/forgot-password-user`: required email; recovery template and five-minute OTP.
 - `POST /api/verify-forgot-password-user`: required email and string OTP; document
   that verification is awaited but no reset proof is issued.
-- `POST /api/reset-password-user`: required email and newPassword; document the
-  missing verification gate and existing-token invalidation.
-- Each auth POST has concrete request-property examples and a 200 response schema.
-- Recovery routes include 400/500 responses and their current limitations.
+- `POST /api/reset-password-user`: always returns 503; no account access or password update.
+- Active auth POSTs have request-property examples and a 200 response schema.
+- Recovery OTP routes include 400/500 responses; disabled reset documents 503.
 - `GET /` has a greeting example; `/api-docs` and `/docs-json` are excluded.
 
 Generation should produce identical JSON from the root npm script and from
@@ -201,23 +214,25 @@ shared 7-day cookie retention, then exercise browser credentials and Secure-cook
 behavior in the intended HTTPS setup. Such integration checks have not been run
 for this change. Refresh/logout/protected routes do not exist to test yet.
 
-Recovery has no permanent behavior coverage. Before treating it as usable, fix
+Auth regressions cover recovery code consumption and disabled reset with mocked
+dependencies. They do not prove a usable recovery journey. Before enabling reset, fix
 the [known blockers](authentication.md#password-recovery-blockers), then verify
 delivery recipient/template, invalid/expired OTP rejection before any success
 response, and short-lived single-use reset authorization bound to the correct
 user and recovery purpose. Verify direct reset without proof fails without
 changing a password, reused/expired proof fails, replacement-password validation
 matches policy, and existing-token behavior is intentional. Use disposable
-accounts; the current reset handler can change any known user's password.
+accounts. The current reset handler always returns 503 without changing passwords.
 These are required follow-up checks, not passing results from this refresh.
 
 ## Shared-module and error-handler coverage
 
-Auth Jest transforms TypeScript with SWC but currently has **no**
-`moduleNameMapper` for `@packages/*`. When adding tests that import aliased
-shared modules, configure matching Jest resolution and isolate clients where
-needed. Successful bundler/TypeScript resolution does not establish Jest support.
-There are no existing mock-infrastructure suites to rely on.
+Auth Jest transforms TypeScript with SWC and maps `@packages/*` to source under
+`packages/`. `auth.controller.spec.ts` mocks Prisma, Redis, bcrypt, and mail.
+Those regressions cover validation/error/write ordering without external
+connections, but they have not been executed for this update. Redis Lua behavior,
+actual unique indexes, network failures, and browser cookies still need integration
+coverage; mocked assertions do not prove those contracts.
 
 ## E2E lifecycle
 
@@ -250,9 +265,12 @@ The future correction is tracked in the [implementation plan](../future-plans/im
 
 ## Coverage still needed
 
-Registration validation, normalized-email duplicates, restriction short-circuiting,
-SMTP rejection, Redis failure after acceptance, concurrent OTP admission, expiry,
-verification, and user writes need meaningful tests as the behavior is completed.
+The authored auth regressions cover verification validation, normalized writes,
+OTP expiry/lockout, write failures, duplicate-write handling, recovery consumption,
+and disabled reset. Execute them explicitly before claiming passing coverage.
+Registration request restriction short-circuiting, SMTP rejection, Redis failure
+after acceptance, concurrent OTP admission, real Lua comparison/deletion, and
+database index enforcement still need meaningful integration tests.
 Login needs coverage for exact-email lookup, input types and missing bodies,
 password comparison, signing-secret failure, token claims/expiry, public response
 projection, and cookie attributes. Add request identity, refresh/rotation,
@@ -262,6 +280,11 @@ generated Prisma runtime files, and container startup. Use dedicated test
 MongoDB/Redis/SMTP resources for integration checks.
 
 ## CI and verification boundary
+
+The latest documentation refresh inspected source and documentation only. Earlier
+source-only client/auth TypeScript checks and Swagger generation were recorded
+before the final theme/login edits; they do not verify the newest working tree.
+No lint, build, test, browser, or live-service run was performed for this refresh.
 
 [CI](../../.github/workflows/ci.yml) runs `lint test build typecheck` across the
 workspace. The Jest plugin excludes both E2E directories from `test` inference;

@@ -32,8 +32,9 @@ npx nx start @microservice-eshop/client
 Build before starting the production server. `npm run client` is development
 mode; `npm run dev` starts only backend serve targets. The client is a placeholder
 with tokens, not a production storefront. Its default origin is
-`http://localhost:3000`, matching the backend CORS allowlist, but no API calls
-are wired. No client Dockerfile, static-export setting, deployment integration,
+`http://localhost:3000`, matching the backend CORS allowlist. Registration, OTP
+verification, and login call `NEXT_PUBLIC_API_URL`; login enables credentials
+for cookie handling. No client Dockerfile, static-export setting, deployment integration,
 or standalone output is configured. Do not assume `serve-static` inference makes
 the app a deployable static export.
 
@@ -42,7 +43,9 @@ Theme selectors and scales live in
 [global.css](../../apps/client/src/app/global.css); there is no runtime token
 service or build-time secret needed for styling. The client uses `next-themes`
 for runtime theme selection and local preference persistence, with no backend
-theme service. DM Sans is bundled under `packages/assets/fonts/` and loaded by the shared
+theme service. `src/app/providers.tsx` owns both query and theme providers. The
+theme bootstrap is executable in server HTML and inert on client remounts; this
+workaround has not been browser-verified. DM Sans is bundled under `packages/assets/fonts/` and loaded by the shared
 theme, so font loading does not require an external download.
 No production build or browser/theme deployment check was run for this refresh.
 See the

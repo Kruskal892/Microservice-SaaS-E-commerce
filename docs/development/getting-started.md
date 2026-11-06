@@ -109,8 +109,11 @@ disabled until mounting. Both auth forms validate locally. Signup requires
 `NEXT_PUBLIC_API_URL` in `apps/client/.env` pointing to the backend (for example,
 `http://localhost:8080`) and connects both registration (`POST /api/user-registration`)
 and OTP verification (`POST /api/verify-registration`); the backend needs its
-database, Redis, and email services configured. Login and OTP resend remain
-unavailable previews. Google sign-in is disabled.
+database, Redis, and email services configured. Login posts to `/api/login` with
+cookies enabled and redirects to `/` on success; it requires MongoDB and both JWT
+signing secrets. OTP resend and Google sign-in remain disabled. Password reset
+always returns 503 until secure verification is implemented. Browser cookie
+acceptance and the full identity journey remain unverified.
 
 ## Environment variables
 

@@ -38,7 +38,7 @@ Semantic colors use `bg-surface`, `text-text`, `text-muted`, and `border-border`
 The configured viewport prefixes are `mobile:`, `tablet:`, and `desktop:`;
 default `sm/md/lg/xl/2xl` viewport variants were replaced. Dark colors use
 `data-theme="dark"` or `.dark` on `<html>`. The client uses `next-themes`
-`ThemeProvider` in `layout.tsx` to manage `data-theme`, the saved `theme`
+`ThemeProvider` in `src/app/providers.tsx` to manage `data-theme`, the saved `theme`
 preference, and system-theme detection. Use `useTheme().setTheme()` instead of
 changing the DOM attribute directly. `ThemeToggle` waits until mounting before
 enabling its button to avoid hydration mismatches. DM Sans is loaded from
@@ -48,7 +48,7 @@ font URL and asset handling; no Google font fetch is required.
 The header search input and placeholder page are intentional; product search is not implemented. A token setup does
 not add catalog, authentication, cart, or checkout screens. Backend CORS still
 allows only `http://localhost:3000`; an occupied port causing Next to choose
-another port matters when API integration is added. Gateway E2E also defaults
+another port affects the connected auth requests. Gateway E2E also defaults
 to 3000 incorrectly; keep it separate from client development.
 
 ## Dependency installation fails
@@ -118,12 +118,18 @@ it currently stays fixed at `localhost:6001`.
 
 Recovery mail now uses the supplied email and the recovery template. Check SMTP
 and Redis configuration for delivery errors; a failed send still consumes a
-request. OTP submission awaits verification, but reset still accepts
-email/newPassword without proof of verification. See
+request. OTP submission awaits verification but issues no reset authorization.
+Password reset deliberately returns 503 without account access until secure
+single-use verification is implemented. See
 [recovery blockers](authentication.md#password-recovery-blockers) and the
 [current API contract](../reference/api.md#password-recovery-incomplete-and-unsafe).
 
 ## Login fails or cookies are missing
+
+The client uses `loginMutation` with `withCredentials: true` and redirects to `/`
+on success. **Remember me** is currently a UI-only checkbox. The page uses
+`next/navigation`; `next/router` belongs to the Pages Router and can cause
+`NextRouter was not mounted` inside `app/`.
 
 Send JSON with `email` and `password` to `POST /api/login`. Use the stored email
 exactly: login does not trim/lowercase it. Missing fields in an object return 400,
@@ -142,6 +148,23 @@ remain for 7 days, but the access JWT expires after 15 minutes. Refresh, logout,
 and token verification routes/middleware are not implemented, so cookie issuance
 alone does not establish working authenticated requests. See
 [the login contract](../reference/api.md#login-and-jwt-cookies).
+
+## Theme provider script warning
+
+`next-themes` 0.4.6 renders an inline bootstrap script. Client remounts can trigger
+React's “Encountered a script tag while rendering React component” warning.
+The client provider sets `scriptProps.type` to `text/javascript` on the server
+and `application/json` in the browser. Server HTML still initializes the theme;
+client theme updates use the provider's effects. Check a full reload, navigation,
+theme toggling, and hydration before treating the workaround as verified.
+Do not replace the bootstrap with a template or suppress console errors.
+
+## Registration response failed but the code arrived
+
+Select **I received a code** on the signup form. It opens OTP entry using the
+submitted registration details, even if the editable form has since changed.
+The backend still enforces expiry and failed-attempt limits. Resend remains
+disabled; no new email is sent by that control.
 
 ## Rate-limit warnings or unexpected client identities
 

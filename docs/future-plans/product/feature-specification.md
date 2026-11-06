@@ -3,7 +3,7 @@
 [Documentation index](../../README.md)
 
 **Priority:** Critical. **Status:** Proposed product behavior with current baseline.
-**Reviewed:** 2026-10-25. Requirement IDs refer to the [PRD](prd.md); draft paths are
+**Baseline reviewed:** 2026-11-06. Requirement IDs refer to the [PRD](prd.md); draft paths are
 owned by the [proposed product API](../api/product-api.md).
 
 ## 1. Current foundation
@@ -12,7 +12,10 @@ The client foundation is a Next.js App Router scaffold with React and
 [shared Tailwind design tokens](../../reference/design-tokens.md), a responsive
 header using shared Input/SVG controls, `next-themes` switching, and a placeholder
 home page. `/login` and `/sign-up` provide local form validation and password
-visibility controls, but do not call backend auth. Google sign-in is disabled.
+visibility controls and submit registration, OTP verification, and login requests
+through Axios/TanStack Query. Login enables cookie credentials and redirects to `/`.
+OTP resend and Google sign-in stay disabled; password reset returns 503 until
+secure single-use authorization exists. Session-aware UI is not implemented.
 The proposed identity journey is incomplete; catalog, cart, checkout, and order
 features below are not implemented.
 

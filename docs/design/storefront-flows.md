@@ -1,7 +1,10 @@
 # Page & flow specification
 
 This is the behaviour reference for the proposed customer site. Header, login
-and sign-up UI are implemented; remaining routes and API integration are planned. All product, shop, address, price, policy and order
+and sign-up UI are implemented, including registration, OTP verification, and login
+requests. Other storefront routes/APIs, session-aware UI, resend, and recovery
+remain planned. Password reset is disabled until secure authorization exists.
+All product, shop, address, price, policy and order
 data is illustrative. Currency and dates must be formatted from the actual
 market/data when implemented; this proposal does not establish business policy.
 

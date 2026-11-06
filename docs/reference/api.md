@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Request flow diagrams](../architecture/request-flows.md)
 
 **Status:** Current source contracts; runtime integrations unverified.
-**Reviewed:** 2026-10-25.
+**Reviewed:** 2026-11-06.
 
 ## Available routes
 
@@ -15,7 +15,9 @@ The client `/sign-up` form posts validated registration details to
 `${NEXT_PUBLIC_API_URL}/api/user-registration`, opens OTP entry on success, and
 posts `{ name, email, password, otp }` (with lowercase email normalization) to
 `${NEXT_PUBLIC_API_URL}/api/verify-registration` before redirecting to `/login`.
-Login and OTP resend remain unavailable previews. Client-side
+The client login form posts `{ email, password }` to `/api/login` with
+`withCredentials: true` and redirects to `/` on success. It does not store the
+returned user projection. OTP resend stays disabled. Client-side
 schemas and password confirmation are separate from these backend contracts.
 
 | Method | Path                               | Handler            | Source-defined result                                              |
@@ -27,7 +29,7 @@ schemas and password confirmation are separate from these backend contracts.
 | POST   | `/api/login`                       | Auth               | Check credentials; issue JWT cookies and return public user fields |
 | POST   | `/api/forgot-password-user`        | Auth               | Send recovery OTP email and store OTP/cooldown state               |
 | POST   | `/api/verify-forgot-password-user` | Auth               | Await OTP verification and consume the code; no reset proof issued |
-| POST   | `/api/reset-password-user`         | Auth               | Updates password without requiring OTP/reset authorization         |
+| POST   | `/api/reset-password-user`         | Auth               | Disabled; always returns 503 without accessing accounts            |
 | GET    | `/api-docs`                        | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash         |
 | GET    | `/docs-json`                       | Auth               | Committed Swagger 2.0 JSON                                         |
 
@@ -97,15 +99,15 @@ Send `Content-Type: application/json` and an object:
 }
 ```
 
-| Field      | Current validation                                                   |
-| ---------- | -------------------------------------------------------------------- |
-| `name`     | Required non-empty field (`!name` returns 400 `ValidationError`)     |
-| `email`    | Required non-empty field (`!email` returns 400 `ValidationError`)    |
-| `otp`      | Required non-empty field (`!otp` returns 400 `ValidationError`)      |
-| `password` | Required non-empty field (`!password` returns 400 `ValidationError`) |
+| Field      | Current validation                                               |
+| ---------- | ---------------------------------------------------------------- |
+| `name`     | String; trimmed to 1–100 characters                              |
+| `email`    | String; trimmed/lowercased, valid format, at most 254 characters |
+| `otp`      | String containing exactly four digits                            |
+| `password` | String containing 8–128 characters; preserved unchanged          |
 
-The controller checks that `email`, `otp`, `password`, and `name` are all present.
-If any field is missing, it returns **400** with `'All fields are required!'`.
+The controller reuses registration validation and normalization. Invalid input
+returns **400**; malformed OTPs are rejected before Redis access.
 
 Next, it queries MongoDB via `prisma.users.findUnique({ where: { email } })`. If a
 record exists with that email, it returns **400** with `'The user is already existed!'`.
@@ -123,7 +125,7 @@ record exists with that email, it returns **400** with `'The user is already exi
    - If `storedOtp !== otp` and `failedAttempt < 2`, increments `otp_attempts:${email}`
      with a 300-second TTL and returns **400** with:
      `'Incorrect OTP. ${2 - failedAttempt} attempts left'`.
-4. **Success:** When the code matches, deletes `otp:${email}` and `otp_attempts:${email}`.
+4. **Success:** When the code matches, leaves it available until persistence succeeds.
 
 ### Persistence and response
 
@@ -131,6 +133,7 @@ After OTP verification succeeds:
 
 - Hashes `password` using `bcrypt.hash(password, 10)`.
 - Persists user to MongoDB via `prisma.users.create({ data: { name, email, password: hashedPassword } })`.
+- Atomically consumes matching OTP/attempt keys after persistence. A newer code is preserved.
 - Returns HTTP 200:
 
 ```json
@@ -140,10 +143,10 @@ After OTP verification succeeds:
 }
 ```
 
-Verification checks field presence only; it does not reuse registration's type,
-length, or email-normalization checks. Use the same normalized email and a string
-OTP. The helper forwards validation errors through `next(error)` and then throws
-the return value of `next`; this is not a clean throw-only helper contract.
+Hashing or database failures leave the code available until its original expiry.
+Duplicate-key errors from concurrent account creation return the existing-user
+validation response. Cleanup failure after persistence is logged without changing
+the successful response. The OTP helper throws errors; controllers forward them once.
 
 ## Login and JWT cookies
 
@@ -208,10 +211,9 @@ role lookup; `role: 'user'` is assigned by the controller.
 
 ## Password recovery (incomplete and unsafe)
 
-These routes are mounted without authentication. The reset handler does not
-require proof of OTP verification, so knowing an existing email is sufficient to
-change its password. The three endpoints are independent handlers, not an
-enforced recovery sequence. Do not treat the current flow as secure recovery.
+These routes are mounted without authentication. Password reset always returns
+503 without accessing accounts until single-use reset authorization is implemented.
+The recovery OTP endpoints do not issue reset authorization; recovery remains incomplete.
 
 All requests use `Content-Type: application/json`. Email is looked up unchanged;
 these handlers do not reuse registration's normalization or type/length checks.
@@ -250,19 +252,18 @@ HTTP 200 after successful mail/Redis work:
 { "email": "customer@example.com", "otp": "1234" }
 ```
 
-The router invokes `verifyForgotPasswordOtp` directly; the controller wrapper
-`verifyUserForgotPassword` is unused. Missing/falsy fields return 400
+The router invokes `verifyForgotPasswordOtp` directly. Missing/falsy fields return 400
 `Email and otp are required!`. Otherwise the helper awaits `verifyOtp` and sends
 the following only after successful verification:
 
 ```json
-{ "message": "Verify OTP successfully. You can nơ reset your password" }
+{ "message": "OTP verified. Password reset is not available yet." }
 ```
 
 The message is reproduced exactly from source. On a match the shared helper
 deletes OTP/attempt keys, but no reset token or authorization state is issued or
-stored. OTP errors use the existing Express-dependent `next(error)`/throw
-contract described above. OTP keys have no purpose namespace: registration and
+stored. OTP errors are thrown and forwarded once by the handler.
+OTP keys have no purpose namespace: registration and
 recovery use the same OTP, counters, cooldowns, and locks.
 
 ### Reset a password
@@ -273,21 +274,17 @@ recovery use the same OTP, counters, cooldowns, and locks.
 { "email": "customer@example.com", "newPassword": "new-example-password" }
 ```
 
-The handler checks field truthiness, looks up the user, rejects reuse of an
-existing password with `bcrypt.compare`, hashes the replacement with 10 rounds,
-and updates `users.password`. It requires neither OTP nor a reset token/session.
-It also permits setting a password on an account whose password is absent.
+The handler always returns **503** without reading or updating an account:
 
-| Condition                                  | Status | Message                                             |
-| ------------------------------------------ | ------ | --------------------------------------------------- |
-| Missing/falsy email or new password        | 400    | `Email and new password are required!`              |
-| User absent                                | 400    | `User not found`                                    |
-| New password matches existing hash         | 400    | `New password can not be the same as old password!` |
-| Password updated                           | 200    | `Password reset successfully`                       |
-| Database/bcrypt or unexpected body failure | 500    | Generic shared error response                       |
+```json
+{
+  "status": "error",
+  "message": "Password reset is unavailable until secure verification is implemented."
+}
+```
 
-Success returns `{ "message": "Password reset successfully" }`. No password
-type/length policy, cookie clearing, or existing-JWT revocation is implemented.
+Single-use reset authorization, password validation, and existing-token policy
+must be implemented before enabling this endpoint.
 See [recovery follow-ups](../development/authentication.md#password-recovery-blockers)
 before attempting an integration check.
 
@@ -333,10 +330,10 @@ Class definitions are in [technical design](../architecture/technical-design.md#
 ## Swagger coverage
 
 [swagger-output.json](../../apps/auth-service/src/swagger-output.json) declares
-Swagger 2.0, host `localhost:6001`, and documents all six auth POST routes with
-required request fields, concrete JSON examples, and 200 response schemas.
-Recovery routes also describe 400/500 responses and explicitly identify the
-missing reset authorization and shared OTP state.
+Swagger 2.0, host `localhost:6001`, and documents all six auth POST routes. Active
+routes include required request fields, JSON examples, and 200 response schemas.
+Recovery OTP routes describe 400/500 responses and shared OTP state; disabled
+reset documents only its 503 response and the required authorization follow-up.
 `GET /` also has a greeting
 response example. It does not capture cookie response headers or the full
 validation/error contract above. Swagger's host is fixed, even when the UI is

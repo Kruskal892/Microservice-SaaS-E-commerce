@@ -2,21 +2,23 @@
 
 [Documentation index](../../README.md) · [Auth-service structure plan](auth-service-structure-plan.md)
 
-**Updated:** 2026-10-25. **Status:** Future work, not an implementation claim.
+**Baseline updated:** 2026-11-06. **Status:** Remaining work is proposed, not verified.
 
 ## Current baseline
 
 This plan concerns backend Redis/runtime behavior. The Next.js scaffold and
 Tailwind design tokens do not introduce Redis usage or a shared configuration
-package. The client starts separately on port 3000 and has no custom API
-environment variables or backend calls; see [configuration](../../reference/configuration.md).
+package. The client starts separately on port 3000 and uses `NEXT_PUBLIC_API_URL`
+for registration, OTP verification, and login; see [configuration](../../reference/configuration.md).
 
-- Keep the existing client: `new Redis(process.env.REDIS_DATABASE_URL!)`.
+- Keep the existing ioredis client and its bounded connection/command timeouts,
+  one request retry, disabled offline queue, and readiness check before admission.
 - Keep OTP values as strings with a 300-second expiry and a 60-second cooldown.
 - Keep the existing sequential `GET`/`SET` restrictions and request counter.
   Helpers throw errors so registration stops when a restriction fails.
 - Verification already compares OTPs, tracks attempts, locks after three failed
-  attempts, and deletes OTP/attempt keys on success. Those operations are sequential.
+  attempts. Matching-code cleanup uses atomic Lua comparison/deletion after account
+  persistence; admission and failed-attempt updates remain sequential.
 - Login signs access/refresh JWT cookies but has no refresh/revocation store or
   token-verification consumer. Redis still holds OTP state only.
 - Keep the gateway's default in-memory IP limiter. It does not import Redis.
@@ -28,8 +30,10 @@ environment variables or backend calls; see [configuration](../../reference/conf
   parser, `AUTH_PORT`, or `GATEWAY_PORT` is required now.
 
 There are no Lua admission scripts, ownership tokens, OTP hashes, Redis-backed
-gateway store, custom Redis options, integration suites, or shared configuration
+gateway store, live integration suites, or shared configuration
 layer in the current source. See [current authentication](../../development/authentication.md).
+Mocked auth regressions cover verification/write ordering and failure paths;
+they have not been run for the latest changes and do not execute real Redis scripts.
 
 ## Phase 1: Finish the local authentication flow
 
@@ -69,13 +73,14 @@ not assert a selected Lua implementation or a solved delivery transaction.
 2. Define delivery failure behavior. Redis and SMTP cannot commit together;
    preserve the original error and ensure failed attempts cannot delete newer
    state. Do not report SMTP acceptance as guaranteed inbox delivery.
-3. Make existing wrong-code limits and single-use OTP consumption atomic; preserve
-   the current attempt/lock contract and clean up helper error propagation.
+3. Make existing wrong-code limits atomic and verify the current matching-code
+   cleanup against real Redis; preserve the current attempt/lock contract and
+   throw-only OTP helper error propagation.
 4. Add focused tests for simultaneous requests, expiry, delivery/storage failures,
    lockout, and replay against a dedicated test Redis instance.
-5. Add bounded connection/command behavior, safe connection error reporting,
-   readiness, and explicit Redis shutdown if deployment requirements need them.
-   Use a few client options; do not introduce a client factory or wrapper by default.
+5. Verify the existing bounded connection/command behavior, safe error reporting,
+   and admission readiness guard. Add explicit Redis shutdown when deployment
+   requirements need it; do not introduce a client factory or wrapper by default.
 
 Keep the current key/value format unless a change is needed. If it changes, define
 how pending OTPs and locks survive deployment or expire before rollout.

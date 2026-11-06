@@ -1,5 +1,6 @@
 'use client';
 
+import { loginMutation } from '@/api/auth';
 import { AuthCard } from '@/components';
 import { type LoginFormValues, loginSchema } from '@/schemas';
 import { zodResolver } from '@/utils/zod-resolver';
@@ -11,12 +12,16 @@ import {
   Input,
   Label,
 } from '@packages/ui';
+import { useMutation } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 export default function Login() {
-  const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -25,6 +30,23 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
+
+  const useLoginMutation = useMutation({
+    ...loginMutation,
+    onSuccess: (data) => {
+      router.push('/');
+    },
+    onError: (error: AxiosError) => {
+      const errorMessage =
+        (error.response?.data as { message?: string })?.message ||
+        'Login failed. Please try again.';
+      setServerError(errorMessage);
+    },
+  });
+
+  const onSubmit = (data: LoginFormValues) => {
+    useLoginMutation.mutate(data);
+  };
 
   return (
     <AuthCard
@@ -49,7 +71,7 @@ export default function Login() {
       }
     >
       <form
-        onSubmit={handleSubmit(() => setSubmitted(true))}
+        onSubmit={handleSubmit(onSubmit)}
         noValidate
         className="flex flex-col gap-6"
       >
@@ -114,12 +136,12 @@ export default function Login() {
         >
           Sign in
         </Button>
-        {submitted && (
+        {serverError && (
           <p
-            role="status"
-            className="rounded-sm bg-surface-alt p-4 text-sm text-muted"
+            role="alert"
+            className="rounded-sm bg-red-100 p-4 text-sm text-red-700"
           >
-            Sign-in is not available yet. Your details have not been sent.
+            {serverError}
           </p>
         )}
       </form>

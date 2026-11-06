@@ -165,9 +165,16 @@ Add styles using the
 breakpoints. The body consumes background/text/font tokens. The header uses the
 shared native input with an accessible search name and includes `ThemeToggle`
 for light/dark mode switching; shopping screens remain planned. The root
-`next-themes` provider owns theme persistence and system/cross-tab updates.
+`next-themes` provider in `src/app/providers.tsx` owns theme persistence and
+system/cross-tab updates. The root layout mounts `Providers`, which also owns
+the stable `QueryClient` instance.
 Use `useTheme().setTheme()` in client components instead of writing theme
 attributes directly; keep that dependency out of the shared UI library.
+Auth requests belong in `src/api/auth.ts` as reusable mutation options:
+registration and OTP verification use the signup route's state, while login
+posts credentials with cookies enabled and redirects from the login route.
+Keep validation and server errors distinct; see the
+[client guide](../../apps/client/README.md) for current login limitations.
 Use `className` for the field wrapper, `inputClassName` for native input
 padding, `iconContainerClassName` for icon-area styling, and `iconClassName` for
 a registered SVG. The shared `Icon` defaults to `size-5`; named icon size

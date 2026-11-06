@@ -9,7 +9,8 @@ its licence. Product reference vectors live in
 Use [common-ui.md](common-ui.md) for component contracts and
 [storefront-flows.md](storefront-flows.md) for the planned customer flows.
 The current implementation covers the header, login, sign-up and shared UI;
-other storefront routes and authentication requests remain outside this change.
+registration, OTP verification, and login requests are now connected. Other
+storefront routes, session-aware UI, OTP resend, and recovery remain incomplete.
 
 ## Colour tokens
 

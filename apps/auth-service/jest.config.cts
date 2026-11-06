@@ -13,6 +13,9 @@ module.exports = {
   displayName: '@microservice-eshop/auth-service',
   preset: '../../jest.preset.js',
   testEnvironment: 'node',
+  moduleNameMapper: {
+    '^@packages/(.*)$': '<rootDir>/../../packages/$1',
+  },
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig],
   },

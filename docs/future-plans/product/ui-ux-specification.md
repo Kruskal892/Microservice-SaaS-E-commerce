@@ -3,23 +3,28 @@
 [Documentation index](../../README.md)
 
 **Priority:** High. **Status:** Proposed storefront screens and flows.
-**Reviewed:** 2026-11-03. A Next.js client scaffold, Tailwind design tokens,
+**Baseline reviewed:** 2026-11-06. A Next.js client scaffold, Tailwind design tokens,
 and a `next-themes`-backed `ThemeToggle` exist; the header uses the [shared Input and icons](../../reference/shared-ui.md),
-`/login` and `/sign-up` render form scaffolds, and `/` remains a placeholder. Shopping
+`/login` and `/sign-up` submit to auth endpoints, and `/` remains a placeholder. Shopping
 routes, components, and language controls are not implemented.
 
 ## 1. Screens and navigation
 
 The table below proposes future storefront routes. The current client has
-the placeholder `/` page and `/login` and `/sign-up` form scaffolds (without backend
-submission), and a `/api/hello` text handler. The externally supplied
+the placeholder `/` page, connected `/login` and `/sign-up` forms, and a
+`/api/hello` text handler. Login posts with cookie credentials and navigates to `/`;
+signup verifies a four-digit OTP before navigating to `/login`. OTP resend and
+Google sign-in stay disabled, and recovery UI/session-aware navigation are absent.
+The externally supplied
 enterprise design spec and README are design references; their prototype
 features are not current application functionality.
 
 The current header has active-page links, CSS-sticky navigation, shared compact
 actions, and a mobile menu with wishlist access. Auth pages share a card shell,
 inline validation, and accessible password visibility controls. Theme switching
-uses a mounted Radix-backed switch, saved preferences, and a system default.
+uses a native toggle button with `aria-pressed`, disabled until mounted, saved
+preferences, and a system default. The app-owned theme provider lives in
+`src/app/providers.tsx`; its client script workaround still needs browser validation.
 These behaviors are implemented in source; browser, responsive, and accessibility
 verification remains open. See the [client guide](../../../apps/client/README.md).
 

@@ -3,6 +3,7 @@
 [Documentation index](../../README.md) · [Current authentication flow](../../development/authentication.md)
 
 **Date:** 2026-10-25. **Status:** Proposed refactor; these moves have not been made.
+**Current baseline reviewed:** 2026-11-06.
 This plan reorganizes existing ownership without changing public endpoints.
 Advanced Redis and port configuration are deferred; see the
 [Redis and runtime plan](redis-and-runtime-plan.md).
@@ -15,8 +16,9 @@ owns public routing, trusted proxies, and its traffic limits. Errors and databas
 [deferred](http-lifecycle-plan.md); there is no shared HTTP module currently.
 Keep environment reads local and use the existing PORT convention.
 
-The Next.js client is a separate scaffold with Tailwind tokens and the original
-header/page. It does not consume auth yet. Keep server-only Prisma/Redis clients,
+The Next.js client uses Tailwind tokens and shared controls and consumes
+registration, OTP verification, and login endpoints through `src/api/auth.ts`.
+Keep server-only Prisma/Redis clients,
 signing secrets, and shared infrastructure barrels outside browser components;
 this refactor does not add frontend authentication.
 
@@ -116,7 +118,9 @@ module. Never share auth business rules through `packages/libs`.
    attributes. Improve behavior in separate changes with explicit validation.
 3. **Split the helper by responsibility.** Move validation into
    `registration.validation.ts`, OTP restrictions/storage into `otp.service.ts`, and email
-   lookup/orchestration into `registration.service.ts`. Add focused tests with each responsibility; no current auth unit tests need moving. Delete the old helper after all callers have moved.
+   lookup/orchestration into `registration.service.ts`. Move/update the existing
+   `auth.controller.spec.ts` regressions with their responsibilities and retain
+   mocked infrastructure isolation. Delete the old helper after all callers have moved.
 4. **Group API documentation and retain mail ownership.** Move Swagger files
    under `src/docs/`; mail already has its own module/templates directory.
    Update Swagger imports and generator paths. If mail paths change, update
@@ -131,21 +135,25 @@ module. Never share auth business rules through `packages/libs`.
 
 Verification is already routed and implements OTP comparison, attempt lockout,
 password hashing, and user creation. Login is routed and signs JWT cookies.
-Separate functional follow-ups are consistent validation/normalization, clean OTP
-error propagation without Express `next`, atomic single-use consumption,
-unique-email race handling, token verification/protected requests, refresh/logout,
+Verification now reuses registration validation/normalization, OTP helpers throw
+errors without Express `next`, matching-code cleanup is atomic after persistence,
+and duplicate email writes return a validation error. Remaining functional work
+includes consistent login/recovery validation, atomic admission/attempt limits,
+token verification/protected requests, refresh/logout,
 and browser/CSRF policy. A folder refactor does not establish those behaviors or
 verify live authentication.
 
-Three recovery routes were added after this plan was written. Their public reset
-handler has no verification gate. OTP verification is now awaited and mail
-arguments/template are corrected. Fix authorization in a functional change; do not preserve the
-unsafe behavior as a refactor acceptance requirement. See
+Three recovery routes exist. Reset deliberately returns 503 without account
+access until single-use authorization is implemented. OTP verification is awaited
+and mail arguments/template are corrected. Preserve the disabled behavior during
+the refactor; enabling reset requires a separate authorization change. See
 [recovery blockers](../../development/authentication.md#password-recovery-blockers).
 
 The OTP record remains a string at `otp:<normalized-email>`, expiring after
-300 seconds. Cooldown expires after 60 seconds. No Lua scripts, ownership tokens,
-Redis hash migration, or gateway Redis store are currently introduced. Future
+300 seconds. Cooldown expires after 60 seconds. A Lua compare-and-delete script
+consumes matching OTP/attempt keys after persistence; admission and failed-attempt
+updates remain sequential. No ownership tokens, Redis hash migration, or gateway
+Redis store are introduced. Future
 verification hardening must use the same normalization and storage format unless a separate
 migration is explicitly implemented. Registration does not persist passwords.
 

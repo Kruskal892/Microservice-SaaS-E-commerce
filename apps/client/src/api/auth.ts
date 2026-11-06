@@ -1,4 +1,5 @@
 import {
+  type LoginFormValues,
   type SignUpFormValues,
   type VerifyOtpPayload,
   verifyOtpSchema,
@@ -45,6 +46,20 @@ export const verifyOtpMutation = mutationOptions({
         data,
         'Your account has been successfully verified.',
       ),
+    };
+  },
+});
+
+export const loginMutation = mutationOptions({
+  mutationKey: ['auth', 'login'],
+  retry: false,
+  mutationFn: async (payload: LoginFormValues) => {
+    const { data } = await api.post('/api/login', payload, {
+      withCredentials: true,
+    });
+
+    return {
+      message: getApiMessage(data, 'Login successful.'),
     };
   },
 });

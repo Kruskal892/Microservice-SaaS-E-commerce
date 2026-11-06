@@ -16,8 +16,9 @@ handlers are supplied by the consuming application.
 `ThemeToggle`, exported through `@/components`. These compose
 the primitives below and are not exported by `@packages/ui`. `HeaderActions`
 belongs to the client header folder and shares account/cart/theme controls
-between its top and sticky rows. The app's `next-themes` provider belongs in the
-root layout; the generic shared `Switch` does not manage global themes.
+between its top and sticky rows. The app's `next-themes` provider lives in
+`src/app/providers.tsx`, mounted by the root layout; the generic shared `Switch`
+does not manage global themes.
 
 See the [client guide](../../apps/client/README.md) for validation, password
 reveal behavior, theme mounting/persistence, and remaining backend limitations.

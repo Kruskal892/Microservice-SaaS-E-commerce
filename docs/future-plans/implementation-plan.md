@@ -3,7 +3,7 @@
 [Documentation index](../README.md)
 
 **Priority:** Critical. **Status:** Proposed backlog, not a committed schedule.
-**Reviewed:** 2026-11-03. Owner columns suggest responsibility; no actual owner
+**Baseline reviewed:** 2026-11-06. Owner columns suggest responsibility; no actual owner
 assignments, estimates, tickets, or dates are supplied.
 
 ## 1. Starting point
@@ -26,11 +26,14 @@ and lifecycle, detailed error/cookie documentation, and permanent contract tests
 The client scaffold now exists with Next.js/React, Tailwind/PostCSS, a header
 using the shared Input/icons and `ThemeToggle` (`next-themes`, saved preferences,
 system tracking, and cross-tab synchronization), a placeholder `/` page, `/login` and `/sign-up`
-form scaffolds, and the supplied [design tokens](../reference/design-tokens.md).
-This is partial U-01 foundation, not completion: catalog/cart screens, API
-integration, localization, responsive component verification, and a runnable
-browser/UI test target remain open. A permanent standalone sign-up schema test
-exists but is unrun and is not part of the Nx Jest targets. Shared common components and Storybook
+forms connected to registration, OTP verification, and login, and the supplied
+[design tokens](../reference/design-tokens.md). Login enables cookie credentials
+and redirects to `/`; reset stays disabled with 503. This is partial U-01
+foundation, not completion: catalog/cart screens, OTP resend, session-aware UI,
+recovery authorization/UI, localization, responsive verification, and a runnable
+browser/UI test target remain open. Permanent standalone client schema/message
+tests and mocked auth controller/helper regressions exist; none were run for
+this update. Shared common components and Storybook
 examples/play checks are now implemented; interaction and accessibility
 verification remain open. The separate `npm run client` command starts its `dev`
 target.
