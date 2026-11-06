@@ -17,7 +17,8 @@ posts `{ name, email, password, otp }` (with lowercase email normalization) to
 `${NEXT_PUBLIC_API_URL}/api/verify-registration` before redirecting to `/login`.
 The client login form posts `{ email, password }` to `/api/login` with
 `withCredentials: true` and redirects to `/` on success. It does not store the
-returned user projection. OTP resend stays disabled. Client-side
+returned user projection. OTP resend reuses `/api/user-registration` with the
+submitted details after its countdown. Client-side
 schemas and password confirmation are separate from these backend contracts.
 
 | Method | Path                               | Handler            | Source-defined result                                              |
@@ -69,20 +70,27 @@ The helper also supports seller phone/country validation, but no seller route is
 mounted. Unknown body fields are not explicitly rejected; the controller only
 uses the helper's returned name/email.
 
-The controller queries the normalized email, rejects an existing user, checks
-Redis restrictions, increments the OTP counter, sends an activation email, then
-writes OTP/cooldown state. HTTP 200:
+The same endpoint handles initial delivery and resend. The controller queries the
+normalized email and rejects existing users. `sendOtp` checks Redis locks, acquires
+cooldown with `SET NX`, and counts requests with `INCR` before sending an activation
+email. After SMTP acceptance it stores the code and refreshes cooldown. Sending
+must finish within the 60-second cooldown. HTTP 200:
 
 ```json
-{ "message": "OTP sent. Please check your account" }
+{ "message": "OTP sent. Please check your account", "retryAfterSeconds": 60 }
 ```
 
 Success means SMTP accepted the recipient and the Redis writes completed. It
 does not guarantee inbox delivery or create a user/session. OTP restrictions
-return **400**, including cooldown and request-count rejection; the gateway IP
-limiter independently returns **429**. Prisma/Redis/rendering/SMTP errors reach
-shared error middleware. Concurrent OTP operations and mail/Redis partial
-failures remain unresolved; see [authentication development](../development/authentication.md).
+return **400**, including cooldown and request-count rejection, with
+`details.retryAfterSeconds` containing the remaining wait. The client uses that
+value to resynchronize its countdown. Initial delivery and resend share a
+two-admission counter window. Failed delivery still consumes quota/cooldown and
+returns **503** with the remaining wait when available; an SMTP failure preserves
+the previous code. Storage timeouts may be ambiguous. Resend preserves failed
+verification attempts. The gateway IP limiter independently returns **429**.
+Redis unavailability returns 503 before admission; unexpected database/Redis
+errors use shared middleware. See [authentication development](../development/authentication.md).
 
 ## Registration verification and user creation
 
@@ -236,7 +244,8 @@ The helper calls `sendOtp(user.name, email, 'forgot-password-user-email')`.
 The recovery EJS template renders escaped name/OTP values, password reset
 instructions, a five-minute validity notice, and an unsolicited-request notice.
 The shared sender still uses the subject `Verify your email`. After SMTP
-acceptance it stores the OTP for 300 seconds and cooldown for 60 seconds.
+acceptance it stores the OTP for 300 seconds and refreshes cooldown for 60 seconds.
+It shares registration's restriction checks, `SET NX` cooldown, and request counter.
 Delivery failures still consume a request because counting precedes sending.
 HTTP 200 after successful mail/Redis work:
 

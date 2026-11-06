@@ -16,7 +16,7 @@ page, and a local hello route. Both forms use Zod/React Hook Form validation.
 `/sign-up` connects registration (`POST /api/user-registration`) and OTP
 verification (`POST /api/verify-registration`) via Axios and TanStack Query;
 `/login` posts credentials with cookies enabled and redirects to `/` on success.
-OTP resend and Google sign-in remain disabled. Client session-aware UI is not implemented.
+OTP resend reuses registration delivery with a server-enforced cooldown; Google sign-in remains disabled. Client session-aware UI is not implemented.
 The gateway has one upstream, auth; it does not yet route among multiple
 business services or authenticate users.
 
@@ -79,8 +79,7 @@ The [root manifest](../../package.json) and [lockfile](../../package-lock.json)
 own versions. A dependency being installed does not imply every feature is wired;
 for example, cookie-parser is installed but neither entry point mounts it, and
 client TanStack Query mutations cover registration, OTP verification, and login
-(`registrationMutation`, `verifyOtpMutation`, and `loginMutation`). OTP resend
-is not connected. Auth login uses jsonwebtoken and Express
+(`registrationMutation`, `verifyOtpMutation`, and `loginMutation`). Resend reuses the registration mutation in a separate instance. Auth login uses jsonwebtoken and Express
 cookie writing. There is no incoming cookie parsing, token verification
 middleware, or protected route consumer yet.
 
@@ -98,8 +97,10 @@ middleware, or protected route consumer yet.
   refresh JWTs, and sets both cookies with a 7-day lifetime. Cookies always use
   Secure, HttpOnly, and SameSite=None. Refresh, logout, revocation, and protected
   requests remain unimplemented; browser deployment policy is unverified.
-- OTP checks and counter updates are sequential, so concurrent requests can
-  race. SMTP delivery and Redis state are separate operations.
+- OTP cooldown acquisition uses atomic `SET NX` and request counting uses `INCR`.
+  The overall sequence and failed-verification updates are separate commands.
+  Sending must complete within the 60-second cooldown. SMTP delivery and Redis state are
+  separate operations; failed delivery still consumes admission quota.
 - Three password-recovery routes are mounted with a recovery email template and
   awaited OTP verification. Reset always returns 503 without account access until
   secure single-use authorization is implemented.

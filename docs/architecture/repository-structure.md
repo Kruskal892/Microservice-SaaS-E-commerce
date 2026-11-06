@@ -12,9 +12,8 @@
 |   |-- client/
 |   |   |-- src/api/
 |   |   |   |-- client.ts               # Shared Axios instance (NEXT_PUBLIC_API_URL, 15s timeout)
-|   |   |   |-- auth.ts                 # Registration, OTP verification, and login mutation options
-|   |   |   |-- messages.ts             # Validated server/timeout/fallback message helpers
-|   |   |   `-- messages.test.ts        # Permanent standalone Node tests for API message helpers
+|   |   |   |-- auth.ts                 # Auth mutation options and validated message/retry helpers
+|   |   |   `-- auth.test.ts            # Permanent Jest message/retry regression tests
 |   |   |-- src/app/layout.tsx          # Global CSS, Providers, and Header
 |   |   |-- src/app/providers.tsx       # QueryClientProvider and next-themes ThemeProvider
 |   |   |-- src/app/page.tsx            # Placeholder page
@@ -36,6 +35,7 @@
 |   |   |-- src/utils/zod-resolver.ts   # Zod v4 resolver adapter for react-hook-form
 |   |   |-- postcss.config.mjs          # @tailwindcss/postcss
 |   |   |-- next.config.js
+|   |   |-- jest.config.cts             # SWC and client alias resolution for auth tests
 |   |   |-- tsconfig.json               # Bundler resolution, aliases, shared-source inclusion/reference
 |   |   |-- package.json                # @microservice-eshop/client
 |   |   `-- README.md

@@ -18,7 +18,7 @@ router.post(
   /* #swagger.auto = false
      #swagger.tags = ['Authentication']
      #swagger.summary = 'Request a password-recovery OTP'
-     #swagger.description = 'Sends a four-digit OTP using the recovery email template. The code expires after five minutes. Email is used unchanged and shares registration OTP keys and limits. Request counters are incremented before delivery, so failures may still consume a request. Password reset is disabled until secure verification is implemented.'
+     #swagger.description = 'Sends a four-digit OTP using the recovery email template. The code expires after five minutes. Email is used unchanged and shares registration OTP keys and limits. sendOtp checks locks, acquires cooldown with SET NX, and counts requests with INCR before delivery. Failures still consume quota. Password reset is disabled until secure verification is implemented.'
      #swagger.parameters['body'] = {
        in: 'body', required: true,
        schema: { $email: 'customer@example.com' }

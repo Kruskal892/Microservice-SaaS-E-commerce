@@ -111,7 +111,7 @@ disabled until mounting. Both auth forms validate locally. Signup requires
 and OTP verification (`POST /api/verify-registration`); the backend needs its
 database, Redis, and email services configured. Login posts to `/api/login` with
 cookies enabled and redirects to `/` on success; it requires MongoDB and both JWT
-signing secrets. OTP resend and Google sign-in remain disabled. Password reset
+signing secrets. OTP resend uses the same registration endpoint and server cooldown; Google sign-in remains disabled. Password reset
 always returns 503 until secure verification is implemented. Browser cookie
 acceptance and the full identity journey remain unverified.
 

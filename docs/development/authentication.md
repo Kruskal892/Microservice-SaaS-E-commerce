@@ -22,7 +22,11 @@ submitted registration variables (normalizing email to lowercase via
 via `verifyOtpMutation`, disables conflicting actions while pending or
 succeeded, and redirects to `/login` on success. After a failed registration
 request, **I received a code** opens OTP entry with the submitted details.
-Resend stays disabled with unavailable feedback. Neither form logs credentials, Google
+Resend reuses `/api/user-registration` with the submitted registration snapshot.
+Success starts a 60-second wall-clock countdown and clears the entered code;
+failure preserves it and shows a separate resend error. Server restriction metadata
+resynchronizes the countdown, including another tab's cooldown or lockout.
+Neither form logs credentials, Google
 sign-in is disabled, and the forgot-password link still targets a missing route.
 There is no client session handling or cookie consumption yet. Use the
 [client README](../../apps/client/README.md) for frontend setup.
@@ -30,8 +34,9 @@ There is no client session handling or cookie consumption yet. Use the
 ## Current registration behavior
 
 `POST /api/user-registration` validates and normalizes input, looks up the email
-through Prisma, checks Redis restrictions, increments a counter, and sends an
-activation email. After SMTP acceptance it writes OTP and cooldown keys, then
+through Prisma, checks Redis locks, acquires cooldown with `SET NX`, increments
+the request counter, and sends an activation email. After SMTP acceptance it
+stores the code and refreshes cooldown, then
 returns 200. It does not create a user or persist the validated password.
 Exact fields/responses are in the [API reference](../reference/api.md#registration).
 
@@ -141,15 +146,20 @@ these keys without a purpose namespace:
 | --------------------------- | ------------------------------ | ----------------------------------------------------------------- |
 | `otp_lock:<email>`          | `'locked'`, 1,800 seconds      | Written on 3rd failed OTP verification attempt; blocks new OTP    |
 | `otp_spam_lock:<email>`     | `'locked'`, 3,600 seconds      | Set during OTP requests when counter is already at least 2        |
-| `otp_request_count:<email>` | Integer string, 3,600 seconds  | GET/SET increment; expiry refreshed each allowed update           |
-| `otp_cooldown:<email>`      | `'true'`, 60 seconds           | Written after accepted mail and OTP storage                       |
+| `otp_request_count:<email>` | Integer string, 3,600 seconds  | `INCR` counter; expiry refreshed on each counted request          |
+| `otp_cooldown:<email>`      | `'true'`; 60 seconds           | Acquired with `SET NX` before SMTP; refreshed after code storage  |
 | `otp:<email>`               | Four-digit string, 300 seconds | Generated with `crypto.randomInt(1000, 10000)`; deleted on verify |
 | `otp_attempts:<email>`      | Integer string, 300 seconds    | Failed verification attempts counter; deleted on verify/lock      |
 
-Restriction checks run in lock → spam lock → cooldown order. Helpers throw
-`ValidationError`, so the controller stops on failure. Two counter increments
-are allowed; a later request that passes cooldown checks sets the spam lock.
-This is an expiry refreshed on updates, not a fixed calendar-hour quota.
+`checkOtpRestrictions` checks Redis readiness and lock → spam lock → cooldown.
+`SET NX` acquires the cooldown atomically so concurrent clicks cannot both proceed.
+`trackOtpRequests` uses `INCR` and refreshes the counter expiry. These are separate
+commands rather than one Lua transaction. Two deliveries are allowed per counter
+window, including initial delivery; a later request
+that passes cooldown checks sets the spam lock. Counter expiry is refreshed on
+admission rather than using a fixed calendar hour. Restrictions return 400 with
+`details.retryAfterSeconds`; successful registration delivery returns
+`retryAfterSeconds: 60` for the client countdown.
 
 Verification validates the code format and inspects `otp:${email}`. If the key is
 absent or expired, it throws `ValidationError('Expired or invalid OTP!')`.
@@ -162,10 +172,16 @@ remaining attempts count. Account registration consumes the matching OTP and
 attempt keys after persistence using `consumeOtp`; recovery consumes them after
 validation. The atomic comparison prevents cleanup from deleting a newer code.
 
-The sequential GET/SET operations can race under high concurrency. Request count
-is increased before SMTP, so a mail failure can still consume a request. A partial
-failure after SMTP acceptance can leave an email without matching OTP/cooldown state.
-Atomic admission and transaction boundaries belong in the
+`sendOtp` now only coordinates restriction checks, counting, email, storage, and
+error feedback. Reservation IDs and delivery Lua scripts were removed. Sending
+must finish within the 60-second cooldown; ownership checks are needed if email
+moves to slower/background jobs. Verification checks the lock before accepting
+any code, including a code from a resend that overlapped the lock.
+SMTP failure preserves the previous code until its original expiry but still
+consumes quota/cooldown; delivery errors return 503 with the remaining wait when
+available. Failed verification attempts are not reset by resend. Their updates
+remain sequential and can race. SMTP and Redis cannot commit together; a timeout
+can leave delivery/storage unconfirmed. Further consistency checks belong in the
 [Redis/runtime plan](../future-plans/architecture/redis-and-runtime-plan.md).
 
 ## Mail and runtime dependencies
@@ -188,7 +204,7 @@ The current Dockerfile has no explicit Prisma-generation step; inspect the
 With registration, verification, and login/token issuance present in source, the remaining authentication
 capabilities include:
 
-- Connect OTP resend and future recovery screens to the backend auth endpoints.
+- Connect future recovery screens to the backend auth endpoints.
 - Align login loading/error reset with mutation state, implement remember-me
   behavior if required, and add session-aware UI/current-user state.
 - Consistent input validation/normalization and generic login credential failures.

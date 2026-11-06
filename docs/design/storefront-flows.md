@@ -2,7 +2,8 @@
 
 This is the behaviour reference for the proposed customer site. Header, login
 and sign-up UI are implemented, including registration, OTP verification, and login
-requests. Other storefront routes/APIs, session-aware UI, resend, and recovery
+requests. Resend reuses registration delivery with a server-enforced cooldown. Other
+storefront routes/APIs, session-aware UI, and recovery
 remain planned. Password reset is disabled until secure authorization exists.
 All product, shop, address, price, policy and order
 data is illustrative. Currency and dates must be formatted from the actual

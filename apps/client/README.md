@@ -5,7 +5,7 @@ includes `Header` (with desktop navigation, product search,
 account/wishlist/cart links, and a light/dark `ThemeToggle`), a placeholder `/`
 page, and `/login` and `/sign-up` forms built with shared `@packages/ui`
 controls, `AuthCard`, React Hook Form, and Zod validation. Registration, OTP
-verification, and login requests are connected. Resend, storefront screens,
+verification, resend, and login requests are connected. Storefront screens,
 commerce flows, and localization are not implemented.
 
 ## Run and check
@@ -48,12 +48,15 @@ parameters in query keys. Never put passwords or OTP codes in keys.
 
 The sign-up page spreads `registrationMutation` and `verifyOtpMutation` into
 `useMutation` and owns its OTP transitions, form errors, and `/login` redirect.
+Resend uses a separate `useMutation` instance with the same `registrationMutation`
+options and submitted details. This preserves the original registration snapshot
+and reuses `/api/user-registration` rather than adding a duplicate endpoint.
 The login page uses `loginMutation` to post `{ email, password }` to `/api/login`
 with `withCredentials: true`, then navigates to `/` with `next/navigation`.
 The mutation returns a validated message; it does not store the response's user
 projection or establish client session state. The page currently owns a
 `serverError` message and reads the Axios response message with a fallback.
-Use `getApiErrorMessage` from [`src/api/messages.ts`](src/api/messages.ts) for
+Use `getApiErrorMessage` from [`src/api/auth.ts`](src/api/auth.ts) for
 validated server messages, timeout guidance, and an operation-specific fallback.
 The helper preserves the original error for status/code checks and does not
 expose arbitrary error text.
@@ -69,7 +72,7 @@ set `retry: false` so failed requests are not automatically repeated.
 Permanent API message regression tests can be run explicitly:
 
 ```sh
-node --experimental-strip-types --test apps/client/src/api/messages.test.ts
+node node_modules/jest/bin/jest.js --config apps/client/jest.config.cts --runInBand
 ```
 
 ## Styling and theme switching
@@ -136,10 +139,19 @@ change the email or credentials being verified. OTP submission validates exactly
 focuses invalid input and preserves leading zeros. Verification posts name, email,
 password, and OTP to `/api/verify-registration`. It normalizes email to match the
 backend's OTP storage key, disables conflicting actions while pending, displays
-request errors, and redirects to `/login` on success. Resend requests remain unwired.
+request errors, and redirects to `/login` on success.
 After a failed registration request, **I received a code** opens OTP entry using
 the submitted details, so a lost response does not strand an emailed code.
-Resend stays disabled with an explanation until its request is implemented.
+Successful initial delivery and resend start a 60-second wall-clock countdown.
+The timer catches up after background tabs and cleans up on leaving OTP entry.
+When enabled, **Resend code** posts the submitted registration details. Verification,
+OTP editing, resend, and change-email actions cannot conflict while a request is
+pending. Success clears the previous code and asks for the latest emailed code;
+failure keeps the entered code and displays a separate error. Server cooldown/lock
+responses include `details.retryAfterSeconds`, which resynchronizes the countdown.
+Timeout feedback asks users to check email because delivery may still have completed.
+The server permits two admitted requests per counter window, including initial
+delivery. Resend does not reset failed verification attempts.
 See the [OTP recipe](../../docs/reference/common-components.md#otp-input).
 
 Import `Input`, `Field`, `Label`, `FieldError`, and `Checkbox` from `@packages/ui`.
@@ -199,7 +211,7 @@ visible branding both use Eshop. No search backend is connected.
 Both auth forms validate locally. Signup sends validated registration details
 to request an email code and verifies the 4-digit OTP to create the account and
 redirect to `/login`. Login submits credentials with cookies enabled and redirects
-to `/`; OTP resend stays disabled. Neither form logs credentials. Google sign-in is visibly
+to `/`. OTP resend reuses the registration request after its cooldown. Neither form logs credentials. Google sign-in is visibly
 unavailable. `AuthCard` shares the page shell. Both pages use the shared
 `<Input type="password" />`, which retains native input props and refs while
 adding an accessible `EyeIcon`/`EyeOffIcon` button in the field's flex layout.
@@ -233,7 +245,7 @@ Server errors are stored locally and are not cleared when another attempt starts
 The backend login lookup does not normalize email case. Browser cookie acceptance,
 redirect behavior, and the theme script remount workaround remain unverified.
 
-OTP resend and recovery UI remain unimplemented. The reset API deliberately
+Recovery UI remains unimplemented. The reset API deliberately
 returns 503 until secure single-use reset authorization exists.
 The hello handler is separate from the Express gateway and auth endpoints.
 

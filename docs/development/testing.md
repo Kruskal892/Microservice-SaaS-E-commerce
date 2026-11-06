@@ -6,34 +6,37 @@
 
 ## Existing coverage
 
-| Project      | Present coverage                                                     | Limits                                                                     |
-| ------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Auth service | Jest/SWC controller/helper regression tests with mocked dependencies | Not run for this update; no live Redis, database, or SMTP assertions       |
-| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`            | Greeting only; no registration or external-service assertions              |
-| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                       | Default port 3000 differs from gateway 8080; only gateway is started       |
-| Client       | Focused Node tests for `auth.schema.ts` and `api/messages.ts`        | No client browser or E2E suite configured; standalone tests run explicitly |
+| Project      | Present coverage                                                     | Limits                                                               |
+| ------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Auth service | Jest/SWC controller/helper regression tests with mocked dependencies | Not run for this update; no live Redis, database, or SMTP assertions |
+| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`            | Greeting only; no registration or external-service assertions        |
+| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                       | Default port 3000 differs from gateway 8080; only gateway is started |
+| Client       | Standalone Node schema tests and Jest auth message/retry tests       | Auth Jest suite configured but unrun; no browser or E2E suite        |
 
 Source: [auth Jest config](../../apps/auth-service/jest.config.cts),
 [auth controller/helper regressions](../../apps/auth-service/src/controller/auth.controller.spec.ts),
 [auth E2E spec](../../apps/auth-service-e2e/src/auth-service/auth-service.spec.ts),
 [gateway E2E spec](../../apps/api-gateway-e2e/src/api-gateway/api-gateway.spec.ts),
 [client schema test](../../apps/client/src/schemas/auth.schema.test.ts),
-[client API messages test](../../apps/client/src/api/messages.test.ts).
+[client auth tests](../../apps/client/src/api/auth.test.ts).
 No permanent Redis integration, login/JWT/cookie, or mail-failure
 suites are present.
 
 ## Focused checks
 
-The standalone client schema and API message checks use Node's built-in test
-runner and type stripping (Node 24, as selected in CI). Run them explicitly from
-the root:
+The schema test uses Node's built-in runner and type stripping. Auth message/retry
+tests moved from `messages.test.ts` into `auth.test.ts` alongside `auth.ts`.
+They use the installed Jest/SWC tools and a small client config to resolve `@/`
+imports. No dependency was added. Run explicitly from the root:
 
 ```sh
 node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
-node --experimental-strip-types --test apps/client/src/api/messages.test.ts
+node node_modules/jest/bin/jest.js --config apps/client/jest.config.cts --runInBand
 ```
 
-They are not wired into the Nx Jest targets. The schema test covers registration
+The standalone schema test is not wired into Jest; the client Jest config is
+available to Nx's existing Jest plugin. Target execution has not been checked.
+The schema test covers registration
 field limits, password confirmation, four-digit OTP codes (including leading
 zeros and rejection of short, long, non-numeric, and whitespace-padded codes),
 and `verifyOtpSchema` payload validation with lowercase email normalization. The
@@ -46,7 +49,12 @@ the registration variables, conflicting controls are disabled while verification
 is pending or succeeded, server/timeout errors focus the OTP input and display an
 alert, and a successful response redirects to `/login`. After a failed signup
 request, **I received a code** must open OTP entry for the submitted email even
-if the form was subsequently edited. Resend stays disabled with an explanation.
+if the form was subsequently edited. After successful delivery, resend counts down
+from 60 seconds, catches up after a background tab, and calls `/api/user-registration`
+with the submitted snapshot. Check that resend/verify/change-email actions cannot
+conflict, success clears the entered code, failure preserves it, and server
+restriction metadata resets the displayed remaining wait. Check timer cleanup on
+navigation, error/status announcements, and the initial-plus-one-resend quota.
 These browser checks have not been run.
 
 Auth regression tests in `auth.controller.spec.ts` cover server validation,
@@ -54,6 +62,11 @@ normalized details, OTP preservation after hashing/database failures, error
 forwarding, expiry/lockout, concurrent duplicate creation, cleanup failure after
 persistence, recovery consumption, and disabled password reset. They use mocked
 Redis/database/mail dependencies and have not been run for this update.
+Additional resend regressions cover normalized delivery, restriction waits,
+`SET NX` rejection, quota rejection, SMTP failure, OTP storage failure, and an
+active verification lock despite a matching code from an overlapping resend.
+Client message tests cover valid and malformed retry metadata. These tests are
+authored and unrun; mocked Redis results do not prove the Lua scripts in Redis.
 
 Run commands from the repository root, choosing checks relevant to the change:
 

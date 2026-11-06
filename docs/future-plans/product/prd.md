@@ -19,8 +19,8 @@ unfinished; live identity integrations are unverified. See
 The client now has `/login` and `/sign-up` form scaffolds, local validation,
 password visibility controls, a responsive header, and persisted `next-themes`
 switching. Registration, OTP verification, and login submit to backend auth;
-login enables cookie credentials and redirects to `/`. OTP resend and Google
-sign-in are disabled, session-aware UI is absent, and password reset returns 503
+login enables cookie credentials and redirects to `/`. OTP resend uses registration delivery with a server-enforced cooldown. Google
+sign-in is disabled, session-aware UI is absent, and password reset returns 503
 until secure authorization exists. This is not a completed identity flow.
 
 The repository name includes SaaS, but tenant isolation, subscriptions, merchant

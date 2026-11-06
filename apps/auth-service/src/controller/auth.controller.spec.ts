@@ -3,8 +3,17 @@ import { ValidationError } from '@packages/error-handler';
 import prisma from '@packages/libs/prisma';
 import redis from '@packages/libs/redis';
 import bcrypt from 'bcryptjs';
-import { resetUserPassword, userVerification } from './auth.controller';
-import { verifyForgotPasswordOtp, verifyOtp } from '../utils/auth.helper';
+import {
+  resetUserPassword,
+  userRegistration,
+  userVerification,
+} from './auth.controller';
+import {
+  sendOtp,
+  verifyForgotPasswordOtp,
+  verifyOtp,
+} from '../utils/auth.helper';
+import { sendEmail } from '../mail';
 
 jest.mock('@packages/libs/prisma', () => ({
   __esModule: true,
@@ -22,10 +31,14 @@ jest.mock('@packages/libs', () => ({
 jest.mock('@packages/libs/redis', () => ({
   __esModule: true,
   default: {
+    status: 'ready',
     get: jest.fn(),
     set: jest.fn(),
     del: jest.fn(),
     eval: jest.fn(),
+    ttl: jest.fn(),
+    incr: jest.fn(),
+    expire: jest.fn(),
   },
 }));
 jest.mock('../mail', () => ({ sendEmail: jest.fn() }));
@@ -67,6 +80,133 @@ beforeEach(() => {
       key === 'otp:alex@example.com' ? '1234' : null,
     );
   jest.mocked(redis.eval).mockResolvedValue(2);
+  jest.mocked(redis.ttl).mockResolvedValue(45);
+  jest.mocked(redis.set).mockResolvedValue('OK');
+  jest.mocked(redis.incr).mockResolvedValue(1);
+  jest.mocked(redis.expire).mockResolvedValue(1);
+});
+
+test('registration and resend send to the normalized submitted email and return cooldown', async () => {
+  const res = response();
+  const next = jest.fn();
+  await userRegistration(
+    { body: registration } as Request,
+    res as unknown as Response,
+    next,
+  );
+  expect(sendEmail).toHaveBeenCalledWith(
+    'alex@example.com',
+    'Verify your email',
+    'user-activation-mail',
+    { name: 'Alex Smith', otp: expect.stringMatching(/^[0-9]{4}$/) },
+  );
+  expect(res.json).toHaveBeenCalledWith(
+    expect.objectContaining({ retryAfterSeconds: 60 }),
+  );
+  expect(prisma.users.create).not.toHaveBeenCalled();
+  expect(redis.set).toHaveBeenCalledWith(
+    'otp_cooldown:alex@example.com',
+    'true',
+    'EX',
+    60,
+    'NX',
+  );
+  expect(redis.set).toHaveBeenCalledWith(
+    'otp:alex@example.com',
+    expect.stringMatching(/^[0-9]{4}$/),
+    'EX',
+    300,
+  );
+  expect(jest.mocked(sendEmail).mock.invocationCallOrder[0]).toBeLessThan(
+    jest.mocked(redis.set).mock.invocationCallOrder[1],
+  );
+  expect(next).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['otp_lock:alex@example.com', 1800, 'Account is locked'],
+  ['otp_spam_lock:alex@example.com', 3600, 'Too many OTP requests'],
+])(
+  'lock %s prevents delivery and supplies the server wait',
+  async (key, seconds, message) => {
+    jest
+      .mocked(redis.get)
+      .mockImplementation(async (requestedKey) =>
+        requestedKey === key ? 'locked' : null,
+      );
+    jest.mocked(redis.ttl).mockResolvedValueOnce(seconds as number);
+    await expect(
+      sendOtp(user.name, user.email, 'user-activation-mail'),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining(message as string),
+      details: { retryAfterSeconds: seconds },
+    });
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(redis.incr).not.toHaveBeenCalled();
+  },
+);
+
+test('a concurrent resend rejected by SET NX cannot deliver another code', async () => {
+  (redis.set as jest.Mock)
+    .mockResolvedValueOnce('OK')
+    .mockResolvedValueOnce(null);
+  const results = await Promise.allSettled([
+    sendOtp(user.name, user.email, 'user-activation-mail'),
+    sendOtp(user.name, user.email, 'user-activation-mail'),
+  ]);
+  expect(results.map((result) => result.status)).toEqual([
+    'fulfilled',
+    'rejected',
+  ]);
+  expect(sendEmail).toHaveBeenCalledTimes(1);
+  expect(redis.incr).toHaveBeenCalledTimes(1);
+  expect(results[1]).toMatchObject({
+    reason: { details: { retryAfterSeconds: 45 } },
+  });
+});
+
+test('the third request sets the spam lock without sending email', async () => {
+  jest.mocked(redis.incr).mockResolvedValueOnce(3);
+  await expect(
+    sendOtp(user.name, user.email, 'user-activation-mail'),
+  ).rejects.toMatchObject({
+    statusCode: 400,
+    details: { retryAfterSeconds: 3600 },
+  });
+  expect(redis.set).toHaveBeenCalledWith(
+    'otp_spam_lock:alex@example.com',
+    'locked',
+    'EX',
+    3600,
+  );
+  expect(sendEmail).not.toHaveBeenCalled();
+});
+
+test('delivery failure preserves the previous code and returns the remaining cooldown', async () => {
+  jest.mocked(sendEmail).mockRejectedValueOnce(new Error('SMTP failed'));
+  await expect(
+    sendOtp(user.name, user.email, 'user-activation-mail'),
+  ).rejects.toMatchObject({
+    statusCode: 503,
+    details: { retryAfterSeconds: 45 },
+  });
+  expect(redis.set).toHaveBeenCalledTimes(1);
+  expect(redis.expire).not.toHaveBeenCalledWith(
+    'otp_cooldown:alex@example.com',
+    60,
+  );
+  expect(redis.del).not.toHaveBeenCalled();
+});
+
+test('OTP storage failure cannot report a successful resend', async () => {
+  jest
+    .mocked(redis.set)
+    .mockResolvedValueOnce('OK')
+    .mockRejectedValueOnce(new Error('Redis failed'));
+  await expect(
+    sendOtp(user.name, user.email, 'user-activation-mail'),
+  ).rejects.toMatchObject({ statusCode: 503 });
 });
 
 test.each([
@@ -168,12 +308,16 @@ test('forwards an incorrect OTP error exactly once and does not create an accoun
 });
 
 test('rejects expired codes and locks the third failed attempt', async () => {
-  jest.mocked(redis.get).mockResolvedValueOnce(null);
+  jest
+    .mocked(redis.get)
+    .mockResolvedValueOnce(null)
+    .mockResolvedValueOnce(null);
   await expect(verifyOtp(user.email, '1234')).rejects.toThrow(
     'Expired or invalid OTP!',
   );
   jest
     .mocked(redis.get)
+    .mockResolvedValueOnce(null)
     .mockResolvedValueOnce('1234')
     .mockResolvedValueOnce('2');
   await expect(verifyOtp(user.email, '9999')).rejects.toThrow(
@@ -189,6 +333,18 @@ test('rejects expired codes and locks the third failed attempt', async () => {
     'otp:alex@example.com',
     'otp_attempts:alex@example.com',
   );
+});
+
+test('a verification lock rejects even a matching code issued by an overlapping resend', async () => {
+  jest
+    .mocked(redis.get)
+    .mockImplementation(async (key) =>
+      key === 'otp_lock:alex@example.com' ? 'locked' : '1234',
+    );
+  await expect(verifyOtp(user.email, '1234')).rejects.toThrow(
+    'Account is locked',
+  );
+  expect(redis.del).not.toHaveBeenCalled();
 });
 
 test('handles a concurrent duplicate without consuming the code twice', async () => {

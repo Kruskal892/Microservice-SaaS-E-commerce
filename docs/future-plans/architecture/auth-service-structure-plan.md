@@ -138,7 +138,7 @@ password hashing, and user creation. Login is routed and signs JWT cookies.
 Verification now reuses registration validation/normalization, OTP helpers throw
 errors without Express `next`, matching-code cleanup is atomic after persistence,
 and duplicate email writes return a validation error. Remaining functional work
-includes consistent login/recovery validation, atomic admission/attempt limits,
+includes consistent login/recovery validation, atomic failed-verification limits,
 token verification/protected requests, refresh/logout,
 and browser/CSRF policy. A folder refactor does not establish those behaviors or
 verify live authentication.
@@ -151,9 +151,11 @@ the refactor; enabling reset requires a separate authorization change. See
 
 The OTP record remains a string at `otp:<normalized-email>`, expiring after
 300 seconds. Cooldown expires after 60 seconds. A Lua compare-and-delete script
-consumes matching OTP/attempt keys after persistence; admission and failed-attempt
-updates remain sequential. No ownership tokens, Redis hash migration, or gateway
-Redis store are introduced. Future
+consumes matching OTP/attempt keys after persistence. Admission reserves cooldown
+with `SET NX`, and the request counter uses `INCR`. Sending must finish within
+60 seconds; ownership checks are deferred for slower/background senders.
+Failed-verification updates remain sequential. No Redis hash migration or
+gateway Redis store is introduced. Future
 verification hardening must use the same normalization and storage format unless a separate
 migration is explicitly implemented. Registration does not persist passwords.
 

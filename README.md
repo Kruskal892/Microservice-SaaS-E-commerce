@@ -20,7 +20,7 @@ pages with shared controls and React Hook Form + Zod validation.
 `/sign-up` connects registration (`POST /api/user-registration`) and four-digit
 OTP verification (`POST /api/verify-registration`) using Axios and TanStack Query;
 `/login` posts credentials with cookies enabled and redirects to `/` on success.
-OTP resend and Google sign-in remain disabled. Storefront features are not implemented. See the
+OTP resend reuses registration delivery with a server-enforced cooldown; Google sign-in remains disabled. Storefront features are not implemented. See the
 [client guide](apps/client/README.md) for API setup, theme behavior,
 password visibility controls, header navigation, and registration fields.
 Token verification on protected routes, refresh, logout, and

@@ -163,8 +163,11 @@ Do not replace the bootstrap with a template or suppress console errors.
 
 Select **I received a code** on the signup form. It opens OTP entry using the
 submitted registration details, even if the editable form has since changed.
-The backend still enforces expiry and failed-attempt limits. Resend remains
-disabled; no new email is sent by that control.
+The backend still enforces expiry and failed-attempt limits. After the countdown,
+**Resend code** requests another code for the submitted email. A successful resend
+clears the entered code; failed delivery preserves the old code until expiry.
+Initial delivery and resend share the two-admission counter window. Restrictions
+return the remaining wait so the countdown can resynchronize across tabs.
 
 ## Rate-limit warnings or unexpected client identities
 
