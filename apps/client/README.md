@@ -194,19 +194,23 @@ introduction/form at desktop widths and one column on mobile.
 Both `common` and `layout` are re-exported from `src/components/index.ts`.
 
 The header links to `/login`, `/wishlist`, and `/cart`. `/login` renders the
-login form with backend submission and `/sign-up` renders registration and OTP verification; `/wishlist`, `/cart`,
-and `/forgot-password` do not exist yet and return the not-found page.
+login form with backend submission and `/sign-up` renders registration and OTP verification.
+`/forgot-password` connects email submission, recovery OTP verification, and new-password
+confirmation to the backend. Resend respects server cooldowns and conflicting actions
+are disabled while pending. Success provides a link back to sign in.
+`/wishlist` and `/cart` do not exist yet and return the not-found page.
 Wishlist/cart are not connected to data. Search submits `q` to `/products`, which is still a planned route. Metadata and
 visible branding both use Eshop. No search backend is connected.
 
 ## Routes
 
-| Route        | Current response                                                                                                    |
-| ------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `/`          | Placeholder page with the header, `ThemeToggle`, and sticky `HeaderBottom` navigation                               |
-| `/login`     | Validated credential POST to `/api/login`, server error feedback, and redirect to `/` on success                    |
-| `/sign-up`   | Registration and 4-digit `OtpInput` verification flow with Zod/RHF validation, TanStack Query mutations, and reveal |
-| `/api/hello` | Plain text `Hello, from API!` from a Next.js route handler                                                          |
+| Route              | Current response                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `/`                | Placeholder page with the header, `ThemeToggle`, and sticky `HeaderBottom` navigation                               |
+| `/login`           | Validated credential POST to `/api/login`, server error feedback, and redirect to `/` on success                    |
+| `/sign-up`         | Registration and 4-digit `OtpInput` verification flow with Zod/RHF validation, TanStack Query mutations, and reveal |
+| `/forgot-password` | Recovery email, four-digit OTP verification, new-password confirmation, and success with a sign-in link             |
+| `/api/hello`       | Plain text `Hello, from API!` from a Next.js route handler                                                          |
 
 Both auth forms validate locally. Signup sends validated registration details
 to request an email code and verifies the 4-digit OTP to create the account and
@@ -245,8 +249,14 @@ Server errors are stored locally and are not cleared when another attempt starts
 The backend login lookup does not normalize email case. Browser cookie acceptance,
 redirect behavior, and the theme script remount workaround remain unverified.
 
-Recovery UI remains unimplemented. The reset API deliberately
-returns 503 until secure single-use reset authorization exists.
+Recovery uses `forgotPasswordSchema`, `verifyRecoveryOtpSchema`, and
+`resetPasswordSchema` for normalized email, four-digit codes, and matching 8-128
+character passwords. The five-minute reset token stays in component memory and is
+cleared after completion or restart. Sensitive mutation cache entries are discarded
+when unused; no token is stored in a URL or browser storage. A failed reset requires
+a fresh code, and a timeout advises trying sign-in first. Email-delivery failures
+allow **I received a code** to open verification if a code arrived. Existing JWTs
+are not revoked. Browser and live Redis/MongoDB/SMTP checks remain unrun.
 The hello handler is separate from the Express gateway and auth endpoints.
 
 Project-wide setup, architecture, checks, and limitations live in the

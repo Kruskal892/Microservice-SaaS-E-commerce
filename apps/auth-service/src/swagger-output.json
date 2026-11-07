@@ -2,20 +2,14 @@
   "swagger": "2.0",
   "info": {
     "title": "Auth Service API",
-    "description": "Authentication, registration, email verification, and incomplete password recovery API. Password reset is disabled until secure verification is implemented; see endpoint descriptions.",
+    "description": "Authentication, registration, email verification, and password recovery with expiring single-use reset authorization. Existing JWTs are not revoked by password reset; see endpoint descriptions.",
     "version": "1.0.0"
   },
   "host": "localhost:6001",
   "basePath": "/",
-  "schemes": [
-    "http"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/": {
       "get": {
@@ -41,9 +35,7 @@
     },
     "/api/user-registration": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Request or resend a registration OTP",
         "description": "Uses the same endpoint for initial delivery and resend. Validates registration details and rejects existing accounts. Redis SET NX enforces the 60-second cooldown and INCR tracks the two-request quota. After SMTP acceptance the code is stored for five minutes and cooldown is refreshed. SMTP failure preserves the previous code and still consumes quota; storage timeouts can leave delivery unconfirmed. Sending is expected to finish within the cooldown.",
         "parameters": [
@@ -67,11 +59,7 @@
                   "example": "example-password"
                 }
               },
-              "required": [
-                "name",
-                "email",
-                "password"
-              ]
+              "required": ["name", "email", "password"]
             }
           }
         ],
@@ -156,9 +144,7 @@
     },
     "/api/verify-registration": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Verify the OTP and create a user account",
         "description": "",
         "parameters": [
@@ -186,12 +172,7 @@
                   "example": "example-password"
                 }
               },
-              "required": [
-                "name",
-                "email",
-                "otp",
-                "password"
-              ]
+              "required": ["name", "email", "otp", "password"]
             }
           }
         ],
@@ -220,9 +201,7 @@
     },
     "/api/login": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Log in and set access and refresh cookies",
         "description": "",
         "parameters": [
@@ -242,10 +221,7 @@
                   "example": "example-password"
                 }
               },
-              "required": [
-                "email",
-                "password"
-              ]
+              "required": ["email", "password"]
             }
           }
         ],
@@ -287,11 +263,9 @@
     },
     "/api/forgot-password-user": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Request a password-recovery OTP",
-        "description": "Sends a four-digit OTP using the recovery email template. The code expires after five minutes. Email is used unchanged and shares registration OTP keys and limits. sendOtp checks locks, acquires cooldown with SET NX, and counts requests with INCR before delivery. Failures still consume quota. Password reset is disabled until secure verification is implemented.",
+        "description": "Validates and normalizes email, then sends a four-digit recovery OTP expiring after five minutes. Recovery codes and attempts are separate from registration; locks, request limits and cooldown remain shared. Failed delivery still consumes quota. Verify the code to obtain a single-use reset token.",
         "parameters": [
           {
             "name": "body",
@@ -305,9 +279,7 @@
                   "example": "customer@example.com"
                 }
               },
-              "required": [
-                "email"
-              ]
+              "required": ["email"]
             }
           }
         ],
@@ -320,6 +292,10 @@
                 "message": {
                   "type": "string",
                   "example": "OTP sent successfully. Please check your account."
+                },
+                "retryAfterSeconds": {
+                  "type": "number",
+                  "example": 60
                 }
               },
               "xml": {
@@ -328,7 +304,7 @@
             }
           },
           "400": {
-            "description": "Missing email, unknown user, or shared OTP restrictions.",
+            "description": "Invalid body/email, unknown user, or shared OTP restrictions.",
             "schema": {
               "type": "object",
               "properties": {
@@ -338,7 +314,7 @@
                 },
                 "message": {
                   "type": "string",
-                  "example": "Email is required!"
+                  "example": "Invalid email format"
                 }
               },
               "xml": {
@@ -360,20 +336,9 @@
                 "name": "main"
               }
             }
-          }
-        }
-      }
-    },
-    "/api/reset-password-user": {
-      "post": {
-        "tags": [
-          "Authentication"
-        ],
-        "summary": "Password reset is temporarily unavailable",
-        "description": "Always rejects requests without reading or updating an account. Secure single-use reset authorization must be implemented before this endpoint is enabled.",
-        "responses": {
+          },
           "503": {
-            "description": "Password reset is disabled.",
+            "description": "Redis unavailable or email delivery could not be confirmed.",
             "schema": {
               "type": "object",
               "properties": {
@@ -383,7 +348,90 @@
                 },
                 "message": {
                   "type": "string",
-                  "example": "Password reset is unavailable until secure verification is implemented."
+                  "example": "Unable to confirm a verification code was sent. Check your email before trying again."
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reset-password-user": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Reset a password using single-use authorization",
+        "description": "Requires the resetToken from recovery OTP verification and the same normalized email. Validates an 8-128 character replacement password, hashes it with bcrypt, atomically consumes the five-minute token, then conditionally updates only the verified account with its original password hash. Replay, expiry and grants superseded by a password change are rejected. A database failure after consumption requires a new recovery request. Sends a best-effort change notification; no automatic login or JWT revocation is performed.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "customer@example.com"
+                },
+                "resetToken": {
+                  "type": "string",
+                  "example": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                },
+                "newPassword": {
+                  "type": "string",
+                  "example": "new-example-password"
+                }
+              },
+              "required": ["email", "resetToken", "newPassword"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Password changed; sign in with the new password.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Password reset successfully. Please sign in with your new password."
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request/password or invalid, expired, consumed, wrong-account or superseded reset token.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Invalid or expired password reset token"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Hashing, Redis or database failure. A token consumed before a database failure is not restored.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Something went wrong please try again"
                 }
               },
               "xml": {
@@ -396,11 +444,9 @@
     },
     "/api/verify-forgot-password-user": {
       "post": {
-        "tags": [
-          "Authentication"
-        ],
+        "tags": ["Authentication"],
         "summary": "Verify a password-recovery OTP",
-        "description": "Awaits shared OTP validation and then consumes the matching code. No reset authorization is issued or stored. Password reset remains disabled.",
+        "description": "Validates normalized email and a four-digit recovery code. Atomically checks locks, enforces three failed attempts, consumes the purpose-specific OTP, and creates a five-minute single-use reset grant. Returns a random 256-bit resetToken; Redis stores one SHA-256 digest bound to the account ID and current password hash. A new grant supersedes the previous grant for that email.",
         "parameters": [
           {
             "name": "body",
@@ -418,22 +464,27 @@
                   "example": "1234"
                 }
               },
-              "required": [
-                "email",
-                "otp"
-              ]
+              "required": ["email", "otp"]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OTP verified and consumed; no reset token is issued.",
+            "description": "Recovery OTP consumed and single-use reset authorization issued.",
             "schema": {
               "type": "object",
               "properties": {
                 "message": {
                   "type": "string",
-                  "example": "OTP verified. Password reset is not available yet."
+                  "example": "OTP verified. You can now reset your password."
+                },
+                "resetToken": {
+                  "type": "string",
+                  "example": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                },
+                "expiresInSeconds": {
+                  "type": "number",
+                  "example": 300
                 }
               },
               "xml": {
@@ -452,7 +503,7 @@
                 },
                 "message": {
                   "type": "string",
-                  "example": "Email and otp are required!"
+                  "example": "Expired or invalid OTP!"
                 }
               },
               "xml": {

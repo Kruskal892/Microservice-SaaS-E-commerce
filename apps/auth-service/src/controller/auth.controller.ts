@@ -1,5 +1,5 @@
 import prisma from '@packages/libs/prisma';
-import { AppError, AuthError, ValidationError } from '@packages/error-handler';
+import { AuthError, ValidationError } from '@packages/error-handler';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextFunction, Request, Response } from 'express';
@@ -11,6 +11,7 @@ import {
   verifyOtp,
 } from '../utils/auth.helper';
 import { setCookie } from '../utils/cookies/setCookies';
+import { completePasswordReset } from '../utils/password-reset';
 
 // Register a new user
 export const userRegistration = async (
@@ -209,15 +210,18 @@ export const userForgotPassword = async (
   await handleForgotPassword(req, res, next, 'user');
 };
 // Reset password
-export const resetUserPassword = (
-  _req: Request,
-  _res: Response,
+export const resetUserPassword = async (
+  req: Request,
+  res: Response,
   next: NextFunction,
 ) => {
-  return next(
-    new AppError(
-      'Password reset is unavailable until secure verification is implemented.',
-      503,
-    ),
-  );
+  try {
+    await completePasswordReset(req.body);
+    res.status(200).json({
+      message:
+        'Password reset successfully. Please sign in with your new password.',
+    });
+  } catch (error) {
+    return next(error);
+  }
 };
