@@ -5,13 +5,51 @@ import {
   verifyOtpSchema,
 } from '@/schemas';
 import { mutationOptions } from '@tanstack/react-query';
+import axios from 'axios';
 import { api } from './client';
-import { getApiMessage } from './messages';
 
 type RegistrationPayload = Pick<
   SignUpFormValues,
   'name' | 'email' | 'password'
 >;
+
+export function getApiRetryAfterSeconds(data: unknown): number | undefined {
+  if (!data || typeof data !== 'object' || !('retryAfterSeconds' in data))
+    return;
+  const seconds = data.retryAfterSeconds;
+  return typeof seconds === 'number' &&
+    Number.isSafeInteger(seconds) &&
+    seconds >= 0
+    ? seconds
+    : undefined;
+}
+
+export function getApiErrorRetryAfterSeconds(
+  error: unknown,
+): number | undefined {
+  if (!axios.isAxiosError(error)) return;
+  const data: unknown = error.response?.data;
+  if (!data || typeof data !== 'object' || !('details' in data)) return;
+  return getApiRetryAfterSeconds(data.details);
+}
+
+export function getApiMessage(data: unknown, fallback: string): string {
+  if (!data || typeof data !== 'object' || !('message' in data))
+    return fallback;
+  const message = data.message;
+  return typeof message === 'string' && message.trim() ? message : fallback;
+}
+
+export function getApiErrorMessage(
+  error: unknown,
+  fallback: string,
+  timeoutMessage = 'The request timed out. It may still have completed. Check before trying again.',
+): string {
+  if (!axios.isAxiosError(error)) return fallback;
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT')
+    return timeoutMessage;
+  return getApiMessage(error.response?.data, fallback);
+}
 
 export const registrationMutation = mutationOptions({
   mutationKey: ['auth', 'registration'],
@@ -28,6 +66,7 @@ export const registrationMutation = mutationOptions({
         data,
         'A verification code has been sent. Please check your email.',
       ),
+      retryAfterSeconds: getApiRetryAfterSeconds(data) ?? 60,
     };
   },
 });

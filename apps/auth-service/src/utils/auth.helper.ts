@@ -54,51 +54,74 @@ export const validateRegistrationData = (
   return { name: name.trim(), email: email.trim().toLowerCase(), password };
 };
 
-// shortcut: OTP counters are sequential; make admission atomic before concurrent public traffic.
-export const checkOtpRestrictions = async (email: string) => {
+async function checkOtpRestrictions(email: string) {
   if (redis.status !== 'ready') {
     throw new AppError(
       'Email verification is temporarily unavailable. Please try again later.',
       503,
     );
   }
-  if (await redis.get(`otp_lock:${email}`)) {
-    throw new ValidationError('Account is locked. Try again after 30 minutes');
+  for (const [key, message] of [
+    [`otp_lock:${email}`, 'Account is locked. Try again after 30 minutes'],
+    [`otp_spam_lock:${email}`, 'Too many OTP requests. Try again after 1 hour'],
+  ]) {
+    if (await redis.get(key)) {
+      throw new ValidationError(message, {
+        retryAfterSeconds: Math.max(1, await redis.ttl(key)),
+      });
+    }
   }
-  if (await redis.get(`otp_spam_lock:${email}`)) {
-    throw new ValidationError('Too many OTP requests. Try again after 1 hour');
+  const cooldownKey = `otp_cooldown:${email}`;
+  if (!(await redis.set(cooldownKey, 'true', 'EX', 60, 'NX'))) {
+    throw new ValidationError('Please wait before requesting another OTP', {
+      retryAfterSeconds: Math.max(1, await redis.ttl(cooldownKey)),
+    });
   }
-  if (await redis.get(`otp_cooldown:${email}`)) {
-    throw new ValidationError(
-      'Please wait 1 minute before requesting another OTP',
-    );
-  }
-};
+}
 
-export const trackOtpRequests = async (email: string) => {
+async function trackOtpRequests(email: string) {
   const key = `otp_request_count:${email}`;
-  const requests = parseInt((await redis.get(key)) || '0', 10);
-  if (requests >= 2) {
+  const requests = await redis.incr(key);
+  await redis.expire(key, 3600);
+  if (requests > 2) {
     await redis.set(`otp_spam_lock:${email}`, 'locked', 'EX', 3600);
-    throw new ValidationError('Too many OTP requests. Try again after 1 hour');
+    throw new ValidationError('Too many OTP requests. Try again after 1 hour', {
+      retryAfterSeconds: 3600,
+    });
   }
-  await redis.set(key, requests + 1, 'EX', 3600);
-};
+}
 
 export const sendOtp = async (
   name: string,
   email: string,
   template: string,
 ) => {
+  await checkOtpRestrictions(email);
+  await trackOtpRequests(email);
   const otp = crypto.randomInt(1000, 10000).toString();
-  await sendEmail(email, 'Verify your email', template, { name, otp });
-  await redis.set(`otp:${email}`, otp, 'EX', 300);
-  await redis.set(`otp_cooldown:${email}`, 'true', 'EX', 60);
+  try {
+    await sendEmail(email, 'Verify your email', template, { name, otp });
+    // shortcut: sending must finish within the 60-second cooldown; add ownership checks for slower jobs.
+    await redis.set(`otp:${email}`, otp, 'EX', 300);
+    await redis.expire(`otp_cooldown:${email}`, 60);
+  } catch {
+    const remaining = await redis.ttl(`otp_cooldown:${email}`).catch(() => 60);
+    throw new AppError(
+      'Unable to confirm a verification code was sent. Check your email before trying again.',
+      503,
+      true,
+      { retryAfterSeconds: Math.max(0, remaining) },
+    );
+  }
+  return { retryAfterSeconds: 60 };
 };
 
 export const verifyOtp = async (email: string, otp: unknown) => {
   if (typeof otp !== 'string' || otp.length !== 4 || !/^[0-9]+$/.test(otp)) {
     throw new ValidationError('Enter the four-digit code');
+  }
+  if (await redis.get(`otp_lock:${email}`)) {
+    throw new ValidationError('Account is locked. Try again after 30 minutes');
   }
   const storedOtp = await redis.get(`otp:${email}`);
   if (!storedOtp) {
@@ -155,9 +178,6 @@ export const handleForgotPassword = async (
       userType === 'user' &&
       (await prisma.users.findUnique({ where: { email } }));
     if (!user) throw new ValidationError(`${userType} not found`);
-
-    await checkOtpRestrictions(email);
-    await trackOtpRequests(email);
 
     await sendOtp(user.name, email, 'forgot-password-user-email');
 

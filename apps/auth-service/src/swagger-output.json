@@ -44,8 +44,8 @@
         "tags": [
           "Authentication"
         ],
-        "summary": "Request a registration OTP",
-        "description": "",
+        "summary": "Request or resend a registration OTP",
+        "description": "Uses the same endpoint for initial delivery and resend. Validates registration details and rejects existing accounts. Redis SET NX enforces the 60-second cooldown and INCR tracks the two-request quota. After SMTP acceptance the code is stored for five minutes and cooldown is refreshed. SMTP failure preserves the previous code and still consumes quota; storage timeouts can leave delivery unconfirmed. Sending is expected to finish within the cooldown.",
         "parameters": [
           {
             "name": "body",
@@ -84,6 +84,66 @@
                 "message": {
                   "type": "string",
                   "example": "OTP sent. Please check your account"
+                },
+                "retryAfterSeconds": {
+                  "type": "number",
+                  "example": 60
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid details, existing account, or OTP request restrictions. Restrictions include details.retryAfterSeconds.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Please wait before requesting another OTP"
+                },
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "retryAfterSeconds": {
+                      "type": "number",
+                      "example": 60
+                    }
+                  }
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "503": {
+            "description": "Redis is not ready or delivery could not be confirmed. A delivery failure includes details.retryAfterSeconds when available.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Unable to confirm a verification code was sent. Check your email before trying again."
+                },
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "retryAfterSeconds": {
+                      "type": "number",
+                      "example": 60
+                    }
+                  }
                 }
               },
               "xml": {
@@ -231,7 +291,7 @@
           "Authentication"
         ],
         "summary": "Request a password-recovery OTP",
-        "description": "Sends a four-digit OTP using the recovery email template. The code expires after five minutes. Email is used unchanged and shares registration OTP keys and limits. Request counters are incremented before delivery, so failures may still consume a request. Password reset is disabled until secure verification is implemented.",
+        "description": "Sends a four-digit OTP using the recovery email template. The code expires after five minutes. Email is used unchanged and shares registration OTP keys and limits. sendOtp checks locks, acquires cooldown with SET NX, and counts requests with INCR before delivery. Failures still consume quota. Password reset is disabled until secure verification is implemented.",
         "parameters": [
           {
             "name": "body",

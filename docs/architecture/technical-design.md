@@ -19,9 +19,10 @@ and client-side validation via `react-hook-form` and `zod` (`loginSchema` in
 `src/schemas/auth.schema.ts` with `zodResolver` in `src/utils/zod-resolver.ts`).
 `/sign-up` connects registration (`POST /api/user-registration`) and OTP
 verification (`POST /api/verify-registration`) through `src/api/` (`client.ts`,
-`auth.ts`, and `messages.ts`). `/login` uses `loginMutation` to post credentials
-with `withCredentials: true` and navigates to `/` on success. OTP resend,
-session-aware UI, and commerce flows remain unwired.
+`auth.ts`). `auth.ts` owns auth mutations and message/retry parsing; the separate
+`messages.ts` module was removed. `/login` uses `loginMutation` to post credentials
+with `withCredentials: true` and navigates to `/` on success. Resend reuses registration delivery.
+Session-aware UI and commerce flows remain unwired.
 
 The shared `packages/ui/theme.css`, imported by client global CSS, owns the
 Tailwind CSS-first `@theme` that registers brand/status colors, font, spacing,
@@ -67,8 +68,10 @@ after a successful response, displaying the validated server message. Failed
 requests expose **I received a code**, using the submitted registration snapshot.
 Pending
 requests disable submission; failures appear on the registration form via
-`getApiErrorMessage`. The sign-up page owns the Verify email form; resend remains
-disabled with an explanation and no countdown. Its `otpCodeSchema`
+`getApiErrorMessage`. The sign-up page owns Verify email and resend. Successful requests start a
+60-second wall-clock countdown with visibility catch-up. Resend uses the submitted
+registration snapshot in a separate mutation instance. A successful resend clears
+the code; failure preserves it, and server restriction metadata resynchronizes the wait. Its `otpCodeSchema`
 accepts exactly four numeric characters, preserving leading zeros, while
 `verifyOtpSchema` pairs those digits with the submitted `signUpMutation.variables`
 and normalizes `email` to lowercase before `verifyOtpMutation` posts to
@@ -151,8 +154,12 @@ with five-second connection/command timeouts, one retry per request, and no
 offline command queue. Background reconnection remains enabled. Connection
 errors log only the error code/name. OTP admission returns 503 while Redis is
 not ready instead of queuing a registration request. The TypeScript non-null
-assertion does not validate runtime configuration. Sequential GET/SET operations
-implement OTP restrictions and counters; there is no atomic admission or gateway Redis store.
+assertion does not validate runtime configuration. OTP sending checks locks,
+acquires cooldown with native Redis `SET NX`, and counts requests with `INCR`.
+It sends email, stores the code, and refreshes cooldown. Sending must finish within
+60 seconds; slower/background senders need ownership checks. Verification rejects
+a locked email even if resend overlapped the lock. Failed-verification counters remain sequential.
+There is no gateway Redis store.
 
 The [mail client](../../apps/auth-service/src/mail/mail.client.ts) creates one
 Nodemailer transport. It renders EJS from `templates` beside the bundled output,

@@ -29,7 +29,7 @@ system tracking, and cross-tab synchronization), a placeholder `/` page, `/login
 forms connected to registration, OTP verification, and login, and the supplied
 [design tokens](../reference/design-tokens.md). Login enables cookie credentials
 and redirects to `/`; reset stays disabled with 503. This is partial U-01
-foundation, not completion: catalog/cart screens, OTP resend, session-aware UI,
+foundation, not completion: catalog/cart screens, session-aware UI,
 recovery authorization/UI, localization, responsive verification, and a runnable
 browser/UI test target remain open. Permanent standalone client schema/message
 tests and mocked auth controller/helper regressions exist; none were run for

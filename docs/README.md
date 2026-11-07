@@ -11,7 +11,7 @@ unfinished. The client renders a header with sticky navigation and `ThemeToggle`
 a placeholder `/` page, and `/login` and `/sign-up` pages with shared
 controls and Zod/React Hook Form validation; `/sign-up` connects registration and
 OTP verification to the backend via Axios and TanStack Query. `/login` now posts
-credentials with cookies enabled and redirects to `/` on success. OTP resend,
+credentials with cookies enabled and redirects to `/` on success. OTP resend reuses registration delivery with a server-enforced cooldown.
 Google sign-in, session-aware UI, and shopping flows remain incomplete. Password
 reset is disabled with HTTP 503. **Auth/client baseline reviewed: 2026-11-06.**
 Live integrations are unverified.

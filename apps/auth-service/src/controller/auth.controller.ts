@@ -4,11 +4,9 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextFunction, Request, Response } from 'express';
 import {
-  checkOtpRestrictions,
   consumeOtp,
   handleForgotPassword,
   sendOtp,
-  trackOtpRequests,
   validateRegistrationData,
   verifyOtp,
 } from '../utils/auth.helper';
@@ -21,7 +19,8 @@ export const userRegistration = async (
   next: NextFunction,
 ) => {
   /* #swagger.tags = ['Authentication']
-     #swagger.summary = 'Request a registration OTP'
+     #swagger.summary = 'Request or resend a registration OTP'
+     #swagger.description = 'Uses the same endpoint for initial delivery and resend. Validates registration details and rejects existing accounts. Redis SET NX enforces the 60-second cooldown and INCR tracks the two-request quota. After SMTP acceptance the code is stored for five minutes and cooldown is refreshed. SMTP failure preserves the previous code and still consumes quota; storage timeouts can leave delivery unconfirmed. Sending is expected to finish within the cooldown.'
      #swagger.parameters['body'] = {
        in: 'body',
        required: true,
@@ -33,7 +32,15 @@ export const userRegistration = async (
      }
      #swagger.responses[200] = {
        description: 'OTP sent to the supplied email address.',
-       schema: { message: 'OTP sent. Please check your account' }
+        schema: { message: 'OTP sent. Please check your account', retryAfterSeconds: 60 }
+     }
+     #swagger.responses[400] = {
+       description: 'Invalid details, existing account, or OTP request restrictions. Restrictions include details.retryAfterSeconds.',
+       schema: { status: 'error', message: 'Please wait before requesting another OTP', details: { retryAfterSeconds: 60 } }
+     }
+     #swagger.responses[503] = {
+       description: 'Redis is not ready or delivery could not be confirmed. A delivery failure includes details.retryAfterSeconds when available.',
+       schema: { status: 'error', message: 'Unable to confirm a verification code was sent. Check your email before trying again.', details: { retryAfterSeconds: 60 } }
      }
   */
   try {
@@ -44,12 +51,11 @@ export const userRegistration = async (
     if (isExistingUser) {
       return next(new ValidationError('User already exist with this email'));
     }
-    await checkOtpRestrictions(email);
-    await trackOtpRequests(email);
-    await sendOtp(name, email, 'user-activation-mail');
+    const cooldown = await sendOtp(name, email, 'user-activation-mail');
 
     res.status(200).json({
       message: 'OTP sent. Please check your account',
+      ...cooldown,
     });
   } catch (error) {
     console.log('Error register a new user', error);

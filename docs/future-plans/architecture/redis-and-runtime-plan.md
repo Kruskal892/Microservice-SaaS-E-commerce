@@ -14,11 +14,12 @@ for registration, OTP verification, and login; see [configuration](../../referen
 - Keep the existing ioredis client and its bounded connection/command timeouts,
   one request retry, disabled offline queue, and readiness check before admission.
 - Keep OTP values as strings with a 300-second expiry and a 60-second cooldown.
-- Keep the existing sequential `GET`/`SET` restrictions and request counter.
-  Helpers throw errors so registration stops when a restriction fails.
+- Sending checks locks, acquires cooldown with `SET NX`, and counts requests with
+  `INCR`. The sequence is not one Lua transaction. Helpers return the server wait
+  in restriction metadata; sending must finish within the 60-second cooldown.
 - Verification already compares OTPs, tracks attempts, locks after three failed
   attempts. Matching-code cleanup uses atomic Lua comparison/deletion after account
-  persistence; admission and failed-attempt updates remain sequential.
+  persistence; failed-verification attempt updates remain sequential.
 - Login signs access/refresh JWT cookies but has no refresh/revocation store or
   token-verification consumer. Redis still holds OTP state only.
 - Keep the gateway's default in-memory IP limiter. It does not import Redis.
@@ -29,7 +30,7 @@ for registration, OTP verification, and login; see [configuration](../../referen
 - Load dotenv at application startup. No shared config package, custom port
   parser, `AUTH_PORT`, or `GATEWAY_PORT` is required now.
 
-There are no Lua admission scripts, ownership tokens, OTP hashes, Redis-backed
+There are no OTP hashes, Redis-backed
 gateway store, live integration suites, or shared configuration
 layer in the current source. See [current authentication](../../development/authentication.md).
 Mocked auth regressions cover verification/write ordering and failure paths;
@@ -49,8 +50,10 @@ API. Do not change client libraries without a concrete requirement.
 
 ## Phase 2: Before public concurrent traffic
 
-The following admission/delivery flow is proposed. It replaces the current
-sequential checks only when implemented and tested.
+The following ownership-based admission/delivery flow is a future upgrade for
+slower/background senders. Current sending uses native Redis commands and assumes
+email finishes within the 60-second cooldown. Real Redis, concurrency, and
+delivery-failure integration checks remain unrun.
 
 ```mermaid
 flowchart TD
@@ -63,13 +66,13 @@ flowchart TD
     Finalize -->|Storage failed| Failure["Return failure<br/>Record partial-delivery outcome"]
 ```
 
-SMTP and Redis cannot commit atomically together. The exact reservation format,
-expiry, compensation, and OTP-write timing require a decision; this sketch does
-not assert a selected Lua implementation or a solved delivery transaction.
+SMTP and Redis cannot commit atomically together. Current sending replaces the
+OTP after SMTP acceptance. SMTP failure preserves the old code while consuming
+quota/cooldown. Ambiguous storage timeouts remain possible. The reservation-token
+approach above is deferred until the bounded synchronous send is insufficient.
 
-1. Make OTP admission atomic: lock checks, cooldown reservation, and request
-   counting must happen together. Separate awaited `GET`/`SET` calls can overlap
-   even in one Node process.
+1. Verify native cooldown/counting with concurrent requests and network failures.
+   Add atomic admission/owned finalization when slow senders require those guarantees.
 2. Define delivery failure behavior. Redis and SMTP cannot commit together;
    preserve the original error and ensure failed attempts cannot delete newer
    state. Do not report SMTP acceptance as guaranteed inbox delivery.
@@ -119,5 +122,5 @@ enable blanket proxy trust. The gateway currently uses Express's no-trust defaul
 - [ ] Run requested tests/builds and record actual outcomes.
 
 This plan does not implement or verify Redis behavior. Known limits remain:
-sequential OTP operations can race, gateway counters are
+sequential failed-verification updates can race, gateway counters are
 per-process, and SMTP can accept an email before a later Redis write fails.

@@ -13,7 +13,8 @@ Both forms validate locally. Signup initiates the registration OTP request throu
 `/api/verify-registration` (normalizing email to lowercase and redirecting to
 `/login` on success). Failed registration requests offer **I received a code**
 using the submitted details. Login posts credentials with cookies enabled and
-redirects to `/` on success; OTP resend stays disabled.
+redirects to `/` on success. OTP resend uses the registration endpoint with the
+submitted snapshot and a server-synchronized countdown.
 Its local `/api/hello` text route is independent of the gateway and is described
 in the [API reference](../reference/api.md).
 
@@ -94,25 +95,17 @@ sequenceDiagram
     alt Existing user
         Auth-->>Client: 400 validation error, stop
     else No existing user
-        Auth->>Redis: GET lock, spam lock, cooldown (sequential)
-        Redis-->>Auth: Restriction values
+        Auth->>Redis: Check locks, acquire cooldown with SET NX, INCR counter
+        Redis-->>Auth: Restriction and wait, or allowed request
         alt Restriction exists
-            Auth-->>Client: 400 validation error, stop
+            Auth-->>Client: 400 validation error with retryAfterSeconds, stop
         else Not restricted
-            Auth->>Redis: GET request counter
-            Redis-->>Auth: Current count
-            alt Count is already at least 2
-                Auth->>Redis: SET spam lock EX 3600
-                Auth-->>Client: 400 request-limit error, stop
-            else Count below 2
-                Auth->>Redis: SET incremented counter EX 3600
-                Auth->>Auth: Generate four-digit OTP
-                Auth->>Mail: Render activation template and send email
-                Mail-->>Auth: SMTP accepted recipient
-                Auth->>Redis: SET OTP EX 300
-                Auth->>Redis: SET cooldown EX 60
-                Auth-->>Client: 200 OTP sent message
-            end
+            Auth->>Auth: Generate four-digit OTP
+            Auth->>Mail: Render activation template and send email
+            Mail-->>Auth: SMTP accepted recipient
+            Auth->>Redis: SET OTP EX 300, then refresh cooldown EX 60
+            Redis-->>Auth: Writes completed or storage failure
+            Auth-->>Client: 200 OTP sent with retryAfterSeconds 60, or 503 unconfirmed
         end
     end
 ```
@@ -121,7 +114,10 @@ Invalid input stops before the database lookup. Exceptions from Prisma, Redis,
 rendering, or SMTP go through the controller's catch to shared error middleware.
 SMTP rejection prevents OTP writes, but the request count has already increased.
 SMTP can accept the email before a later Redis write fails; SMTP acceptance also
-does not guarantee inbox delivery. The sequential checks/updates are not atomic.
+does not guarantee inbox delivery. Cooldown uses atomic `SET NX` and counting uses
+`INCR`; the overall sequence is not one transaction. Sending must finish within
+the 60-second cooldown. Initial delivery and resend
+share this endpoint and the existing two-admission quota.
 
 This endpoint does not create a user, store a password, verify a code, or issue a
 session. See [authentication development](../development/authentication.md) for
