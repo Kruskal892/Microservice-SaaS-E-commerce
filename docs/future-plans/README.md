@@ -32,8 +32,8 @@ browser security, and meaningful integration coverage. See the
 Registration, OTP verification, and login submission are connected through
 `src/api/auth.ts`. Login enables cookie credentials and redirects to `/`.
 OTP resend reuses registration delivery with a server-enforced cooldown.
-Google sign-in, session-aware UI, and recovery UI remain incomplete;
-password reset returns 503 until single-use authorization exists. These source-level additions do not complete the proposed
+Google sign-in and session-aware UI remain incomplete; recovery UI is connected;
+backend reset now requires a five-minute single-use token. These source-level additions do not complete the proposed
 identity journey or its browser verification gates.
 
 ```mermaid

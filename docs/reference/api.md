@@ -29,8 +29,8 @@ schemas and password confirmation are separate from these backend contracts.
 | POST   | `/api/verify-registration`         | Auth               | Verify OTP, hash password, and create user account                 |
 | POST   | `/api/login`                       | Auth               | Check credentials; issue JWT cookies and return public user fields |
 | POST   | `/api/forgot-password-user`        | Auth               | Send recovery OTP email and store OTP/cooldown state               |
-| POST   | `/api/verify-forgot-password-user` | Auth               | Await OTP verification and consume the code; no reset proof issued |
-| POST   | `/api/reset-password-user`         | Auth               | Disabled; always returns 503 without accessing accounts            |
+| POST   | `/api/verify-forgot-password-user` | Auth               | Verify recovery OTP and issue a five-minute single-use reset token |
+| POST   | `/api/reset-password-user`         | Auth               | Consume reset token and conditionally update the verified password |
 | GET    | `/api-docs`                        | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash         |
 | GET    | `/docs-json`                       | Auth               | Committed Swagger 2.0 JSON                                         |
 
@@ -217,15 +217,12 @@ No handler currently verifies these tokens, refreshes them, revokes them, or
 clears the cookies. There is no persistent session/refresh-token store or
 role lookup; `role: 'user'` is assigned by the controller.
 
-## Password recovery (incomplete and unsafe)
+## Password recovery
 
-These routes are mounted without authentication. Password reset always returns
-503 without accessing accounts until single-use reset authorization is implemented.
-The recovery OTP endpoints do not issue reset authorization; recovery remains incomplete.
-
-All requests use `Content-Type: application/json`. Email is looked up unchanged;
-these handlers do not reuse registration's normalization or type/length checks.
-Missing parsed bodies can reach generic 500 handling during destructuring.
+All three endpoints are public and accept JSON objects. Email is trimmed,
+lowercased, checked for basic format, and limited to 254 characters. Invalid
+bodies, emails, codes, passwords, and tokens return 400. Use HTTPS and keep
+reset tokens out of URLs and logs.
 
 ### Request a recovery OTP
 
@@ -235,22 +232,18 @@ Missing parsed bodies can reach generic 500 handling during destructuring.
 { "email": "customer@example.com" }
 ```
 
-The helper checks email truthiness, looks up an existing user, applies the shared
-OTP restrictions, increments the request counter, then calls `sendOtp`.
-Missing email returns 400 `Email is required!`; unknown email returns 400
-`user not found`. Restriction failures also return 400.
-
-The helper calls `sendOtp(user.name, email, 'forgot-password-user-email')`.
-The recovery EJS template renders escaped name/OTP values, password reset
-instructions, a five-minute validity notice, and an unsolicited-request notice.
-The shared sender still uses the subject `Verify your email`. After SMTP
-acceptance it stores the OTP for 300 seconds and refreshes cooldown for 60 seconds.
-It shares registration's restriction checks, `SET NX` cooldown, and request counter.
-Delivery failures still consume a request because counting precedes sending.
-HTTP 200 after successful mail/Redis work:
+The helper looks up normalized email. Unknown users currently return 400
+`user not found`, so account enumeration remains a limitation. It applies shared
+registration/recovery locks, a 60-second cooldown, and a two-request quota, then
+sends the recovery email. Failed delivery still consumes quota. Recovery OTPs
+use `password_reset_otp:<email>` and expire after five minutes. Registration
+codes cannot authorize password reset. HTTP 200:
 
 ```json
-{ "message": "OTP sent successfully. Please check your account." }
+{
+  "message": "OTP sent successfully. Please check your account.",
+  "retryAfterSeconds": 60
+}
 ```
 
 ### Submit a recovery OTP
@@ -261,41 +254,59 @@ HTTP 200 after successful mail/Redis work:
 { "email": "customer@example.com", "otp": "1234" }
 ```
 
-The router invokes `verifyForgotPasswordOtp` directly. Missing/falsy fields return 400
-`Email and otp are required!`. Otherwise the helper awaits `verifyOtp` and sends
-the following only after successful verification:
+A Redis script atomically checks the shared lock and recovery code, counts wrong
+attempts, consumes a matching OTP, and stores a five-minute reset grant. The third
+wrong attempt removes the recovery code and sets a 30-minute lock. Registration
+OTP keys are never read by this path. HTTP 200 uses `Cache-Control: no-store`:
 
 ```json
-{ "message": "OTP verified. Password reset is not available yet." }
+{
+  "message": "OTP verified. You can now reset your password.",
+  "resetToken": "<64 lowercase hexadecimal characters>",
+  "expiresInSeconds": 300
+}
 ```
 
-The message is reproduced exactly from source. On a match the shared helper
-deletes OTP/attempt keys, but no reset token or authorization state is issued or
-stored. OTP errors are thrown and forwarded once by the handler.
-OTP keys have no purpose namespace: registration and
-recovery use the same OTP, counters, cooldowns, and locks.
+The token contains 32 cryptographically random bytes. Redis stores a single
+SHA-256 digest bound to the account ID and current password hash under
+`password_reset_grant:<email>`. A new verified code replaces the previous grant
+for that email. Replayed, expired, incorrect, or locked codes return 400.
 
 ### Reset a password
 
 `POST /api/reset-password-user`
 
 ```json
-{ "email": "customer@example.com", "newPassword": "new-example-password" }
-```
-
-The handler always returns **503** without reading or updating an account:
-
-```json
 {
-  "status": "error",
-  "message": "Password reset is unavailable until secure verification is implemented."
+  "email": "customer@example.com",
+  "resetToken": "<token returned by recovery verification>",
+  "newPassword": "new-example-password"
 }
 ```
 
-Single-use reset authorization, password validation, and existing-token policy
-must be implemented before enabling this endpoint.
-See [recovery follow-ups](../development/authentication.md#password-recovery-blockers)
-before attempting an integration check.
+The replacement password must contain 8-128 characters, matching registration.
+The handler looks up the normalized email and recomputes the account/password-bound
+digest. It checks the stored digest, hashes the password with bcrypt
+(cost 10), then atomically consumes the matching grant and clears outstanding
+recovery code/attempt keys. A conditional MongoDB update matches the verified
+user ID, normalized email, and original password hash. An older grant cannot
+overwrite a newer password change. Missing, expired, wrong-account, consumed,
+or superseded authorization returns 400. HTTP 200:
+
+```json
+{
+  "message": "Password reset successfully. Please sign in with your new password."
+}
+```
+
+A password-change notification is attempted after the write; notification failure
+is logged without changing the successful response. There is no automatic login.
+Redis/hash/database failures reach generic 500 handling. If a database failure
+occurs after grant consumption, the grant is not restored: request a new code.
+A database timeout may have committed; try signing in before retrying recovery.
+Existing JWTs are not revoked and retain their issued expiry; session enforcement
+is not implemented elsewhere in this repository. The frontend connects the flow
+on `/forgot-password`; browser and live Redis, MongoDB, and SMTP behavior remain unverified.
 
 ## Gateway policy
 
@@ -341,8 +352,8 @@ Class definitions are in [technical design](../architecture/technical-design.md#
 [swagger-output.json](../../apps/auth-service/src/swagger-output.json) declares
 Swagger 2.0, host `localhost:6001`, and documents all six auth POST routes. Active
 routes include required request fields, JSON examples, and 200 response schemas.
-Recovery OTP routes describe 400/500 responses and shared OTP state; disabled
-reset documents only its 503 response and the required authorization follow-up.
+Recovery routes describe validation, purpose-specific OTPs, single-use reset authorization,
+and 200/400/500 responses; delivery also documents 503 failures.
 `GET /` also has a greeting
 response example. It does not capture cookie response headers or the full
 validation/error contract above. Swagger's host is fixed, even when the UI is

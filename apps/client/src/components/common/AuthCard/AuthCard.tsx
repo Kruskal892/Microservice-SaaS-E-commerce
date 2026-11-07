@@ -5,7 +5,7 @@ type AuthCardProps = {
   title: string;
   description: ReactNode;
   children: ReactNode;
-  footer: ReactNode;
+  footer?: ReactNode;
   showSocialSignIn?: boolean;
 };
 

@@ -13,7 +13,7 @@ their UI details and command results do not verify the current working tree.
 | Area                      | Present in source/configuration                                                                                                                                                                              | Remaining work                                                                                                      |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                                                                             | Verify relevant targets as code changes                                                                             |
-| Client scaffold           | Shared Header/ThemeToggle, registration, OTP verification and resend, login credential POST, placeholder home                                                                                                | Session-aware UI, recovery, storefront, localization, browser/E2E checks                                            |
+| Client scaffold           | Shared Header/ThemeToggle, registration, OTP verification and resend, login credential POST, password recovery, placeholder home                                                                             | Session-aware UI, storefront, localization, browser/E2E checks                                                      |
 | Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales (`--text-callout`), named breakpoints (`desktop:` 1440px auth split), pre-paint `data-theme` initialization         | Component styling across future storefront screens, font/browser and accessibility verification                     |
 | Shared UI                 | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, overridable Button hover/active classes, Storybook states and play checks                                                             | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps       |
 | Shared assets             | Repo-wide SVG files and exports in `packages/assets` (all monochrome icons use `currentColor`, plus `GoogleIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, `EyeOffIcon`), typed SVG declarations, client SVGR rules | Additional-app bundler adoption and production validation                                                           |
@@ -21,10 +21,10 @@ their UI details and command results do not verify the current working tree.
 | Registration              | Validation/normalization, Prisma lookup, SET NX cooldown, INCR request counter, SMTP delivery, resend countdown                                                                                              | Verify bounded send timing, concurrency, and Redis/SMTP failures                                                    |
 | Verification and identity | Shared registration validation/normalization, OTP validation, post-persistence matching-code cleanup, bcrypt hashing, unique email persistence                                                               | Run regression tests; verify live database indexes and failure handling                                             |
 | Login and JWT cookies     | Client login POST and redirect to /; backend bcrypt comparison, access/refresh JWT cookies, public user response                                                                                             | Loading/error lifecycle, remember-me behavior, protected requests, refresh/logout, browser cookie/CSRF verification |
-| Password recovery         | Recovery email and OTP verification; reset always returns 503 without account access                                                                                                                         | Single-use reset authorization, validation, purpose separation, token invalidation, live delivery                   |
+| Password recovery         | Recovery OTPs, atomic verification, five-minute single-use reset grants, conditional password update and notification                                                                                        | Existing JWT revocation, account enumeration mitigation, browser and live integration verification                  |
 | Data                      | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                                                                                  | Verify live connectivity, applied indexes, and seed/migration workflow                                              |
 | Redis                     | Bounded ioredis client; native sending commands; Lua matching-code cleanup after account creation                                                                                                            | Atomic failed-verification updates, live checks, lifecycle cleanup                                                  |
-| API docs                  | Swagger 2.0 greeting and auth routes; disabled reset documented with 503                                                                                                                                     | Cookie headers and complete validation/error contracts; contract-alignment tests                                    |
+| API docs                  | Swagger 2.0 greeting and auth routes, including enabled single-use password reset                                                                                                                            | Cookie headers and complete validation/error contracts; contract-alignment tests                                    |
 | Tests                     | Greeting E2E specs, auth service regressions, Node client schema tests, Jest client auth message/retry tests                                                                                                 | Run authored tests; correct gateway E2E; integration/failure-path coverage                                          |
 | Packaging                 | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                                                                                         | Verify generated dependencies, Prisma runtime and image startup                                                     |
 | CI                        | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                                                                             | Explicit reliable E2E and delivery pipeline                                                                         |
@@ -33,14 +33,14 @@ their UI details and command results do not verify the current working tree.
 
 ## Known source limitations
 
-- Password reset is disabled and always returns 503 without account access.
-  Recovery verification creates no reset proof; single-use authorization must be
-  implemented before reset is enabled. Live delivery remains unverified; see
-  [recovery details](../development/authentication.md#password-recovery-blockers).
+- Backend password reset is enabled with expiring single-use authorization.
+  The frontend recovery flow is connected; existing JWT revocation and account
+  enumeration mitigation remain incomplete. Live delivery remains unverified; see
+  [recovery details](../development/authentication.md#password-recovery).
 - OTP cooldown uses `SET NX` and request counting uses `INCR`; the overall send
   sequence is not one transaction. Sending must finish within the 60-second cooldown;
-  slower/background sending needs ownership checks. Failed-verification counters
-  remain sequential and can race. SMTP acceptance precedes OTP storage;
+  slower/background sending needs ownership checks. Registration failed-verification
+  counters remain sequential and can race; recovery verification uses a Lua script. SMTP acceptance precedes OTP storage;
   a later Redis failure can leave delivery/storage unconfirmed.
 - Gateway counters are process-local; direct auth access bypasses them. Neither
   service verifies credentials on subsequent requests or trusts a configured
@@ -60,7 +60,7 @@ their UI details and command results do not verify the current working tree.
 - Database synchronization and successful persistence against live MongoDB
   instances have no recorded evidence.
 - Auth Jest has a shared-alias mapper and focused controller/helper regression
-  tests, not run for this update. Gateway E2E defaults to port 3000 and expects
+  tests; all 73 passed on 2026-11-08 with mocked infrastructure. Gateway E2E defaults to port 3000 and expects
   auth's greeting while starting only gateway.
 - Docker uses a floating `node:lts-alpine` base and `npm --omit=dev -f install`.
   No explicit Prisma-generation step or non-root user is configured. Pruned
@@ -116,7 +116,8 @@ Current simplified implementation:
   errors directly, and matching codes are consumed atomically after persistence.
   Hashing/database failures preserve the OTP; cleanup failure after account creation
   is logged without changing the successful response. Duplicate email writes are rejected.
-- Password reset returns 503 until secure verification is implemented. Removed the
+- At this historical review, password reset returned 503 pending secure verification;
+  the 2026-11-08 backend reset implementation supersedes that restriction. Removed the
   unused recovery controller wrapper and updated Swagger/API documentation.
 - Failed registration requests offer **I received a code**, using submitted details.
   Removed the resend preview timer; resend remains disabled with an explanation.

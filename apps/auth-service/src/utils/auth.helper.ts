@@ -4,6 +4,12 @@ import { prisma } from '@packages/libs';
 import crypto from 'node:crypto';
 import { NextFunction, Request, Response } from 'express';
 import { sendEmail } from '../mail';
+import {
+  issuePasswordResetToken,
+  normalizeRecoveryEmail,
+  recoveryBody,
+  recoveryOtpKey,
+} from './password-reset';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -95,6 +101,7 @@ export const sendOtp = async (
   name: string,
   email: string,
   template: string,
+  purpose: 'registration' | 'password-reset' = 'registration',
 ) => {
   await checkOtpRestrictions(email);
   await trackOtpRequests(email);
@@ -102,7 +109,9 @@ export const sendOtp = async (
   try {
     await sendEmail(email, 'Verify your email', template, { name, otp });
     // shortcut: sending must finish within the 60-second cooldown; add ownership checks for slower jobs.
-    await redis.set(`otp:${email}`, otp, 'EX', 300);
+    const key =
+      purpose === 'password-reset' ? recoveryOtpKey(email) : `otp:${email}`;
+    await redis.set(key, otp, 'EX', 300);
     await redis.expire(`otp_cooldown:${email}`, 60);
   } catch {
     const remaining = await redis.ttl(`otp_cooldown:${email}`).catch(() => 60);
@@ -168,21 +177,23 @@ export const handleForgotPassword = async (
   userType: 'user' | 'seller',
 ) => {
   try {
-    const { email } = req.body;
-
-    if (!email) {
-      throw new ValidationError('Email is required!');
-    }
+    const email = normalizeRecoveryEmail(recoveryBody(req.body).email);
     // Find user/seller in the db
     const user =
       userType === 'user' &&
       (await prisma.users.findUnique({ where: { email } }));
     if (!user) throw new ValidationError(`${userType} not found`);
 
-    await sendOtp(user.name, email, 'forgot-password-user-email');
+    const cooldown = await sendOtp(
+      user.name,
+      email,
+      'forgot-password-user-email',
+      'password-reset',
+    );
 
     res.status(200).json({
       message: 'OTP sent successfully. Please check your account.',
+      ...cooldown,
     });
   } catch (error) {
     return next(error);
@@ -195,15 +206,13 @@ export const verifyForgotPasswordOtp = async (
   next: NextFunction,
 ) => {
   try {
-    const { email, otp } = req.body;
-    if (!email || !otp) {
-      throw new ValidationError('Email and otp are required!');
-    }
-
-    await verifyOtp(email, otp);
-    await consumeOtp(email, otp);
+    const payload = recoveryBody(req.body);
+    const email = normalizeRecoveryEmail(payload.email);
+    const authorization = await issuePasswordResetToken(email, payload.otp);
+    res.set('Cache-Control', 'no-store');
     res.status(200).json({
-      message: 'OTP verified. Password reset is not available yet.',
+      message: 'OTP verified. You can now reset your password.',
+      ...authorization,
     });
   } catch (error) {
     return next(error);

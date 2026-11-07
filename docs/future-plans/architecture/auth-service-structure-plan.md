@@ -147,7 +147,7 @@ Three recovery routes exist. Reset deliberately returns 503 without account
 access until single-use authorization is implemented. OTP verification is awaited
 and mail arguments/template are corrected. Preserve the disabled behavior during
 the refactor; enabling reset requires a separate authorization change. See
-[recovery blockers](../../development/authentication.md#password-recovery-blockers).
+[password recovery](../../development/authentication.md#password-recovery).
 
 The OTP record remains a string at `otp:<normalized-email>`, expiring after
 300 seconds. Cooldown expires after 60 seconds. A Lua compare-and-delete script

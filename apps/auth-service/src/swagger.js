@@ -4,7 +4,7 @@ const doc = {
   info: {
     title: 'Auth Service API',
     description:
-      'Authentication, registration, email verification, and incomplete password recovery API. Password reset is disabled until secure verification is implemented; see endpoint descriptions.',
+      'Authentication, registration, email verification, and password recovery with expiring single-use reset authorization. Existing JWTs are not revoked by password reset; see endpoint descriptions.',
     version: '1.0.0',
   },
   host: 'localhost:6001',

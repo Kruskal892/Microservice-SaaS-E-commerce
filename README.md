@@ -11,9 +11,10 @@ an OTP using Redis and SMTP. Registration verification (`POST /api/verify-regist
 validates the OTP, enforces attempt locks (30-minute lock after 3 failed attempts),
 hashes passwords with bcrypt, and creates user accounts in MongoDB. Login
 (`POST /api/login`) checks credentials and issues access/refresh JWT cookies.
-Three password-recovery routes are mounted; password reset always returns 503
-until secure single-use authorization is implemented. See the
-[recovery blockers](docs/development/authentication.md#password-recovery-blockers).
+Three password-recovery routes are mounted: request a recovery OTP, verify it for
+a five-minute single-use reset token, then submit the token and replacement password.
+See [password recovery](docs/development/authentication.md#password-recovery)
+for the connected frontend/backend flow and remaining session limitations.
 The client renders its header (with sticky navigation, search input, and a
 light/dark `ThemeToggle`), a placeholder home page, and `/login` and `/sign-up`
 pages with shared controls and React Hook Form + Zod validation.

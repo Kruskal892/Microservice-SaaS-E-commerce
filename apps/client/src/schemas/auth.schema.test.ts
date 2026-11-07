@@ -1,7 +1,14 @@
 // Run explicitly: node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.ts
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { otpCodeSchema, signUpSchema, verifyOtpSchema } from './auth.schema.ts';
+import {
+  forgotPasswordSchema,
+  otpCodeSchema,
+  resetPasswordSchema,
+  resetPasswordPayloadSchema,
+  signUpSchema,
+  verifyOtpSchema,
+} from './auth.schema.ts';
 
 const valid = {
   name: ' Alex Smith ',
@@ -73,5 +80,53 @@ test('OTP verification sends complete registration details and matches normalize
     { ...valid, otp: '12a4' },
   ]) {
     assert.equal(verifyOtpSchema.safeParse(values).success, false);
+  }
+});
+
+test('recovery normalizes email and validates contact limits', () => {
+  assert.deepEqual(
+    forgotPasswordSchema.parse({ email: ' Alex@Example.COM ' }),
+    { email: 'alex@example.com' },
+  );
+  for (const email of ['', 'invalid', 'a'.repeat(250) + '@example.com']) {
+    assert.equal(forgotPasswordSchema.safeParse({ email }).success, false);
+  }
+});
+
+test('new passwords must meet policy and match confirmation without trimming', () => {
+  const values = {
+    newPassword: ' a safe password ',
+    confirmPassword: ' a safe password ',
+  };
+  assert.deepEqual(resetPasswordSchema.parse(values), values);
+  for (const invalid of [
+    { ...values, confirmPassword: 'different password' },
+    { newPassword: 'short', confirmPassword: 'short' },
+    { newPassword: 'a'.repeat(129), confirmPassword: 'a'.repeat(129) },
+  ]) {
+    assert.equal(resetPasswordSchema.safeParse(invalid).success, false);
+  }
+});
+
+test('reset payloads require a correctly shaped authorization token', () => {
+  const values = {
+    email: ' Alex@Example.com ',
+    resetToken: 'a'.repeat(64),
+    newPassword: 'a safe password',
+  };
+  assert.equal(
+    resetPasswordPayloadSchema.parse(values).email,
+    'alex@example.com',
+  );
+  for (const resetToken of [
+    '',
+    'a'.repeat(63),
+    'a'.repeat(64) + '\n',
+    'g'.repeat(64),
+  ]) {
+    assert.equal(
+      resetPasswordPayloadSchema.safeParse({ ...values, resetToken }).success,
+      false,
+    );
   }
 });

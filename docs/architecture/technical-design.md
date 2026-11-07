@@ -46,8 +46,9 @@ uses flex order, with no absolute offsets. Raw SVGs are owned by `packages/asset
 and imported through a typed UI registry using the client's SVGR loaders. There
 is no search backend. `Header` is the CSS-sticky shell containing desktop navigation and shared
 `HeaderActions`. Compact navigation uses the shared Modal, closing on link
-selection or Escape with focus restoration. `/wishlist`, `/cart`, and `/forgot-password`
-links target missing routes; `/sign-up` connects registration and verification. Empty count
+selection or Escape with focus restoration. `/wishlist` and `/cart`
+links target missing routes; `/forgot-password` connects recovery email, OTP verification,
+new-password confirmation, and success with a sign-in link. `/sign-up` connects registration and verification. Empty count
 badges are omitted, and cart data remains unwired.
 DM Sans is bundled in `packages/assets/fonts/` and loaded by shared CSS. The
 root layout sets Eshop metadata. All client text uses the shared family. Shared `Input` adds an accessible eye/eye-off
@@ -182,14 +183,15 @@ and request authentication remain follow-ups. Exact behavior is in the
 
 Recovery uses Express-aware request/submission helpers; the submission route calls
 its helper directly. The unused controller wrapper was removed. Verification is
-awaited and mail uses the recovery template. Reset always returns 503 without
-reading or updating accounts until single-use reset authorization exists. See
-[recovery blockers](../development/authentication.md#password-recovery-blockers).
+atomic and mail uses the recovery template. Recovery codes and attempts use
+separate keys. Verification issues a five-minute single-use reset grant; reset
+consumes it before a conditional bcrypt password update. Existing JWTs are not
+revoked. See [password recovery](../development/authentication.md#password-recovery).
 
 `npm run auth-docs` statically scans `main.ts` to retain router prefixes, then
 reads controller/router `#swagger` annotations for required fields and example payloads.
 Recovery annotations disable automatic inference so helper-based routes retain
-explicit request/response schemas and descriptions of current defects.
+explicit request/response schemas and authorization/failure descriptions.
 The CommonJS generator exits unsuccessfully on generation failure. Auth loads
 the committed JSON at startup; regeneration requires a service restart to update
 the served document. Documentation endpoints are excluded from generation.

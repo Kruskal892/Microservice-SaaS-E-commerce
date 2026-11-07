@@ -184,7 +184,7 @@ Run `npm run auth-docs`, then start or restart auth and open
 `http://localhost:6001/api-docs`. The generator includes `/api` from the router
 mount and supplies request/response examples for registration, verification,
 login, and three incomplete recovery endpoints. Read the
-[recovery blockers](authentication.md#password-recovery-blockers) before using
+[password recovery](authentication.md#password-recovery) before using
 those endpoints. `/docs-json` serves the loaded document. Generation itself does not need
 MongoDB/Redis/SMTP or JWT secrets because it parses source without starting auth.
 

@@ -4,16 +4,16 @@ Microservice Eshop is an Nx/npm TypeScript monorepo with an Express API gateway,
 an authentication service, shared infrastructure modules, and a Next.js client
 with Tailwind v4 design tokens and `next-themes` light/dark switching. Registration can
 request an email OTP, verify it to create an account, and log in to receive JWT
-cookies. Three recovery routes are mounted but have
-[security blockers](development/authentication.md#password-recovery-blockers).
+cookies. Three recovery routes support purpose-specific OTP verification and
+[expiring single-use reset authorization](development/authentication.md#password-recovery).
 Protected routes, refresh, logout, storefront, and commerce remain
 unfinished. The client renders a header with sticky navigation and `ThemeToggle`,
 a placeholder `/` page, and `/login` and `/sign-up` pages with shared
 controls and Zod/React Hook Form validation; `/sign-up` connects registration and
 OTP verification to the backend via Axios and TanStack Query. `/login` now posts
 credentials with cookies enabled and redirects to `/` on success. OTP resend reuses registration delivery with a server-enforced cooldown.
-Google sign-in, session-aware UI, and shopping flows remain incomplete. Password
-reset is disabled with HTTP 503. **Auth/client baseline reviewed: 2026-11-06.**
+Google sign-in, session-aware UI, and shopping flows remain incomplete. Backend
+password reset is enabled and connected to `/forgot-password`; existing JWT revocation remains absent. **Auth/client baseline reviewed: 2026-11-06.**
 Live integrations are unverified.
 
 The [client guide](../apps/client/README.md) owns the current `ThemeProvider`
@@ -97,7 +97,7 @@ introduction and quick start; this index owns documentation navigation.
 - [Development guide](development/development-guide.md): Nx tasks, shared
   imports, debugging, formatting, and commits.
 - [Authentication development](development/authentication.md): OTP keys,
-  account creation, login/JWT cookies, recovery blockers, and remaining work.
+  account creation, login/JWT cookies, password recovery, and remaining work.
 - [Testing](development/testing.md): existing coverage and E2E lifecycle limits.
 - [Troubleshooting](development/troubleshooting.md): setup and runtime diagnosis.
 - [Deployment and CI](operations/deployment.md): actual Dockerfile, ports,

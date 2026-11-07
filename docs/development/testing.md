@@ -60,13 +60,14 @@ These browser checks have not been run.
 Auth regression tests in `auth.controller.spec.ts` cover server validation,
 normalized details, OTP preservation after hashing/database failures, error
 forwarding, expiry/lockout, concurrent duplicate creation, cleanup failure after
-persistence, recovery consumption, and disabled password reset. They use mocked
-Redis/database/mail dependencies and have not been run for this update.
+persistence, recovery authorization, and password reset. The controller and
+password-reset suites passed 73 tests on 2026-11-08 using mocked Redis/database/mail
+dependencies; they do not prove live Lua, database, or SMTP behavior.
 Additional resend regressions cover normalized delivery, restriction waits,
 `SET NX` rejection, quota rejection, SMTP failure, OTP storage failure, and an
 active verification lock despite a matching code from an overlapping resend.
 Client message tests cover valid and malformed retry metadata. These tests are
-authored and unrun; mocked Redis results do not prove the Lua scripts in Redis.
+authored separately; mocked Redis results do not prove the Lua scripts in Redis.
 
 Run commands from the repository root, choosing checks relevant to the change:
 
@@ -152,8 +153,13 @@ The following browser checks are suggested, not completed for this change:
    overflow, CSS-sticky positioning, compact actions, active navigation, mobile
    wishlist access, and menu closing after selection.
 6. Check bundled DM Sans body/search/auth controls and headings, and
-   `currentColor` icon contrast in both themes. Wishlist/cart/forgot-password
-   routes remain missing; empty count badges are omitted.
+   `currentColor` icon contrast in both themes. Wishlist/cart
+   routes remain missing; empty count badges are omitted. Verify that
+   `/forgot-password` requests email delivery, accepts the four-digit recovery OTP,
+   validates matching new passwords, and shows success with a working `/login` link.
+   Check pending guards, resend cooldown and server restriction metadata, malformed
+   authorization responses, expired sessions, restart, and ambiguous timeout feedback.
+   Reset tokens must remain absent from URLs and browser storage.
 
 For the input, check light/dark colors, keyboard focus, disabled and
 `aria-invalid` states, label/error associations, native props and React 19 refs,
@@ -208,10 +214,10 @@ Run `npm run auth-docs` and inspect the generated paths:
 - `POST /api/login`: required email and password.
 - `POST /api/forgot-password-user`: required email; recovery template and five-minute OTP.
 - `POST /api/verify-forgot-password-user`: required email and string OTP; document
-  that verification is awaited but no reset proof is issued.
-- `POST /api/reset-password-user`: always returns 503; no account access or password update.
+  the response includes a five-minute single-use resetToken and expiresInSeconds.
+- `POST /api/reset-password-user`: required email, resetToken, and newPassword; single-use grant and conditional password update.
 - Active auth POSTs have request-property examples and a 200 response schema.
-- Recovery OTP routes include 400/500 responses; disabled reset documents 503.
+- Recovery routes include 200/400/500 responses; email delivery also documents 503.
 - `GET /` has a greeting example; `/api-docs` and `/docs-json` are excluded.
 
 Generation should produce identical JSON from the root npm script and from
@@ -227,16 +233,28 @@ shared 7-day cookie retention, then exercise browser credentials and Secure-cook
 behavior in the intended HTTPS setup. Such integration checks have not been run
 for this change. Refresh/logout/protected routes do not exist to test yet.
 
-Auth regressions cover recovery code consumption and disabled reset with mocked
-dependencies. They do not prove a usable recovery journey. Before enabling reset, fix
-the [known blockers](authentication.md#password-recovery-blockers), then verify
+Recovery unit regressions cover authorization and reset with mocked dependencies.
+They do not prove a usable recovery journey. With disposable accounts and live
+infrastructure, verify
 delivery recipient/template, invalid/expired OTP rejection before any success
 response, and short-lived single-use reset authorization bound to the correct
 user and recovery purpose. Verify direct reset without proof fails without
 changing a password, reused/expired proof fails, replacement-password validation
 matches policy, and existing-token behavior is intentional. Use disposable
-accounts. The current reset handler always returns 503 without changing passwords.
-These are required follow-up checks, not passing results from this refresh.
+accounts. Check that a database failure after token consumption requires fresh
+recovery and that notification failures preserve successful reset responses.
+Existing JWTs currently retain their original expiry. These remain live integration
+checks, not passing results from the mocked test suites.
+
+## Password recovery integration checks: 2026-11-08
+
+- Backend: 73 auth controller/helper tests passed with mocked infrastructure.
+- Client: 9 API tests and 7 schema tests passed, including normalized recovery
+  payloads, authorization response validation, password confirmation, and token shape.
+- Backend and client typechecks and targeted lint checks passed.
+- The local Next.js `/forgot-password` route returned HTTP 200 and rendered the
+  email step. This checks server rendering, not browser interactions.
+- Full browser interactions and live Redis/MongoDB/SMTP recovery remain unrun.
 
 ## Shared-module and error-handler coverage
 
@@ -279,8 +297,9 @@ The future correction is tracked in the [implementation plan](../future-plans/im
 ## Coverage still needed
 
 The authored auth regressions cover verification validation, normalized writes,
-OTP expiry/lockout, write failures, duplicate-write handling, recovery consumption,
-and disabled reset. Execute them explicitly before claiming passing coverage.
+OTP expiry/lockout, write failures, duplicate-write handling, recovery grants, replay,
+expiry during hashing, cross-account rejection, concurrent consumption, conditional
+password updates, and best-effort notifications. The 73 auth tests passed on 2026-11-08.
 Registration request restriction short-circuiting, SMTP rejection, Redis failure
 after acceptance, concurrent OTP admission, real Lua comparison/deletion, and
 database index enforcement still need meaningful integration tests.

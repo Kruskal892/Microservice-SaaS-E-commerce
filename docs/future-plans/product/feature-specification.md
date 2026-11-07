@@ -14,8 +14,8 @@ header using shared Input/SVG controls, `next-themes` switching, and a placehold
 home page. `/login` and `/sign-up` provide local form validation and password
 visibility controls and submit registration, OTP verification, and login requests
 through Axios/TanStack Query. Login enables cookie credentials and redirects to `/`.
-OTP resend reuses registration delivery with a server-enforced cooldown. Google sign-in stays disabled; password reset returns 503 until
-secure single-use authorization exists. Session-aware UI is not implemented.
+OTP resend reuses registration delivery with a server-enforced cooldown. Google sign-in stays disabled; backend password reset uses expiring single-use
+tokens, with connected frontend email, OTP, password confirmation, and success states. Session-aware UI is not implemented.
 The proposed identity journey is incomplete; catalog, cart, checkout, and order
 features below are not implemented.
 
