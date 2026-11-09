@@ -20,8 +20,8 @@ The client now has `/login` and `/sign-up` form scaffolds, local validation,
 password visibility controls, a responsive header, and persisted `next-themes`
 switching. Registration, OTP verification, and login submit to backend auth;
 login enables cookie credentials and redirects to `/`. OTP resend uses registration delivery with a server-enforced cooldown. Google
-sign-in is disabled, session-aware UI is absent, and password reset returns 503
-until secure authorization exists. This is not a completed identity flow.
+sign-in is disabled and session-aware UI is absent. Backend password reset uses
+expiring single-use tokens, with connected frontend email, OTP, password confirmation, and success states. This is not a completed identity flow.
 
 The repository name includes SaaS, but tenant isolation, subscriptions, merchant
 onboarding, and billing are undefined. This draft assumes one storefront for the

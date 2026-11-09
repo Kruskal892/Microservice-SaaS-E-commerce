@@ -14,7 +14,9 @@ The table below proposes future storefront routes. The current client has
 the placeholder `/` page, connected `/login` and `/sign-up` forms, and a
 `/api/hello` text handler. Login posts with cookie credentials and navigates to `/`;
 signup verifies a four-digit OTP before navigating to `/login`. Resend reuses registration delivery with a server-enforced cooldown.
-Google sign-in stays disabled, and recovery UI/session-aware navigation are absent.
+Google sign-in stays disabled and session-aware navigation is absent.
+`/forgot-password` connects recovery email, OTP verification, password confirmation,
+and success with a sign-in link.
 The externally supplied
 enterprise design spec and README are design references; their prototype
 features are not current application functionality.

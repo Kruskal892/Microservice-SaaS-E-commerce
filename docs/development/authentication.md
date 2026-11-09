@@ -4,6 +4,7 @@
 
 **Status:** Source implementation, not a verified live integration.
 **Auth backend and client reviewed:** 2026-11-06.
+**Backend recovery updated:** 2026-11-08.
 
 The Next.js client includes `/login` and `/sign-up` forms with a shared
 `AuthCard`, shared `Input type="password"` eye/eye-off controls, and React Hook Form + Zod
@@ -27,7 +28,10 @@ Success starts a 60-second wall-clock countdown and clears the entered code;
 failure preserves it and shows a separate resend error. Server restriction metadata
 resynchronizes the countdown, including another tab's cooldown or lockout.
 Neither form logs credentials, Google
-sign-in is disabled, and the forgot-password link still targets a missing route.
+sign-in is disabled. The forgot-password link opens the connected recovery flow:
+request an email code, verify it, enter and confirm a new password, then return to
+sign-in from the success message. Requests have mutation pending guards, resend
+cooldowns, server error feedback, and recovery after uncertain delivery.
 There is no client session handling or cookie consumption yet. Use the
 [client README](../../apps/client/README.md) for frontend setup.
 
@@ -99,38 +103,48 @@ credentials enabled, and the hard-coded Secure policy needs verification in
 the intended HTTPS/browser deployment. Current code does not consume or verify
 the emitted cookies, enforce protected routes, rotate refresh tokens, or log out.
 
-## Password recovery blockers
+## Password recovery
 
-Three recovery routes exist in source, but password reset is disabled.
-Exact payloads, messages, and failure behavior are in the
-[API reference](../reference/api.md#password-recovery-incomplete-and-unsafe).
+The backend exposes a request -> verify -> reset flow. Exact payloads and errors
+are in the [API reference](../reference/api.md#password-recovery). The frontend
+implements the flow on `/forgot-password`, keeping authorization only in component
+memory until completion or restart. Password confirmation is checked before reset.
 
-- `POST /api/reset-password-user` always returns 503 without reading or updating
-  an account. Bind reset to short-lived, single-use verification proof before enabling it.
-- `POST /api/verify-forgot-password-user` awaits `verifyOtp`, then returns 200,
-  but issues no reset authorization. The router calls the helper directly.
-- `POST /api/forgot-password-user` now passes `(user.name, email, ...)` to
-  `sendOtp` and uses `forgot-password-user-email.ejs`. The template follows the
-  activation email design with escaped name/OTP values and a five-minute expiry
-  notice. Failed delivery still consumes a request; live delivery is unverified.
-- Recovery reuses registration OTP keys and restrictions, with no purpose
-  separation. Validate and normalize input, enforce a replacement-password
-  policy, and define existing-token invalidation alongside the recovery fix.
-- The helper accepts a seller type but only queries users for `'user'`; there
-  are no mounted seller recovery routes.
+1. Request a code using `POST /api/forgot-password-user` with normalized email.
+   Delivery uses `forgot-password-user-email.ejs` and returns a 60-second cooldown.
+   Codes expire after five minutes and are separate from registration. Quota,
+   cooldown, and lock keys remain shared. Unknown accounts still return a distinct
+   error, and delivery timing is not equalized.
+2. Verify the four-digit code with `POST /api/verify-forgot-password-user`.
+   One Redis Lua script checks locks, counts wrong guesses, consumes the code,
+   and creates a five-minute grant. Three wrong guesses set a 30-minute lock.
+   Verification returns a random 256-bit `resetToken` with `Cache-Control: no-store`.
+   Redis stores a single SHA-256 digest bound to the account ID and current password hash. A later
+   verified code supersedes the previous grant for that email.
+3. Submit the same email, token, and an 8-128 character `newPassword` to
+   `POST /api/reset-password-user`. The handler hashes with bcrypt cost 10,
+   atomically consumes the grant, clears recovery codes/attempts, and conditionally
+   updates the account only if its original password hash still matches.
+   Concurrent use, replay, expiry, wrong-account tokens, and older grants fail closed.
+4. A best-effort email notifies the account owner after a successful write.
+   Notification failure is logged without reporting the password change as failed.
+   Sign in normally afterward; reset does not issue login cookies.
 
-The disabled reset handler performs no hashing, database access, cookie changes,
-or token revocation. A future implementation needs password validation and an
-explicit existing-session policy. No recovery integration or security checks
-have been run for this refresh.
+Hashing failure preserves the grant. Expiry or replacement during hashing prevents
+password writes. Consumed grants are never restored, including after a database
+failure; obtain a new code. A database timeout may have committed the change,
+so try signing in before retrying recovery. Existing JWTs remain valid until
+issued expiry; no session consumer or revocation store exists. No migration or
+new environment variable is needed. Live delivery, Redis scripts, and MongoDB
+writes still require integration verification.
 
 ## Swagger maintenance
 
 Run `npm run auth-docs` after route or contract changes. The generator scans
 `main.ts`, follows the `/api` router mount, and reads `#swagger` controller/router
 annotations for required request fields and concrete request/200-response
-examples. Recovery OTP annotations include 400/500 responses; disabled reset
-documents its 503 response. They do not claim a verified or secure recovery flow. Generation also
+examples. Recovery annotations describe expiring single-use reset authorization
+and validation/failure responses. These contracts do not prove a live integration. Generation also
 documents the greeting and excludes the Swagger UI/JSON routes.
 Commit the generated JSON, restart auth, and reload `/api-docs`. Cookie headers
 and detailed error/validation contracts remain outside the generated schemas.
@@ -139,17 +153,20 @@ and detailed error/validation contracts remain outside the generated schemas.
 
 The [ioredis client](../../packages/libs/redis/index.ts) is a direct module-level
 instance. [auth.helper.ts](../../apps/auth-service/src/utils/auth.helper.ts) owns
-the following keys. Registration and account verification normalize email. Recovery reuses
-these keys without a purpose namespace:
+the following keys. All recovery endpoints normalize email. Registration uses the
+original OTP keys; recovery shares restriction keys and uses separate code/attempt keys:
 
-| Key                         | Value / expiry                 | Current use                                                       |
-| --------------------------- | ------------------------------ | ----------------------------------------------------------------- |
-| `otp_lock:<email>`          | `'locked'`, 1,800 seconds      | Written on 3rd failed OTP verification attempt; blocks new OTP    |
-| `otp_spam_lock:<email>`     | `'locked'`, 3,600 seconds      | Set during OTP requests when counter is already at least 2        |
-| `otp_request_count:<email>` | Integer string, 3,600 seconds  | `INCR` counter; expiry refreshed on each counted request          |
-| `otp_cooldown:<email>`      | `'true'`; 60 seconds           | Acquired with `SET NX` before SMTP; refreshed after code storage  |
-| `otp:<email>`               | Four-digit string, 300 seconds | Generated with `crypto.randomInt(1000, 10000)`; deleted on verify |
-| `otp_attempts:<email>`      | Integer string, 300 seconds    | Failed verification attempts counter; deleted on verify/lock      |
+| Key                                   | Value / expiry                                   | Current use                                                       |
+| ------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
+| `otp_lock:<email>`                    | `'locked'`, 1,800 seconds                        | Written on 3rd failed OTP verification attempt; blocks new OTP    |
+| `otp_spam_lock:<email>`               | `'locked'`, 3,600 seconds                        | Set during OTP requests when counter is already at least 2        |
+| `otp_request_count:<email>`           | Integer string, 3,600 seconds                    | `INCR` counter; expiry refreshed on each counted request          |
+| `otp_cooldown:<email>`                | `'true'`; 60 seconds                             | Acquired with `SET NX` before SMTP; refreshed after code storage  |
+| `otp:<email>`                         | Four-digit string, 300 seconds                   | Generated with `crypto.randomInt(1000, 10000)`; deleted on verify |
+| `otp_attempts:<email>`                | Integer string, 300 seconds                      | Failed verification attempts counter; deleted on verify/lock      |
+| `password_reset_otp:<email>`          | Four-digit string, 300 seconds                   | Recovery code only                                                |
+| `password_reset_otp_attempts:<email>` | Integer string, 300 seconds                      | Atomic recovery failed-attempt counter                            |
+| `password_reset_grant:<email>`        | Account/password-bound token digest; 300 seconds | Single-use reset grant                                            |
 
 `checkOtpRestrictions` checks Redis readiness and lock → spam lock → cooldown.
 `SET NX` acquires the cooldown atomically so concurrent clicks cannot both proceed.
@@ -161,7 +178,7 @@ admission rather than using a fixed calendar hour. Restrictions return 400 with
 `details.retryAfterSeconds`; successful registration delivery returns
 `retryAfterSeconds: 60` for the client countdown.
 
-Verification validates the code format and inspects `otp:${email}`. If the key is
+Registration verification validates the code format and inspects `otp:${email}`. If the key is
 absent or expired, it throws `ValidationError('Expired or invalid OTP!')`.
 On incorrect OTP entry, it reads
 `otp_attempts:${email}`. When failed attempts reach 2 (the 3rd attempt), it

@@ -22,6 +22,7 @@ jest.mock('@packages/libs/prisma', () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
   },
 }));
@@ -64,8 +65,9 @@ const user = {
 };
 
 function response() {
-  const res = { status: jest.fn(), json: jest.fn() };
+  const res = { status: jest.fn(), json: jest.fn(), set: jest.fn() };
   res.status.mockReturnValue(res);
+  res.set.mockReturnValue(res);
   return res;
 }
 
@@ -388,7 +390,9 @@ test('still reports success if OTP cleanup fails after the account is committed'
   }
 });
 
-test('recovery verification still consumes a valid code', async () => {
+test('recovery verification consumes a valid code and returns reset authorization', async () => {
+  jest.mocked(prisma.users.findUnique).mockResolvedValueOnce(user);
+  jest.mocked(redis.eval).mockResolvedValueOnce(1);
   const res = response();
   const next = jest.fn();
   await verifyForgotPasswordOtp(
@@ -398,12 +402,18 @@ test('recovery verification still consumes a valid code', async () => {
   );
   expect(redis.eval).toHaveBeenCalledTimes(1);
   expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledWith({
+    message: 'OTP verified. You can now reset your password.',
+    resetToken: expect.stringMatching(/^[a-f0-9]{64}$/),
+    expiresInSeconds: 300,
+  });
+  expect(res.set).toHaveBeenCalledWith('Cache-Control', 'no-store');
   expect(next).not.toHaveBeenCalled();
 });
 
-test('password reset fails closed without reading or changing an account', () => {
+test('password reset rejects requests without authorization before account access', async () => {
   const next = jest.fn();
-  resetUserPassword(
+  await resetUserPassword(
     {
       body: { email: user.email, newPassword: 'attacker-password' },
     } as Request,
@@ -411,9 +421,10 @@ test('password reset fails closed without reading or changing an account', () =>
     next,
   );
   expect(next).toHaveBeenCalledWith(
-    expect.objectContaining({ statusCode: 503 }),
+    expect.objectContaining({ statusCode: 400 }),
   );
   expect(prisma.users.findUnique).not.toHaveBeenCalled();
   expect(prisma.users.update).not.toHaveBeenCalled();
+  expect(prisma.users.updateMany).not.toHaveBeenCalled();
   expect(bcrypt.hash).not.toHaveBeenCalled();
 });

@@ -22,8 +22,8 @@ business services or authenticate users.
 
 ```mermaid
 flowchart LR
-    Browser["Browser"] --> Frontend["Next.js client :3000<br/>Header, ThemeToggle, /login UI, /sign-up auth flow, and Tailwind tokens"]
-    Frontend -->|"NEXT_PUBLIC_API_URL (registration, OTP verification, login)"| Gateway["API gateway<br/>Express :8080"]
+    Browser["Browser"] --> Frontend["Next.js client :3000<br/>Header, ThemeToggle, /login, /sign-up, /forgot-password, and Tailwind tokens"]
+    Frontend -->|"NEXT_PUBLIC_API_URL (registration, verification, login, password recovery)"| Gateway["API gateway<br/>Express :8080"]
     Client["HTTP client"] --> Gateway
     Client --> Auth["Auth service<br/>Express :6001"]
     Gateway -->|"All paths except local health"| Auth
@@ -101,10 +101,10 @@ middleware, or protected route consumer yet.
   The overall sequence and failed-verification updates are separate commands.
   Sending must complete within the 60-second cooldown. SMTP delivery and Redis state are
   separate operations; failed delivery still consumes admission quota.
-- Three password-recovery routes are mounted with a recovery email template and
-  awaited OTP verification. Reset always returns 503 without account access until
-  secure single-use authorization is implemented.
-  See [recovery blockers](../development/authentication.md#password-recovery-blockers).
+- Password recovery uses separate OTP keys and atomic verification to issue a
+  five-minute single-use reset token. Reset consumes the grant before a conditional
+  password update. The frontend connects recovery steps; existing JWT revocation is absent.
+  See [password recovery](../development/authentication.md#password-recovery).
 - Both entry points call `app.listen()` directly. Dependency readiness,
   graceful shutdown, request identity enforcement, and production ingress are absent.
 - Docker packaging is an unverified scaffold. Its current single-stage

@@ -48,3 +48,42 @@ export const verifyOtpSchema = z.object({
 });
 
 export type VerifyOtpPayload = z.infer<typeof verifyOtpSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: signUpSchema.shape.email.transform((email) => email.toLowerCase()),
+});
+
+export type ForgotPasswordPayload = z.infer<typeof forgotPasswordSchema>;
+
+export const verifyRecoveryOtpSchema = forgotPasswordSchema.extend({
+  otp: otpCodeSchema,
+});
+
+export type VerifyRecoveryOtpPayload = z.infer<typeof verifyRecoveryOtpSchema>;
+
+export const recoveryAuthorizationSchema = z.object({
+  resetToken: z
+    .string()
+    .length(64)
+    .regex(/^[a-f0-9]+$/),
+  expiresInSeconds: z.number().int().positive(),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    newPassword: signUpSchema.shape.password,
+    confirmPassword: signUpSchema.shape.confirmPassword,
+  })
+  .refine((values) => values.newPassword === values.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export const resetPasswordPayloadSchema = forgotPasswordSchema.extend({
+  resetToken: recoveryAuthorizationSchema.shape.resetToken,
+  newPassword: signUpSchema.shape.password,
+});
+
+export type ResetPasswordPayload = z.infer<typeof resetPasswordPayloadSchema>;

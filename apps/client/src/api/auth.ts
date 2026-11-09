@@ -1,4 +1,11 @@
 import {
+  type ForgotPasswordPayload,
+  forgotPasswordSchema,
+  recoveryAuthorizationSchema,
+  resetPasswordPayloadSchema,
+  type ResetPasswordPayload,
+  verifyRecoveryOtpSchema,
+  type VerifyRecoveryOtpPayload,
   type LoginFormValues,
   type SignUpFormValues,
   type VerifyOtpPayload,
@@ -99,6 +106,56 @@ export const loginMutation = mutationOptions({
 
     return {
       message: getApiMessage(data, 'Login successful.'),
+    };
+  },
+});
+
+export const forgotPasswordMutation = mutationOptions({
+  mutationKey: ['auth', 'forgot-password'],
+  retry: false,
+  mutationFn: async (payload: ForgotPasswordPayload) => {
+    const { data } = await api.post(
+      '/api/forgot-password-user',
+      forgotPasswordSchema.parse(payload),
+    );
+
+    return {
+      message: getApiMessage(
+        data,
+        'A verification code has been sent. Please check your email.',
+      ),
+      retryAfterSeconds: getApiRetryAfterSeconds(data) ?? 60,
+    };
+  },
+});
+
+export const verifyRecoveryOtpMutation = mutationOptions({
+  mutationKey: ['auth', 'verify-recovery-otp'],
+  retry: false,
+  gcTime: 0,
+  mutationFn: async (payload: VerifyRecoveryOtpPayload) => {
+    const { data } = await api.post(
+      '/api/verify-forgot-password-user',
+      verifyRecoveryOtpSchema.parse(payload),
+    );
+    return recoveryAuthorizationSchema.parse(data);
+  },
+});
+
+export const resetPasswordMutation = mutationOptions({
+  mutationKey: ['auth', 'reset-password'],
+  retry: false,
+  gcTime: 0,
+  mutationFn: async (payload: ResetPasswordPayload) => {
+    const { data } = await api.post(
+      '/api/reset-password-user',
+      resetPasswordPayloadSchema.parse(payload),
+    );
+    return {
+      message: getApiMessage(
+        data,
+        'Your password has been reset. Sign in with your new password.',
+      ),
     };
   },
 });

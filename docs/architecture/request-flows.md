@@ -58,8 +58,8 @@ flowchart TD
     Route -->|"POST /api/verify-registration"| Verification["Verification controller"]
     Route -->|"POST /api/login"| Login["Login controller<br/>bcrypt, JWT signing, cookies"]
     Route -->|"POST /api/forgot-password-user"| Forgot["Recovery helper<br/>Recovery email and OTP storage"]
-    Route -->|"POST /api/verify-forgot-password-user"| RecoveryOTP["OTP helper directly<br/>Await verification; no reset proof"]
-    Route -->|"POST /api/reset-password-user"| Reset["Reset controller<br/>Always returns 503; no account access"]
+    Route -->|"POST /api/verify-forgot-password-user"| RecoveryOTP["OTP helper directly<br/>Atomic verification; issue reset token"]
+    Route -->|"POST /api/reset-password-user"| Reset["Reset controller<br/>Consume grant; conditional password update"]
     Route -->|No| Missing["Express default 404"]
     JSON -->|Parse or size error| Errors["Shared error middleware"]
     Registration -->|Error forwarded| Errors
@@ -226,30 +226,39 @@ missing signing secrets, are forwarded to shared error handling. See the
 ## Password recovery execution paths
 
 Sources: [router](../../apps/auth-service/src/routes/auth.router.ts),
-[controller](../../apps/auth-service/src/controller/auth.controller.ts), and
-[helpers](../../apps/auth-service/src/utils/auth.helper.ts).
+[controller](../../apps/auth-service/src/controller/auth.controller.ts),
+[OTP helper](../../apps/auth-service/src/utils/auth.helper.ts), and
+[reset authorization](../../apps/auth-service/src/utils/password-reset.ts).
 
-These are independent public endpoints. The diagram shows current defects;
-it does not imply an enforced request → verify → reset sequence.
+These public endpoints enforce recovery authorization through a purpose-specific
+OTP and a five-minute single-use reset grant. The frontend connects all three
+steps on `/forgot-password` and presents a success message with a sign-in link.
 
 ```mermaid
 flowchart TD
-    Request["POST /api/forgot-password-user<br/>email"] --> Lookup["Check email presence and existing user<br/>Shared OTP limits and request counter"]
-    Lookup --> Mail["Render recovery template and send email<br/>Then store OTP EX 300 and cooldown EX 60"]
-    Verify["POST /api/verify-forgot-password-user<br/>email, otp"] --> Presence["Check field presence"]
-    Presence --> Launch["Await verifyOtp<br/>Validate and consume Redis OTP"]
-    Launch -->|Success| Verified["200 verified<br/>No reset authorization issued"]
-    Launch -->|Failure| Error["Forward error; no success response"]
-    Reset["POST /api/reset-password-user"] --> Disabled["503 Password reset unavailable<br/>No account access or password writes"]
+    Request["POST /api/forgot-password-user<br/>email"] --> Lookup["Normalize email and find user<br/>Shared request limits and cooldown"]
+    Lookup --> Mail["Send recovery email<br/>Store recovery OTP EX 300"]
+    Mail --> Verify["POST /api/verify-forgot-password-user<br/>email, otp"]
+    Verify --> Check["Atomic code and lock check<br/>Count failed attempts"]
+    Check -->|Valid code| Grant["Consume OTP<br/>Store reset grant EX 300"]
+    Check -->|Invalid or expired| Error["400 error<br/>Third wrong guess locks for 30 minutes"]
+    Grant --> Token["200 resetToken and expiresInSeconds<br/>No-store response"]
+    Token --> Reset["POST /api/reset-password-user<br/>email, resetToken, newPassword"]
+    Reset --> Hash["Validate grant and password<br/>Hash replacement password"]
+    Hash --> Consume["Atomically consume matching grant<br/>Clear recovery OTP and attempts"]
+    Consume --> Write["Conditional password update<br/>Verified ID, email, original password hash"]
+    Write --> Success["200 password changed<br/>Best-effort notification; sign in normally"]
 ```
 
-The recovery template uses the same responsive layout as activation mail and
-displays escaped name/OTP values with a five-minute expiry notice. The request
-counter increases before sending, so delivery failures still consume quota.
-Registration and recovery share the same unscoped OTP state. See the
-[API reference](../reference/api.md#password-recovery-incomplete-and-unsafe)
-for exact responses and [recovery blockers](../development/authentication.md#password-recovery-blockers)
-for required follow-up work.
+Recovery and registration codes/attempts have separate keys; request quota,
+cooldown, and lock keys remain shared. A later verified code supersedes the
+previous reset grant. Redis stores one digest bound to the token, account ID,
+and current password hash; the helper no longer serializes a grant object.
+Concurrent consumption, expired grants, and earlier-password grants cannot update
+an account. Hashing failure preserves the grant; database failure after consumption
+requires a new code. Existing JWTs are not revoked. See the
+[API reference](../reference/api.md#password-recovery) for exact responses and
+[recovery limitations](../development/authentication.md#password-recovery).
 
 ## Shared error path
 

@@ -28,12 +28,12 @@ using the shared Input/icons and `ThemeToggle` (`next-themes`, saved preferences
 system tracking, and cross-tab synchronization), a placeholder `/` page, `/login` and `/sign-up`
 forms connected to registration, OTP verification, and login, and the supplied
 [design tokens](../reference/design-tokens.md). Login enables cookie credentials
-and redirects to `/`; reset stays disabled with 503. This is partial U-01
+and redirects to `/`; backend reset uses expiring single-use authorization. This is partial U-01
 foundation, not completion: catalog/cart screens, session-aware UI,
-recovery authorization/UI, localization, responsive verification, and a runnable
+existing JWT revocation, localization, responsive verification, and a runnable
 browser/UI test target remain open. Permanent standalone client schema/message
-tests and mocked auth controller/helper regressions exist; none were run for
-this update. Shared common components and Storybook
+tests and mocked auth controller/helper regressions exist; the 73 auth tests
+passed on 2026-11-08, while live recovery integrations remain unverified. Shared common components and Storybook
 examples/play checks are now implemented; interaction and accessibility
 verification remain open. The separate `npm run client` command starts its `dev`
 target.

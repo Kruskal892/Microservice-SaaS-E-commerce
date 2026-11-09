@@ -116,13 +116,19 @@ it currently stays fixed at `localhost:6001`.
 
 ## Password recovery delivery and authorization
 
-Recovery mail now uses the supplied email and the recovery template. Check SMTP
-and Redis configuration for delivery errors; a failed send still consumes a
-request. OTP submission awaits verification but issues no reset authorization.
-Password reset deliberately returns 503 without account access until secure
-single-use verification is implemented. See
-[recovery blockers](authentication.md#password-recovery-blockers) and the
-[current API contract](../reference/api.md#password-recovery-incomplete-and-unsafe).
+Recovery mail uses normalized email and a separate recovery OTP namespace.
+Check SMTP and Redis configuration for delivery errors; failed sends still consume
+quota. Verification returns a five-minute reset token with a no-store response.
+Reset requires the same email, that token, and an 8-128 character new password.
+Expired, consumed, replaced, wrong-account, or earlier-password grants return 400.
+A database failure after token consumption requires a new recovery request; if a
+write timed out, try signing in first because it may have committed. Notification
+failure after a successful update is logged without failing the response.
+Existing JWTs are not revoked. The frontend keeps the reset token in memory only;
+reloading or restarting recovery requires a new code. If the last reset failed,
+use **Request a new code**; a database failure may have consumed the old token.
+See [recovery behavior](authentication.md#password-recovery) and the
+[current API contract](../reference/api.md#password-recovery).
 
 ## Login fails or cookies are missing
 
