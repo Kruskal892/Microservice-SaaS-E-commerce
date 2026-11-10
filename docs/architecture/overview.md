@@ -43,7 +43,7 @@ See [request flows](request-flows.md) for execution order and failure paths.
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                                                                   | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
 | Client         | Next.js App Router, shared UI/icons/theme, Header, `ThemeToggle`, `/sign-up` registration & OTP verify (`src/api/`), `/login` credential POST, `/api/hello` | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
-| Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies                                       | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
+| Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies, access-token refresh                 | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
 | Shared errors  | Error classes and JSON error middleware used by both apps                                                                                                   | [error-handler](../../packages/error-handler/index.ts)                                                                  |
 | Shared clients | Prisma client reuse and a simple ioredis instance                                                                                                           | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
 | MongoDB schema | Identity fields and optional avatar relation                                                                                                                | [schema.prisma](../../prisma/schema.prisma)                                                                             |
@@ -77,11 +77,18 @@ those business rules. See [repository structure](repository-structure.md) and
 
 The [root manifest](../../package.json) and [lockfile](../../package-lock.json)
 own versions. A dependency being installed does not imply every feature is wired;
-for example, cookie-parser is installed but neither entry point mounts it, and
+for example, auth mounts cookie-parser before its routes, while the gateway does not parse cookies, and
 client TanStack Query mutations cover registration, OTP verification, and login
 (`registrationMutation`, `verifyOtpMutation`, and `loginMutation`). Resend reuses the registration mutation in a separate instance. Auth login uses jsonwebtoken and Express
-cookie writing. There is no incoming cookie parsing, token verification
-middleware, or protected route consumer yet.
+cookie writing and validates refresh cookies at `POST /api/refresh-token`.
+Shared `isAuthenticated` middleware verifies access JWTs, loads the user, and
+sets `req.user`; no production route mounts it yet.
+
+Shared authentication middleware is exported from
+[`packages/middleware`](../../packages/middleware/index.ts). Missing or rejected
+access tokens return 401; database/configuration errors pass to application error
+handling. It is available for future routes and does not enforce authorization
+roles. See [authentication development](../development/authentication.md#shared-access-token-middleware).
 
 ## Runtime constraints
 
@@ -95,8 +102,10 @@ middleware, or protected route consumer yet.
   and persists the user record before atomically deleting the matching OTP.
 - Login (`POST /api/login`) checks credentials, signs 15-minute access and 7-day
   refresh JWTs, and sets both cookies with a 7-day lifetime. Cookies always use
-  Secure, HttpOnly, and SameSite=None. Refresh, logout, revocation, and protected
-  requests remain unimplemented; browser deployment policy is unverified.
+  Secure, HttpOnly, and SameSite=None. Refresh validates the refresh cookie and
+  replaces the access cookie without rotating/extending the refresh JWT. Logout,
+  revocation, and protected route consumers remain unimplemented; browser policy
+  is unverified.
 - OTP cooldown acquisition uses atomic `SET NX` and request counting uses `INCR`.
   The overall sequence and failed-verification updates are separate commands.
   Sending must complete within the 60-second cooldown. SMTP delivery and Redis state are

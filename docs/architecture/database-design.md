@@ -82,6 +82,12 @@ record. JWTs are signed into cookies; there are no persisted roles, revocation
 records, or token-rotation state in the current schema. The token's user role
 is a fixed controller value.
 
+Refresh (`POST /api/refresh-token`) reads `users.findUnique({ where: { id } })`
+after verifying the refresh JWT. Shared `isAuthenticated` performs the same ID
+lookup for access JWTs when invoked; it has no production route consumer. Both
+reject deleted accounts. Neither writes session, refresh-token, rotation, or
+revocation state. No schema change accompanies these additions.
+
 ## Constraints to resolve before writes
 
 - Treat `following` as plain strings; no declared user relationship enforces it.

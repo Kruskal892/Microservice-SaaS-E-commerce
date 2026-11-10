@@ -46,9 +46,10 @@
 |   |-- auth-service/
 |   |   |-- src/
 |   |   |   |-- main.ts                  # Express wiring, Swagger, listener
-|   |   |   |-- routes/auth.router.ts    # Six /api POST routes; recovery Swagger annotations
+|   |   |   |-- routes/auth.router.ts    # Seven /api POST routes; refresh/recovery Swagger annotations
 |   |   |   |-- controller/auth.controller.ts
-|   |   |   |-- controller/auth.controller.spec.ts # Permanent mocked auth/OTP regressions
+|   |   |   |-- controller/auth.controller.spec.ts # Mocked auth/OTP/refresh regressions
+|   |   |   |-- middleware/isAuthenticated.spec.ts # Shared access-token middleware regressions
 |   |   |   |-- utils/auth.helper.ts     # Validation, OTP policy, incomplete recovery handlers
 |   |   |   |-- utils/cookies/setCookies.ts # Access/refresh cookie policy within auth
 |   |   |   |-- mail/
@@ -72,6 +73,9 @@
 |   |-- error-handler/
 |   |   |-- index.ts                    # Error classes and middleware export
 |   |   `-- error-middleware.ts
+|   |-- middleware/
+|   |   |-- index.ts                    # @packages/middleware exports
+|   |   `-- isAuthenticated.ts          # Access JWT verification and user lookup; not mounted
 |   |-- libs/
 |   |   |-- index.ts
 |   |   |-- prisma/index.ts             # Shared Prisma client
@@ -142,7 +146,8 @@ browser code. Use `@packages/ui` for shared browser components; see
 [Client setup](../../apps/client/README.md) and the
 [token reference](../reference/design-tokens.md) own frontend conventions.
 
-`@microservice-eshop/shared` is the shared workspace manifest name.
+`@microservice-eshop/shared` is the shared npm workspace name, used consistently
+by the shared manifest, backend dependency entries, and lockfile.
 `@packages/error-handler` and `@packages/libs/prisma` are folder aliases into
 that workspace. Shared TypeScript `paths` define compiler resolution; auth
 esbuild and gateway Webpack resolve them for their bundles. Plain Node and Jest
@@ -153,10 +158,11 @@ Import the specific module you need. The aggregate
 Prisma/Redis at import time. UI is exposed through its own folder entry.
 Importing the aggregate can pull infrastructure into a browser.
 Use the specific `@packages/ui`, `@packages/assets/icons`,
-`@packages/error-handler`, or `@packages/libs/...` entry instead.
-The new recovery helper imports Prisma through `@packages/libs`, whose barrel
-also re-exports Redis; other client imports in the applications target their
-specific modules.
+`@packages/error-handler`, `@packages/middleware` (server-only), or
+`@packages/libs/...` entry instead.
+Shared `isAuthenticated` imports Prisma through `@packages/libs`, whose barrel
+also re-exports Redis. Importing that server-side middleware therefore loads the
+shared client barrel; it must stay out of browser bundles.
 
 Keep gateway policy in the gateway and identity behavior in auth. Add a shared
 folder with an `index.ts` when it has a real consumer; no per-folder manifest or

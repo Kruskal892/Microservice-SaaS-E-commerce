@@ -12,22 +12,22 @@ dotenv through [prisma.config.ts](../../prisma.config.ts).
 
 ## Environment inputs
 
-| Variable                   | Consumer                       | Default / behavior                                                                                                |
-| -------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `PORT`                     | Each backend HTTP app          | Auth `6001`, gateway `8080`; a supplied value passes through `Number()` with no explicit integer/range validation |
-| `AUTH_SERVICE_URL`         | Gateway                        | `http://localhost:6001`; all forwarded paths use this one upstream                                                |
-| `DATABASE_URL`             | Prisma CLI/client              | MongoDB connection string; root example uses local `eshop`; no application fallback                               |
-| `REDIS_DATABASE_URL`       | Auth Redis client              | Passed directly to ioredis; root example uses `redis://127.0.0.1:6379`; no application validation                 |
-| `SMTP_HOST`                | Auth mail                      | Passed to Nodemailer; root example is a placeholder                                                               |
-| `SMTP_SERVICE`             | Auth mail                      | Optional Nodemailer provider setting; read in code but absent from `.env.example`                                 |
-| `SMTP_PORT`                | Auth mail                      | `Number(value) \|\| 587`; exact string `'465'` enables implicit TLS                                               |
-| `SMTP_USER`                | Auth mail                      | SMTP authentication user and sender address                                                                       |
-| `SMTP_PASSWORD`            | Auth mail                      | SMTP authentication secret                                                                                        |
-| `JWT_ACCESS_TOKEN_SECRET`  | Auth login                     | Signing secret for access JWTs; no fallback; token expires in 15 minutes                                          |
-| `JWT_REFRESH_TOKEN_SECRET` | Auth login                     | Signing secret for refresh JWTs; no fallback; token expires in 7 days                                             |
-| `NODE_ENV`                 | Prisma wrapper / gateway build | Prisma global reuse outside production; gateway source-map configuration checks production                        |
-| `NEXT_PUBLIC_API_URL`      | Client Axios instance          | Base URL for browser requests (`apps/client/src/api/client.ts`), e.g. `http://localhost:8080`; 15-second timeout  |
-| `HOST`                     | E2E setup only                 | Test destination defaults to `localhost`; HTTP apps do not read it as a bind address                              |
+| Variable                   | Consumer                              | Default / behavior                                                                                                |
+| -------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `PORT`                     | Each backend HTTP app                 | Auth `6001`, gateway `8080`; a supplied value passes through `Number()` with no explicit integer/range validation |
+| `AUTH_SERVICE_URL`         | Gateway                               | `http://localhost:6001`; all forwarded paths use this one upstream                                                |
+| `DATABASE_URL`             | Prisma CLI/client                     | MongoDB connection string; root example uses local `eshop`; no application fallback                               |
+| `REDIS_DATABASE_URL`       | Auth Redis client                     | Passed directly to ioredis; root example uses `redis://127.0.0.1:6379`; no application validation                 |
+| `SMTP_HOST`                | Auth mail                             | Passed to Nodemailer; root example is a placeholder                                                               |
+| `SMTP_SERVICE`             | Auth mail                             | Optional Nodemailer provider setting; read in code but absent from `.env.example`                                 |
+| `SMTP_PORT`                | Auth mail                             | `Number(value) \|\| 587`; exact string `'465'` enables implicit TLS                                               |
+| `SMTP_USER`                | Auth mail                             | SMTP authentication user and sender address                                                                       |
+| `SMTP_PASSWORD`            | Auth mail                             | SMTP authentication secret                                                                                        |
+| `JWT_ACCESS_TOKEN_SECRET`  | Auth login/refresh; shared middleware | Access JWT signing/verification secret; no fallback; JWT expires in 15 minutes                                    |
+| `JWT_REFRESH_TOKEN_SECRET` | Auth login/refresh                    | Refresh JWT signing/verification secret; no fallback; JWT expires in 7 days                                       |
+| `NODE_ENV`                 | Prisma wrapper / gateway build        | Prisma global reuse outside production; gateway source-map configuration checks production                        |
+| `NEXT_PUBLIC_API_URL`      | Client Axios instance                 | Base URL for browser requests (`apps/client/src/api/client.ts`), e.g. `http://localhost:8080`; 15-second timeout  |
+| `HOST`                     | E2E setup only                        | Test destination defaults to `localhost`; HTTP apps do not read it as a bind address                              |
 
 The Redis non-null assertion is a TypeScript annotation, not a runtime check.
 Supply a TCP `redis://` or `rediss://` URL for the existing client. No central
@@ -126,7 +126,11 @@ Sources: [gateway](../../apps/api-gateway/src/main.ts),
 [login controller](../../apps/auth-service/src/controller/auth.controller.ts), and
 [cookie helper](../../apps/auth-service/src/utils/cookies/setCookies.ts).
 Cookies are always marked Secure; there is no `NODE_ENV` override. Their retention
-and JWT expiry differ for the access token. Refresh, logout, token verification,
+and JWT expiry differ for the access token. Refresh replaces only the access
+cookie; the original refresh JWT expiry is unchanged. Auth parses incoming
+cookies. Shared middleware verifies access JWTs but is not mounted on current
+production routes. Refresh/middleware check their verification secret at request
+time; missing configuration remains a server error. Rotation/revocation, logout,
 CSRF policy, and production browser behavior still need implementation/validation.
 Future validation, shared quotas, and ingress decisions are in the
 [Redis/runtime plan](../future-plans/architecture/redis-and-runtime-plan.md).

@@ -11,8 +11,10 @@ Microservice Eshop aims to offer an ecommerce storefront backed by service APIs.
 Customers need to find products, manage a cart, and place and review orders.
 Developers need an Nx workspace with explicit service ownership and contracts.
 Today gateway/auth source includes greetings, registration/OTP delivery,
-verification/account persistence, and login with access/refresh JWT cookies.
-Protected requests, refresh/logout, and the customer purchase journey remain
+verification/account persistence, login with access/refresh JWT cookies,
+cookie-based access refresh, and shared access-token middleware. Protected route
+consumers, client session handling, refresh rotation/revocation, logout, and the
+customer purchase journey remain
 unfinished; live identity integrations are unverified. See
 [current implementation status](../../operations/implementation-status.md).
 

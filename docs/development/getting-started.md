@@ -192,7 +192,11 @@ Use the [API reference](../reference/api.md) for the OTP/account creation sequen
 and login errors. The four-digit verification example is a placeholder; use the
 code sent to your test mailbox. Login issues Secure, HTTP-only JWT cookies;
 enable request credentials in browser clients and check cookie storage in the
-intended HTTPS setup. Refresh, logout, and protected routes are not implemented.
+intended HTTPS setup. `POST /api/refresh-token` reads the refresh cookie and
+returns 201 with a replacement access cookie. It does not rotate the refresh
+token; logout and protected routes are not implemented. The shared authentication
+middleware is available but not mounted. See the
+[refresh contract](../reference/api.md#access-token-refresh) before testing manually.
 
 ## First-day checklist
 

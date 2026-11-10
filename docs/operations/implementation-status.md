@@ -2,7 +2,8 @@
 
 [Documentation hub](../README.md) · [Future implementation plan](../future-plans/implementation-plan.md)
 
-**Reviewed:** Auth/client source and documentation 2026-11-06; other areas retain their dated snapshots.
+**Reviewed:** Refresh, shared authentication middleware, workspace naming, and related
+documentation 2026-11-10; other areas retain their dated snapshots.
 This inventory reflects source/configuration inspection, not full runtime verification.
 The capability inventory and dated client sections describe the current UI.
 Older dated sections retain historical implementation and validation records;
@@ -10,26 +11,27 @@ their UI details and command results do not verify the current working tree.
 
 ## Capability inventory
 
-| Area                      | Present in source/configuration                                                                                                                                                                              | Remaining work                                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Workspace                 | Nx/npm, strict TypeScript, shared aliases and project references                                                                                                                                             | Verify relevant targets as code changes                                                                             |
-| Client scaffold           | Shared Header/ThemeToggle, registration, OTP verification and resend, login credential POST, password recovery, placeholder home                                                                             | Session-aware UI, storefront, localization, browser/E2E checks                                                      |
-| Design tokens             | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales (`--text-callout`), named breakpoints (`desktop:` 1440px auth split), pre-paint `data-theme` initialization         | Component styling across future storefront screens, font/browser and accessibility verification                     |
-| Shared UI                 | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, overridable Button hover/active classes, Storybook states and play checks                                                             | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps       |
-| Shared assets             | Repo-wide SVG files and exports in `packages/assets` (all monochrome icons use `currentColor`, plus `GoogleIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, `EyeOffIcon`), typed SVG declarations, client SVGR rules | Additional-app bundler adoption and production validation                                                           |
-| Gateway                   | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                                                                                   | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                  |
-| Registration              | Validation/normalization, Prisma lookup, SET NX cooldown, INCR request counter, SMTP delivery, resend countdown                                                                                              | Verify bounded send timing, concurrency, and Redis/SMTP failures                                                    |
-| Verification and identity | Shared registration validation/normalization, OTP validation, post-persistence matching-code cleanup, bcrypt hashing, unique email persistence                                                               | Run regression tests; verify live database indexes and failure handling                                             |
-| Login and JWT cookies     | Client login POST and redirect to /; backend bcrypt comparison, access/refresh JWT cookies, public user response                                                                                             | Loading/error lifecycle, remember-me behavior, protected requests, refresh/logout, browser cookie/CSRF verification |
-| Password recovery         | Recovery OTPs, atomic verification, five-minute single-use reset grants, conditional password update and notification                                                                                        | Existing JWT revocation, account enumeration mitigation, browser and live integration verification                  |
-| Data                      | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                                                                                  | Verify live connectivity, applied indexes, and seed/migration workflow                                              |
-| Redis                     | Bounded ioredis client; native sending commands; Lua matching-code cleanup after account creation                                                                                                            | Atomic failed-verification updates, live checks, lifecycle cleanup                                                  |
-| API docs                  | Swagger 2.0 greeting and auth routes, including enabled single-use password reset                                                                                                                            | Cookie headers and complete validation/error contracts; contract-alignment tests                                    |
-| Tests                     | Greeting E2E specs, auth service regressions, Node client schema tests, Jest client auth message/retry tests                                                                                                 | Run authored tests; correct gateway E2E; integration/failure-path coverage                                          |
-| Packaging                 | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                                                                                         | Verify generated dependencies, Prisma runtime and image startup                                                     |
-| CI                        | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                                                                             | Explicit reliable E2E and delivery pipeline                                                                         |
-| Product                   | Draft requirements and proposed designs                                                                                                                                                                      | Storefront, catalog, cart, orders, payments, tenancy decisions                                                      |
-| Operations                | Local greetings and listener error logs/exitCode                                                                                                                                                             | Readiness, drain/cleanup, ingress, monitoring, backups, production deployment                                       |
+| Area                            | Present in source/configuration                                                                                                                                                                              | Remaining work                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace                       | Nx/npm, strict TypeScript, shared aliases and project references                                                                                                                                             | Verify relevant targets as code changes                                                                                                |
+| Client scaffold                 | Shared Header/ThemeToggle, registration, OTP verification and resend, login credential POST, password recovery, placeholder home                                                                             | Session-aware UI, storefront, localization, browser/E2E checks                                                                         |
+| Design tokens                   | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales (`--text-callout`), named breakpoints (`desktop:` 1440px auth split), pre-paint `data-theme` initialization         | Component styling across future storefront screens, font/browser and accessibility verification                                        |
+| Shared UI                       | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, overridable Button hover/active classes, Storybook states and play checks                                                             | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps                          |
+| Shared assets                   | Repo-wide SVG files and exports in `packages/assets` (all monochrome icons use `currentColor`, plus `GoogleIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, `EyeOffIcon`), typed SVG declarations, client SVGR rules | Additional-app bundler adoption and production validation                                                                              |
+| Gateway                         | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                                                                                   | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                                     |
+| Registration                    | Validation/normalization, Prisma lookup, SET NX cooldown, INCR request counter, SMTP delivery, resend countdown                                                                                              | Verify bounded send timing, concurrency, and Redis/SMTP failures                                                                       |
+| Verification and identity       | Shared registration validation/normalization, OTP validation, post-persistence matching-code cleanup, bcrypt hashing, unique email persistence                                                               | Run regression tests; verify live database indexes and failure handling                                                                |
+| Login and JWT cookies           | Client login POST and redirect to /; backend bcrypt comparison, access/refresh JWT cookies, public user response                                                                                             | Loading/error lifecycle, remember-me behavior, protected routes, refresh rotation/revocation, logout, browser cookie/CSRF verification |
+| Refresh and access verification | `POST /api/refresh-token`, incoming cookie parsing, shared `isAuthenticated` export with user lookup and infrastructure-error forwarding                                                                     | Mount middleware on protected routes; frontend session/automatic refresh; rotation/revocation                                          |
+| Password recovery               | Recovery OTPs, atomic verification, five-minute single-use reset grants, conditional password update and notification                                                                                        | Existing JWT revocation, account enumeration mitigation, browser and live integration verification                                     |
+| Data                            | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                                                                                  | Verify live connectivity, applied indexes, and seed/migration workflow                                                                 |
+| Redis                           | Bounded ioredis client; native sending commands; Lua matching-code cleanup after account creation                                                                                                            | Atomic failed-verification updates, live checks, lifecycle cleanup                                                                     |
+| API docs                        | Swagger 2.0 greeting and auth routes, including enabled single-use password reset                                                                                                                            | Cookie headers and complete validation/error contracts; contract-alignment tests                                                       |
+| Tests                           | Greeting E2E specs, auth service regressions, Node client schema tests, Jest client auth message/retry tests                                                                                                 | Run authored tests; correct gateway E2E; integration/failure-path coverage                                                             |
+| Packaging                       | Auth esbuild assets, gateway Webpack, prune targets, auth Dockerfile                                                                                                                                         | Verify generated dependencies, Prisma runtime and image startup                                                                        |
+| CI                              | Node 24, npm ci, lint/test/build/typecheck, always-run nx fix-ci                                                                                                                                             | Explicit reliable E2E and delivery pipeline                                                                                            |
+| Product                         | Draft requirements and proposed designs                                                                                                                                                                      | Storefront, catalog, cart, orders, payments, tenancy decisions                                                                         |
+| Operations                      | Local greetings and listener error logs/exitCode                                                                                                                                                             | Readiness, drain/cleanup, ingress, monitoring, backups, production deployment                                                          |
 
 ## Known source limitations
 
@@ -43,14 +45,17 @@ their UI details and command results do not verify the current working tree.
   counters remain sequential and can race; recovery verification uses a Lua script. SMTP acceptance precedes OTP storage;
   a later Redis failure can leave delivery/storage unconfirmed.
 - Gateway counters are process-local; direct auth access bypasses them. Neither
-  service verifies credentials on subsequent requests or trusts a configured
-  production ingress. Login issues tokens but does not protect other routes.
+  service mounts access-token verification on production routes or trusts a
+  configured production ingress. Shared middleware is implemented, but login
+  and refresh do not themselves protect other routes.
 - Login checks field truthiness only and does not normalize email. Unknown users
   return 400 while wrong passwords return 401, revealing different failure cases.
   Missing parsed bodies or signing secrets can reach the generic 500 handler.
 - Both JWT cookies always use Secure/HttpOnly/SameSite=None and a 7-day lifetime;
   access JWT validity is only 15 minutes. There is no environment override,
-  refresh/logout consumer, persisted revocation state, or browser/CSRF verification.
+  refresh rotation, logout, persisted revocation state, or browser/CSRF verification.
+  Refresh validates the existing refresh cookie and replaces only the access
+  cookie without extending the refresh JWT expiry.
 - Client login's remember-me checkbox is not submitted. Its loading indicator
   uses `isSubmitting` while the handler starts a mutation without awaiting it;
   mutation pending state does not lock the form. Local server errors persist on
@@ -60,7 +65,7 @@ their UI details and command results do not verify the current working tree.
 - Database synchronization and successful persistence against live MongoDB
   instances have no recorded evidence.
 - Auth Jest has a shared-alias mapper and focused controller/helper regression
-  tests; all 73 passed on 2026-11-08 with mocked infrastructure. Gateway E2E defaults to port 3000 and expects
+  and middleware tests; all 93 passed on 2026-11-10 with mocked infrastructure. Gateway E2E defaults to port 3000 and expects
   auth's greeting while starting only gateway.
 - Docker uses a floating `node:lts-alpine` base and `npm --omit=dev -f install`.
   No explicit Prisma-generation step or non-root user is configured. Pruned
@@ -71,6 +76,30 @@ their UI details and command results do not verify the current working tree.
 Detailed behavior belongs in [architecture](../architecture/overview.md),
 [request flows](../architecture/request-flows.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
+
+## Access-token refresh and shared middleware: 2026-11-10
+
+- `POST /api/refresh-token` validates the `refresh_token` cookie, checks the user
+  by ID, and returns 201 with a replacement 15-minute access JWT cookie. The
+  refresh JWT/cookie is unchanged. Missing/rejected tokens or deleted users return
+  401; infrastructure/configuration/signing failures use shared 500 handling.
+- Auth mounts `cookieParser()` before routes. Shared `isAuthenticated` prefers
+  the access cookie, then a header token, verifies claims, loads `req.user`, and
+  calls `next()`. It returns 401 for rejected credentials and forwards unexpected
+  errors. It is exported through `@packages/middleware` and the aggregate barrel.
+- No production route mounts the middleware. Frontend automatic refresh/session
+  restoration, refresh rotation/revocation, logout, and role authorization are absent.
+  Existing JWTs, including refresh JWTs, are not invalidated by password reset.
+- The workspace npm name remains `@microservice-eshop/shared`, consistent across
+  the shared manifest, backend dependencies, and lockfile. `@packages/*` remains
+  a source alias. No schema or environment-variable additions are required.
+- Validation: 93 tests across three auth Jest suites and auth app/spec TypeScript
+  project compilation passed. Swagger generation, documentation formatting,
+  local links/anchors, JSON examples, and balanced source fences are checked in
+  this refresh. Mermaid rendering was not rerun; local renderer dependencies
+  are unavailable.
+  No clean install, Nx application build, lint, E2E, browser, live MongoDB/Redis/SMTP,
+  Docker, or remote CI verification is claimed.
 
 ## Registration OTP resend: 2026-11-06
 

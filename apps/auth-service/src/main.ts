@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { errorMiddleware } from '@packages/error-handler';
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import swaggerUI from 'swagger-ui-express';
 import router from './routes/auth.router';
 
@@ -25,6 +26,7 @@ app.get('/', (_req, res) => {
 });
 
 app.use(express.json({ limit: '16kb' }));
+app.use(cookieParser());
 app.use(
   '/api-docs',
   /* #swagger.ignore = true */

@@ -24,8 +24,11 @@ The current baseline includes a Next.js client scaffold with
 [Tailwind design tokens](../reference/design-tokens.md), `next-themes` switching,
 responsive header navigation, connected `/login` and `/sign-up` forms, and backend
 OTP delivery/verification, account persistence,
-and login with access/refresh JWT cookies. Completing identity below still means
-consistent validation, protected requests, refresh/rotation, logout/revocation,
+and login with access/refresh JWT cookies. Cookie-based access refresh and
+shared access-token middleware now exist; no production route mounts the
+middleware and the client has no automatic refresh/session restoration.
+Completing identity below still means consistent validation, protected requests,
+refresh rotation, logout/revocation,
 browser security, and meaningful integration coverage. See the
 [current login contract](../reference/api.md#login-and-jwt-cookies).
 

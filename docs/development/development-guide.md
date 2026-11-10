@@ -116,19 +116,23 @@ and `node_modules`, so new module folders need no package manifest or TypeScript
 configuration. Another application needs the shared TypeScript project
 references and a build/runtime that resolves aliases.
 
-The manifest name `@microservice-eshop/shared` groups these files as one Nx/npm
-project; it is not the required application import name. `packages/index.ts`
+The shared manifest name `@microservice-eshop/shared` groups these files as one
+Nx/npm project and matches backend dependencies and the lockfile. Folder imports
+use `@packages/*` source aliases; they do not require renaming the workspace. `packages/index.ts`
 is an optional aggregate barrel. Folder imports read the folder's own `index.ts`,
 so adding a folder does not require editing the aggregate barrel or wildcard.
-An empty folder is not importable: `packages/middleware/index.ts` must exist
-and export real middleware before using `@packages/middleware`.
+`packages/middleware/index.ts` now exports `isAuthenticated`, and the aggregate
+barrel re-exports it. Consumers can import from `@packages/middleware`. It verifies
+access JWTs, loads `req.user`, returns 401 for rejected credentials, and forwards
+unexpected errors. No production route mounts it yet; consumers must explicitly
+choose protected routes and mount their error handler afterward.
 
 Auth's solution `tsconfig.json` references its app/spec configs; the shared-library
 reference remains in `tsconfig.app.json`. Auth also has `bundle: true` in its esbuild target.
 Gateway references the shared library and resolves shared error source with its
 Webpack alias. No shared HTTP lifecycle module exists.
-Auth Jest/SWC currently has no `@packages/*` mapper; configure one when adding
-tests that import aliased modules. See
+Auth Jest/SWC maps `@packages/*` to shared source. Controller/helper and shared
+middleware regression tests run with infrastructure mocks. See
 [testing](testing.md#shared-module-and-error-handler-coverage).
 
 ```text

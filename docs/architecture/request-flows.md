@@ -52,11 +52,13 @@ flowchart TD
     CORS --> Root{"GET /?"}
     Root -->|Yes| Greeting["200 Hello API"]
     Root -->|No| JSON["express.json<br/>16 KB limit"]
-    JSON --> Route{"Matched route?"}
+    JSON --> Cookies["cookieParser<br/>Incoming cookies"]
+    Cookies --> Route{"Matched route?"}
     Route -->|"/api-docs or GET /docs-json"| Swagger["Swagger UI or committed JSON"]
     Route -->|"POST /api/user-registration"| Registration["Registration controller"]
     Route -->|"POST /api/verify-registration"| Verification["Verification controller"]
     Route -->|"POST /api/login"| Login["Login controller<br/>bcrypt, JWT signing, cookies"]
+    Route -->|"POST /api/refresh-token"| Refresh["Refresh controller<br/>Verify cookie, user lookup, access JWT"]
     Route -->|"POST /api/forgot-password-user"| Forgot["Recovery helper<br/>Recovery email and OTP storage"]
     Route -->|"POST /api/verify-forgot-password-user"| RecoveryOTP["OTP helper directly<br/>Atomic verification; issue reset token"]
     Route -->|"POST /api/reset-password-user"| Reset["Reset controller<br/>Consume grant; conditional password update"]
@@ -65,14 +67,17 @@ flowchart TD
     Registration -->|Error forwarded| Errors
     Verification -->|Error forwarded| Errors
     Login -->|Error forwarded| Errors
+    Refresh -->|Error forwarded| Errors
     Forgot -->|Error forwarded| Errors
     RecoveryOTP -->|Error forwarded| Errors
     Reset -->|Error forwarded| Errors
 ```
 
-Auth mounts registration, registration verification, login, and three recovery
-POST routes. Recovery is incomplete and unsafe. Refresh, logout, current-user, protected, and commerce routes
-are not implemented. CORS and issuing cookies do not authenticate later requests.
+Auth mounts seven POST routes: registration, registration verification, login,
+refresh, and three recovery routes. Recovery uses expiring single-use reset
+authorization; browser/live integrations and JWT revocation remain unverified or
+absent. Logout, current-user, protected, and commerce routes are not implemented.
+The shared access-token middleware is not mounted on these routes.
 
 ## Registration and OTP delivery
 
@@ -218,10 +223,62 @@ sequenceDiagram
 Both JWTs contain user ID and fixed `role: 'user'`; each uses its own environment
 signing secret. Both cookies use HttpOnly, Secure, SameSite=None, and a 7-day
 cookie lifetime. A retained access cookie does not extend the JWT's 15-minute
-expiry. No token verification, refresh, logout, or persistent session store
-consumes them yet. Unexpected errors, including absent-body destructuring or
+expiry. Refresh consumes the refresh cookie as described below. Shared access-token
+middleware exists but has no production route consumer. Logout and persistent
+session/revocation state are absent. Unexpected errors, including absent-body destructuring or
 missing signing secrets, are forwarded to shared error handling. See the
 [API contract](../reference/api.md#login-and-jwt-cookies) for exact responses.
+
+## Access-token refresh
+
+Source: [refreshToken](../../apps/auth-service/src/controller/auth.controller.ts).
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Auth
+    participant DB as MongoDB via Prisma
+    Client->>Auth: POST /api/refresh-token with refresh_token cookie
+    Auth->>Auth: Parse cookie, verify JWT, require ID and role
+    alt Missing or rejected token
+        Auth-->>Client: 401 shared authentication error
+    else Valid refresh JWT
+        Auth->>DB: Find user by decoded ID
+        alt User no longer exists
+            Auth-->>Client: 401 User not found
+        else User exists
+            Auth->>Auth: Sign access JWT with 15-minute expiry
+            Auth-->>Client: 201 success and access_token Set-Cookie
+        end
+    end
+    Note over Client,Auth: Refresh cookie and original refresh JWT expiry stay unchanged
+```
+
+Database/configuration/signing errors use shared 500 handling. The access cookie
+retains seven days even though the JWT lasts 15 minutes. There is no automatic
+frontend refresh, rotation, or revocation.
+
+## Shared middleware invocation
+
+[`isAuthenticated`](../../packages/middleware/isAuthenticated.ts) is available
+for future protected routes; no production router mounts it today.
+
+```mermaid
+flowchart TD
+    Input["Middleware invoked"] --> Token["Access cookie first, then Authorization header token"]
+    Token --> Verify{"Present, verified, and has ID/role?"}
+    Verify -->|No| Denied["401 authentication response"]
+    Verify -->|Yes| Lookup["Prisma user lookup by ID"]
+    Lookup --> Exists{"User exists?"}
+    Exists -->|No| Denied
+    Exists -->|Yes| Continue["Assign req.user and call next"]
+    Verify -->|Configuration failure| Errors["next(error) to application error handler"]
+    Lookup -->|Database failure| Errors
+```
+
+This middleware authenticates a user; it does not enforce role-based access. Its
+direct 401 JSON contains only `message`; refresh uses the shared `status`/`message`
+envelope.
 
 ## Password recovery execution paths
 

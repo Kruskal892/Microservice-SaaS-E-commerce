@@ -83,12 +83,13 @@ submit, resend, or enforce server rate limits.
 
 ```mermaid
 flowchart LR
-    Main["Auth main.ts<br/>Express wiring and listener"] --> Router["routes/auth.router.ts"]
+    Main["Auth main.ts<br/>Express wiring and listener"] --> Parser["cookieParser after JSON parsing"]
+    Parser --> Router["routes/auth.router.ts"]
     Router --> Controller["controller/auth.controller.ts<br/>HTTP response and orchestration"]
     Router -->|"Recovery OTP route calls helper directly"| Validation
     Controller --> Validation["utils/auth.helper.ts<br/>Input validation and OTP policy"]
     Controller --> Prisma["packages/libs/prisma"]
-    Controller --> JWT["jsonwebtoken<br/>Access and refresh signing"]
+    Controller --> JWT["jsonwebtoken<br/>Signing and refresh verification"]
     Controller --> Cookies["utils/cookies/setCookies.ts<br/>Express cookie writing"]
     Validation --> Redis["packages/libs/redis"]
     Validation --> Prisma
@@ -172,13 +173,18 @@ state after mail acceptance. See [authentication development](../development/aut
 
 `loginUser` reads credentials, queries Prisma, compares the bcrypt hash, signs
 two JWTs, and returns a public user projection. Tokens carry a fixed user role;
-there is no role lookup, session persistence, verification middleware, or refresh
-consumer. The access/refresh signing secrets are separate environment inputs.
+there is no role lookup or session persistence. `POST /api/refresh-token`
+verifies the refresh cookie, checks the user by ID, and signs a replacement access
+JWT. Shared `isAuthenticated` verifies an access cookie or header token and loads
+`req.user`, but no production route mounts it. The access/refresh secrets are
+separate environment inputs.
 
 The cookie helper sets both tokens as HttpOnly/Secure/SameSite=None cookies with
 a 7-day lifetime; the access JWT itself expires after 15 minutes. Browser cookie
-policy, generic credential errors, input normalization, refresh/rotation, logout,
-and request authentication remain follow-ups. Exact behavior is in the
+policy, generic credential errors, input normalization, refresh rotation/revocation,
+logout, and mounting middleware on protected routes remain follow-ups. Refresh
+leaves the original refresh cookie and JWT expiry unchanged. Expected JWT failures
+return 401; database/configuration failures remain server errors. Exact behavior is in the
 [login contract](../reference/api.md#login-and-jwt-cookies).
 
 Recovery uses Express-aware request/submission helpers; the submission route calls
@@ -204,7 +210,9 @@ TypeScript paths, auth's esbuild bundle, and gateway's explicit Webpack alias.
 Auth and gateway app compiler configs reference the shared library. Plain Node
 does not resolve the alias on its own; auth's Jest config maps `@packages/*` to
 shared source. Controller/helper regressions mock Prisma, Redis, mail, and bcrypt
-so those tests do not connect to live services. They have not been run for this update.
+so those tests do not connect to live services. All 93 auth tests, including
+refresh and shared middleware regressions, passed on 2026-11-10. The auth app/spec
+TypeScript project check also passed; browser/live integrations remain unverified.
 
 Auth esbuild emits a CommonJS bundle and copies EJS templates and the Prisma
 schema as assets. Gateway Webpack emits to its own dist and enables generated
