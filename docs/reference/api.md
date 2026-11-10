@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Request flow diagrams](../architecture/request-flows.md)
 
 **Status:** Current source contracts; runtime integrations unverified.
-**Reviewed:** 2026-11-06.
+**Reviewed:** 2026-11-10 (refresh and middleware); other contracts retain their source baseline.
 
 ## Available routes
 
@@ -31,16 +31,17 @@ schemas and password confirmation are separate from these backend contracts.
 | POST   | `/api/forgot-password-user`        | Auth               | Send recovery OTP email and store OTP/cooldown state               |
 | POST   | `/api/verify-forgot-password-user` | Auth               | Verify recovery OTP and issue a five-minute single-use reset token |
 | POST   | `/api/reset-password-user`         | Auth               | Consume reset token and conditionally update the verified password |
+| POST   | `/api/refresh-token`               | Auth               | Validate refresh cookie; set access cookie; 201                    |
 | GET    | `/api-docs`                        | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash         |
 | GET    | `/docs-json`                       | Auth               | Committed Swagger 2.0 JSON                                         |
 
 Gateway forwards other paths unchanged to `AUTH_SERVICE_URL`, default
 `http://localhost:6001`. Thus gateway `/` serves the auth greeting, and
 gateway `/api/user-registration`, `/api/verify-registration`, and `/api/login`
-forward to auth unchanged, as do the three password-recovery routes.
+forward to auth unchanged, as do `/api/refresh-token` and the three password-recovery routes.
 Unmatched auth paths use Express's default 404.
-Token refresh, logout, current-user lookup, protected routes, and commerce
-remain unavailable.
+Logout, current-user lookup, protected routes, and commerce remain unavailable.
+Shared access-token middleware exists but is not mounted on production routes.
 
 ## Registration
 
@@ -213,9 +214,40 @@ uses the same `604800000` ms lifetime for both cookies. Cookie retention does
 not extend JWT validity. The helper has no development/environment override;
 verify browser cookie acceptance in the intended HTTPS setup. Browser callers
 need credentials enabled, for example `fetch(url, { credentials: 'include' })`.
-No handler currently verifies these tokens, refreshes them, revokes them, or
-clears the cookies. There is no persistent session/refresh-token store or
-role lookup; `role: 'user'` is assigned by the controller.
+The refresh endpoint below verifies the refresh cookie and replaces the access
+cookie. Shared middleware can verify access tokens but has no production route
+consumer. There is no persistent session/refresh-token store, logout, revocation,
+or role lookup; login assigns `role: 'user'`.
+
+## Access-token refresh
+
+`POST http://localhost:6001/api/refresh-token` (also forwarded by the gateway).
+Send the existing `refresh_token` cookie; no JSON body is required. Access tokens
+and Authorization headers are not accepted as refresh-token input. Browser
+callers must enable credentials and satisfy the configured CORS/cookie policy.
+
+The handler verifies the refresh JWT, requires truthy `id`/`role` claims, checks
+that the user still exists, and signs a new 15-minute access JWT using those
+claims. It sets `access_token` through the existing cookie helper and returns:
+
+```json
+{ "message": "Access token refreshed successfully", "success": true }
+```
+
+| Scenario                                        | Status | Response                                         |
+| ----------------------------------------------- | ------ | ------------------------------------------------ |
+| Valid refresh token and existing user           | 201    | Success body above; `access_token` Set-Cookie    |
+| Missing refresh cookie                          | 401    | `Unauthorized: Refresh token is missing`         |
+| Invalid, expired, or not-yet-active JWT         | 401    | `Unauthorized: Invalid or expired refresh token` |
+| Missing truthy ID or role                       | 401    | `Unauthorized: Invalid refresh token`            |
+| User no longer exists                           | 401    | `Unauthorized: User not found`                   |
+| Database, JWT configuration, or signing failure | 500    | Generic shared error response                    |
+
+401 responses use `{ "status": "error", "message": "..." }`. The access cookie
+has HttpOnly/Secure/SameSite=None and seven-day retention; its JWT still expires
+after 15 minutes. The refresh cookie and original seven-day JWT expiry are
+unchanged. No token is returned in JSON, and there is no rotation, revocation,
+logout, or frontend automatic refresh. Existing refresh JWTs survive password reset.
 
 ## Password recovery
 
@@ -324,7 +356,8 @@ on `/forgot-password`; browser and live Redis, MongoDB, and SMTP behavior remain
 Both services permit credentialed CORS for `http://localhost:3000` and allow
 `Authorization` / `Content-Type` request headers. CORS can finish preflight
 requests before later handlers; it does not authenticate callers. Direct auth
-access has no gateway IP quota. Neither app mounts cookie-parser.
+access has no gateway IP quota. Auth mounts `cookieParser()` after the 16 KB
+JSON parser and before Swagger/routes; the gateway forwards cookies without parsing them.
 
 ## Errors and unavailable routes
 
@@ -350,8 +383,9 @@ Class definitions are in [technical design](../architecture/technical-design.md#
 ## Swagger coverage
 
 [swagger-output.json](../../apps/auth-service/src/swagger-output.json) declares
-Swagger 2.0, host `localhost:6001`, and documents all six auth POST routes. Active
-routes include required request fields, JSON examples, and 200 response schemas.
+Swagger 2.0, host `localhost:6001`, and documents all seven auth POST routes.
+JSON-body routes include required request fields, examples, and 200 responses.
+Refresh documents cookie input, a 201 response, and 401/500 errors.
 Recovery routes describe validation, purpose-specific OTPs, single-use reset authorization,
 and 200/400/500 responses; delivery also documents 503 failures.
 `GET /` also has a greeting

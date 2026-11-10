@@ -6,15 +6,20 @@ with Tailwind v4 design tokens and `next-themes` light/dark switching. Registrat
 request an email OTP, verify it to create an account, and log in to receive JWT
 cookies. Three recovery routes support purpose-specific OTP verification and
 [expiring single-use reset authorization](development/authentication.md#password-recovery).
-Protected routes, refresh, logout, storefront, and commerce remain
-unfinished. The client renders a header with sticky navigation and `ThemeToggle`,
+Cookie-based [access-token refresh](reference/api.md#access-token-refresh) and shared
+access-token verification middleware are implemented. The middleware is not mounted
+on any production route. Protected routes, refresh rotation/revocation, logout,
+client session handling, storefront, and commerce remain unfinished. The client renders a header with sticky navigation and `ThemeToggle`,
 a placeholder `/` page, and `/login` and `/sign-up` pages with shared
 controls and Zod/React Hook Form validation; `/sign-up` connects registration and
 OTP verification to the backend via Axios and TanStack Query. `/login` now posts
 credentials with cookies enabled and redirects to `/` on success. OTP resend reuses registration delivery with a server-enforced cooldown.
 Google sign-in, session-aware UI, and shopping flows remain incomplete. Backend
 password reset is enabled and connected to `/forgot-password`; existing JWT revocation remains absent. **Auth/client baseline reviewed: 2026-11-06.**
-Live integrations are unverified.
+Refresh/middleware source and documentation reviewed 2026-11-10; 93 mocked auth
+tests and auth app/spec TypeScript checks pass. Live integrations are unverified.
+The shared workspace remains `@microservice-eshop/shared`; folder imports such as
+`@packages/middleware` resolve through source aliases.
 
 The [client guide](../apps/client/README.md) owns the current `ThemeProvider`
 configuration, mounted switch behavior, auth form limits, password reveal

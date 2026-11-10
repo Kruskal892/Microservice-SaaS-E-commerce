@@ -5,6 +5,18 @@
 **Reviewed:** 2026-11-05. Configuration defaults belong to the
 [configuration reference](../reference/configuration.md).
 
+## Shared workspace name and source aliases
+
+Keep `@microservice-eshop/shared` as the npm workspace name in
+`packages/package.json`, backend dependencies, and `package-lock.json`. Imports
+such as `@packages/ui`, `@packages/libs/prisma`, and `@packages/middleware` are
+TypeScript/build aliases into shared source; they are not separate npm packages.
+Do not rename the manifest to `@packages`: npm rejects a bare scope with
+`EINVALIDTAGNAME`. A scoped npm name requires both scope and package.
+
+The shared aggregate barrel includes server-only clients and middleware, so
+browser components must keep using the browser-safe `@packages/ui` entry.
+
 ## Shared input styling and compiler errors
 
 `className` styles the flex wrapper; use `inputClassName` for the native input,
@@ -150,9 +162,13 @@ Inspect `Set-Cookie` in the response and browser cookie rejection reasons.
 Browser calls need credentials enabled and the allowed origin. The helper always
 sets Secure, HttpOnly, SameSite=None cookies; verify storage in your intended HTTPS
 setup. HttpOnly cookies are not readable with `document.cookie`. Both cookies
-remain for 7 days, but the access JWT expires after 15 minutes. Refresh, logout,
-and token verification routes/middleware are not implemented, so cookie issuance
-alone does not establish working authenticated requests. See
+remain for 7 days, but the access JWT expires after 15 minutes.
+`POST /api/refresh-token` validates the refresh cookie and replaces the access
+cookie without rotating/extending the refresh JWT. Missing/rejected refresh
+tokens return 401; database/configuration/signing failures return 500. Auth
+mounts cookie-parser before routing. Shared `isAuthenticated` is available but
+is not mounted on production routes, so cookie issuance alone does not establish
+protected requests. The client has no automatic refresh/session restoration. See
 [the login contract](../reference/api.md#login-and-jwt-cookies).
 
 ## Theme provider script warning

@@ -10,7 +10,9 @@ assignments, estimates, tickets, or dates are supplied.
 
 Gateway/auth tooling, OTP delivery, and registration verification with account
 creation exist. Login now compares password hashes and issues access/refresh JWT
-cookies. A complete identity lifecycle (protected requests, refresh/rotation,
+cookies. Access refresh and shared access-token middleware now exist, but the
+middleware has no production route consumer. A complete identity lifecycle
+(protected requests, client session handling, refresh rotation,
 logout/revocation), customer purchase journey, and production infrastructure do not.
 [Implementation status](../operations/implementation-status.md) tracks evidence.
 Prisma 6.19 and users/images provide part of D-01; F-02/F-03/F-04, A-02, and R-01 also
@@ -20,8 +22,9 @@ explicit Prisma generation step; current packaging is not a completed task.
 
 A-02 now includes implemented login/token issuance, and R-01 includes corrected
 `/api` Swagger paths and required request/success examples. Their remaining gates
-include validation/error consistency, cookie/browser policy, token verification
-and lifecycle, detailed error/cookie documentation, and permanent contract tests.
+include validation/error consistency, cookie/browser policy, protected route
+integration, refresh rotation/revocation, and runtime contract tests. Refresh and
+shared middleware have focused regression tests and documented error behavior.
 
 The client scaffold now exists with Next.js/React, Tailwind/PostCSS, a header
 using the shared Input/icons and `ThemeToggle` (`next-themes`, saved preferences,
@@ -32,8 +35,8 @@ and redirects to `/`; backend reset uses expiring single-use authorization. This
 foundation, not completion: catalog/cart screens, session-aware UI,
 existing JWT revocation, localization, responsive verification, and a runnable
 browser/UI test target remain open. Permanent standalone client schema/message
-tests and mocked auth controller/helper regressions exist; the 73 auth tests
-passed on 2026-11-08, while live recovery integrations remain unverified. Shared common components and Storybook
+tests and mocked auth controller/helper/middleware regressions exist; all 93 auth
+tests passed on 2026-11-10, while live integrations remain unverified. Shared common components and Storybook
 examples/play checks are now implemented; interaction and accessibility
 verification remain open. The separate `npm run client` command starts its `dev`
 target.

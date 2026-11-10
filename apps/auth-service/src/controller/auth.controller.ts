@@ -1,6 +1,6 @@
 import prisma from '@packages/libs/prisma';
 import { AuthError, ValidationError } from '@packages/error-handler';
-import jwt from 'jsonwebtoken';
+import jwt, { JsonWebTokenError } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextFunction, Request, Response } from 'express';
 import {
@@ -201,6 +201,64 @@ export const loginUser = async (
     return next(error);
   }
 };
+
+// Refresh access token
+export const refreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) {
+      throw new AuthError('Unauthorized: Refresh token is missing');
+    }
+
+    const refreshTokenSecret = process.env.JWT_REFRESH_TOKEN_SECRET;
+    if (!refreshTokenSecret) {
+      throw new Error('JWT refresh token secret is not configured');
+    }
+
+    const decoded = jwt.verify(refreshToken, refreshTokenSecret) as {
+      id: string;
+      role: string;
+    };
+
+    if (!decoded || !decoded.id || !decoded.role) {
+      throw new AuthError('Unauthorized: Invalid refresh token');
+    }
+
+    // let account;
+    // if (decoded.role === 'user')
+    const user = await prisma.users.findUnique({
+      where: { id: decoded.id },
+    });
+
+    if (!user) {
+      throw new AuthError('Unauthorized: User not found');
+    }
+
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, role: decoded.role },
+      process.env.JWT_ACCESS_TOKEN_SECRET as string,
+      {
+        expiresIn: '15m',
+      },
+    );
+    setCookie(res, 'access_token', newAccessToken);
+    return res
+      .status(201)
+      .json({ message: 'Access token refreshed successfully', success: true });
+  } catch (error) {
+    if (error instanceof JsonWebTokenError) {
+      return next(
+        new AuthError('Unauthorized: Invalid or expired refresh token'),
+      );
+    }
+    return next(error);
+  }
+};
+
 // Forgot password
 export const userForgotPassword = async (
   req: Request,

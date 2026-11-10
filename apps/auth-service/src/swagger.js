@@ -4,7 +4,7 @@ const doc = {
   info: {
     title: 'Auth Service API',
     description:
-      'Authentication, registration, email verification, and password recovery with expiring single-use reset authorization. Existing JWTs are not revoked by password reset; see endpoint descriptions.',
+      'Authentication, registration, email verification, cookie-based access-token refresh, and password recovery with expiring single-use reset authorization. Existing JWTs are not revoked by password reset; refresh tokens are not rotated. See endpoint descriptions.',
     version: '1.0.0',
   },
   host: 'localhost:6001',

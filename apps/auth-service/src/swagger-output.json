@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "title": "Auth Service API",
-    "description": "Authentication, registration, email verification, and password recovery with expiring single-use reset authorization. Existing JWTs are not revoked by password reset; see endpoint descriptions.",
+    "description": "Authentication, registration, email verification, cookie-based access-token refresh, and password recovery with expiring single-use reset authorization. Existing JWTs are not revoked by password reset; refresh tokens are not rotated. See endpoint descriptions.",
     "version": "1.0.0"
   },
   "host": "localhost:6001",
@@ -513,6 +513,68 @@
           },
           "500": {
             "description": "Unexpected request handling or Redis failure.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Something went wrong please try again"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/refresh-token": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh the access-token cookie",
+        "description": "Requires the refresh_token cookie issued by login; no JSON body or Authorization-header fallback. Verifies the refresh JWT and checks that its user still exists. Sets a new 15-minute access JWT in an HttpOnly, Secure, SameSite=None cookie with seven-day retention. Does not rotate or extend the refresh token, revoke sessions, or return token values in JSON. Browser callers must include credentials.",
+        "responses": {
+          "201": {
+            "description": "Access token refreshed; access_token Set-Cookie header sent.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Access token refreshed successfully"
+                },
+                "success": {
+                  "type": "boolean",
+                  "example": true
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Refresh token missing, invalid, expired, not yet active, missing required claims, or associated user no longer exists.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Unauthorized: Invalid or expired refresh token"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected database, JWT configuration, or signing failure.",
             "schema": {
               "type": "object",
               "properties": {

@@ -2,16 +2,17 @@
 
 [Documentation hub](../README.md)
 
-**Status:** Current test files and target configuration. **Reviewed:** 2026-11-06.
+**Status:** Current test files and target configuration. **Reviewed:** 2026-11-10
+for refresh/middleware; older dated records retain their original scope.
 
 ## Existing coverage
 
-| Project      | Present coverage                                                     | Limits                                                               |
-| ------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Auth service | Jest/SWC controller/helper regression tests with mocked dependencies | Not run for this update; no live Redis, database, or SMTP assertions |
-| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`            | Greeting only; no registration or external-service assertions        |
-| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                       | Default port 3000 differs from gateway 8080; only gateway is started |
-| Client       | Standalone Node schema tests and Jest auth message/retry tests       | Auth Jest suite configured but unrun; no browser or E2E suite        |
+| Project      | Present coverage                                                           | Limits                                                                     |
+| ------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Auth service | Jest/SWC controller/helper/middleware regressions with mocked dependencies | 93 tests passed on 2026-11-10; no live Redis, database, or SMTP assertions |
+| Auth E2E     | Axios `GET /`, expects 200 and `{ message: 'Hello API' }`                  | Greeting only; no registration or external-service assertions              |
+| Gateway E2E  | Generated Axios `GET /`, expects auth greeting                             | Default port 3000 differs from gateway 8080; only gateway is started       |
+| Client       | Standalone Node schema tests and Jest auth message/retry tests             | Auth Jest suite configured but unrun; no browser or E2E suite              |
 
 Source: [auth Jest config](../../apps/auth-service/jest.config.cts),
 [auth controller/helper regressions](../../apps/auth-service/src/controller/auth.controller.spec.ts),
@@ -19,7 +20,8 @@ Source: [auth Jest config](../../apps/auth-service/jest.config.cts),
 [gateway E2E spec](../../apps/api-gateway-e2e/src/api-gateway/api-gateway.spec.ts),
 [client schema test](../../apps/client/src/schemas/auth.schema.test.ts),
 [client auth tests](../../apps/client/src/api/auth.test.ts).
-No permanent Redis integration, login/JWT/cookie, or mail-failure
+Refresh JWT/cookie and shared access-token middleware regressions are present.
+No permanent live Redis integration, login-controller, or live mail-failure
 suites are present.
 
 ## Focused checks
@@ -216,7 +218,9 @@ Run `npm run auth-docs` and inspect the generated paths:
 - `POST /api/verify-forgot-password-user`: required email and string OTP; document
   the response includes a five-minute single-use resetToken and expiresInSeconds.
 - `POST /api/reset-password-user`: required email, resetToken, and newPassword; single-use grant and conditional password update.
-- Active auth POSTs have request-property examples and a 200 response schema.
+- `POST /api/refresh-token`: refresh cookie input, no JSON body or header fallback;
+  201 response and 401/500 failures.
+- JSON-body auth POSTs have request-property examples and a 200 response schema.
 - Recovery routes include 200/400/500 responses; email delivery also documents 503.
 - `GET /` has a greeting example; `/api-docs` and `/docs-json` are excluded.
 
@@ -231,7 +235,9 @@ missing credentials (400), unknown email (400), wrong password (401), and succes
 logging token values. Verify 15-minute access/7-day refresh JWT expiry and the
 shared 7-day cookie retention, then exercise browser credentials and Secure-cookie
 behavior in the intended HTTPS setup. Such integration checks have not been run
-for this change. Refresh/logout/protected routes do not exist to test yet.
+for this change. Refresh exists and requires the refresh cookie; exercise it
+with live user lookup, browser credentials, and the original refresh JWT expiry.
+Logout and protected routes remain absent.
 
 Recovery unit regressions cover authorization and reset with mocked dependencies.
 They do not prove a usable recovery journey. With disposable accounts and live
@@ -245,6 +251,29 @@ accounts. Check that a database failure after token consumption requires fresh
 recovery and that notification failures preserve successful reset responses.
 Existing JWTs currently retain their original expiry. These remain live integration
 checks, not passing results from the mocked test suites.
+
+## Refresh and shared middleware regressions: 2026-11-10
+
+Run from the repository root:
+
+```sh
+node node_modules/jest/bin/jest.js --config apps/auth-service/jest.config.cts --runInBand
+node node_modules/typescript/bin/tsc -b apps/auth-service/tsconfig.app.json apps/auth-service/tsconfig.spec.json --pretty false
+```
+
+Both passed: three Jest suites / 93 tests and the app/spec TypeScript project check.
+`auth.controller.spec.ts` covers missing, malformed, expired, wrong-signature,
+not-yet-active, and missing-claim refresh tokens; deleted accounts; valid access
+cookie issuance; and preserving database/configuration failures as server errors.
+[`isAuthenticated.spec.ts`](../../apps/auth-service/src/middleware/isAuthenticated.spec.ts)
+covers equivalent access-token rejection, account lookup/attachment, normal
+continuation, and forwarding the original database/configuration errors without
+sending a 401 response. These middleware tests invoke the function directly;
+they do not prove route protection or browser cookie acceptance.
+
+The production router does not mount `isAuthenticated`. Integration checks still
+need actual cookie/header parsing, live user lookup, deleted-account behavior,
+access expiry, unchanged refresh expiry, and end-to-end error responses.
 
 ## Password recovery integration checks: 2026-11-08
 
@@ -261,7 +290,8 @@ checks, not passing results from the mocked test suites.
 Auth Jest transforms TypeScript with SWC and maps `@packages/*` to source under
 `packages/`. `auth.controller.spec.ts` mocks Prisma, Redis, bcrypt, and mail.
 Those regressions cover validation/error/write ordering without external
-connections, but they have not been executed for this update. Redis Lua behavior,
+connections. Refresh tests use real JWT signing/verification and mock user lookup;
+shared middleware tests mock Prisma. All 93 auth tests passed on 2026-11-10. Redis Lua behavior,
 actual unique indexes, network failures, and browser cookies still need integration
 coverage; mocked assertions do not prove those contracts.
 
@@ -305,18 +335,23 @@ after acceptance, concurrent OTP admission, real Lua comparison/deletion, and
 database index enforcement still need meaningful integration tests.
 Login needs coverage for exact-email lookup, input types and missing bodies,
 password comparison, signing-secret failure, token claims/expiry, public response
-projection, and cookie attributes. Add request identity, refresh/rotation,
-revocation/logout, and browser/CSRF checks when those features are implemented.
+projection, and cookie attributes. Refresh/access middleware now have focused
+regressions, but production route identity enforcement, live refresh,
+rotation/revocation, logout, and browser/CSRF checks remain work to implement or verify.
 Packaging also needs checks for template/schema output, pruned dependencies,
 generated Prisma runtime files, and container startup. Use dedicated test
 MongoDB/Redis/SMTP resources for integration checks.
 
 ## CI and verification boundary
 
-The latest documentation refresh inspected source and documentation only. Earlier
-source-only client/auth TypeScript checks and Swagger generation were recorded
-before the final theme/login edits; they do not verify the newest working tree.
-No lint, build, test, browser, or live-service run was performed for this refresh.
+The 2026-11-10 refresh ran all 93 auth Jest tests, the auth app/spec TypeScript
+project check, Swagger generation/contract assertions, documentation formatting,
+local links/anchors, JSON examples, and balanced diagram/source fences. Mermaid
+rendering was not rerun because the local renderer dependencies are unavailable. The shared workspace
+manifest/dependency/lockfile name remains `@microservice-eshop/shared`.
+No clean install, Nx application build, lint, E2E, browser, live-service, Docker,
+or remote CI run was performed. Earlier dated results below do not verify
+unrelated current frontend or runtime behavior.
 
 [CI](../../.github/workflows/ci.yml) runs `lint test build typecheck` across the
 workspace. The Jest plugin excludes both E2E directories from `test` inference;

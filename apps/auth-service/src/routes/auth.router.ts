@@ -5,6 +5,7 @@ import {
   resetUserPassword,
   userRegistration,
   userVerification,
+  refreshToken,
 } from '../controller/auth.controller';
 import { verifyForgotPasswordOtp } from '../utils/auth.helper';
 
@@ -99,6 +100,28 @@ router.post(
      }
   */
   verifyForgotPasswordOtp,
+);
+
+router.post(
+  '/refresh-token',
+  /* #swagger.auto = false
+     #swagger.tags = ['Authentication']
+     #swagger.summary = 'Refresh the access-token cookie'
+     #swagger.description = 'Requires the refresh_token cookie issued by login; no JSON body or Authorization-header fallback. Verifies the refresh JWT and checks that its user still exists. Sets a new 15-minute access JWT in an HttpOnly, Secure, SameSite=None cookie with seven-day retention. Does not rotate or extend the refresh token, revoke sessions, or return token values in JSON. Browser callers must include credentials.'
+     #swagger.responses[201] = {
+       description: 'Access token refreshed; access_token Set-Cookie header sent.',
+       schema: { message: 'Access token refreshed successfully', success: true }
+     }
+     #swagger.responses[401] = {
+       description: 'Refresh token missing, invalid, expired, not yet active, missing required claims, or associated user no longer exists.',
+       schema: { status: 'error', message: 'Unauthorized: Invalid or expired refresh token' }
+     }
+     #swagger.responses[500] = {
+       description: 'Unexpected database, JWT configuration, or signing failure.',
+       schema: { error: 'Something went wrong please try again' }
+     }
+  */
+  refreshToken,
 );
 
 export default router;

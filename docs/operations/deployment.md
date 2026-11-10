@@ -5,6 +5,10 @@
 **Status:** Current packaging and workflow configuration. **Reviewed:** 2026-10-25.
 Commands below are instructions, not evidence of successful image builds or runs.
 
+The shared npm workspace remains `@microservice-eshop/shared`; its manifest,
+backend dependencies, and lockfile use that name. `@packages/*` remains a source
+alias resolved by each consumer's compiler/bundler.
+
 ## Build artifacts
 
 | Project        | Configured output                                      | Packaging inputs                                                                                             |
@@ -121,9 +125,13 @@ and gateway limits are per process. See [configuration](../reference/configurati
 Login writes Secure, HttpOnly, SameSite=None cookies in every environment.
 Validate TLS termination, browser origin/credentials, and CSRF policy before
 deployment. Both cookies have 7-day retention, while the access JWT expires in
-15 minutes. There is no refresh/logout endpoint, revocation store, or middleware
-verifying tokens on subsequent requests; this is token issuance, not completed
-production identity enforcement.
+15 minutes. `POST /api/refresh-token` validates the refresh cookie and replaces
+the access cookie without rotation or extending the refresh JWT expiry. Auth
+parses incoming cookies; the gateway forwards them. Shared access-token
+verification middleware exists but no production route mounts it. Logout,
+revocation state, frontend session/refresh handling, and production identity
+enforcement remain incomplete. Verify that database/configuration failures
+remain server errors, while rejected credentials return 401.
 
 ## Health, database rollout, and shutdown
 

@@ -1,9 +1,11 @@
 import type { Request, Response } from 'express';
-import { ValidationError } from '@packages/error-handler';
+import { AuthError, ValidationError } from '@packages/error-handler';
 import prisma from '@packages/libs/prisma';
 import redis from '@packages/libs/redis';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import {
+  refreshToken,
   resetUserPassword,
   userRegistration,
   userVerification,
@@ -65,7 +67,12 @@ const user = {
 };
 
 function response() {
-  const res = { status: jest.fn(), json: jest.fn(), set: jest.fn() };
+  const res = {
+    status: jest.fn(),
+    json: jest.fn(),
+    set: jest.fn(),
+    cookie: jest.fn(),
+  };
   res.status.mockReturnValue(res);
   res.set.mockReturnValue(res);
   return res;
@@ -86,6 +93,135 @@ beforeEach(() => {
   jest.mocked(redis.set).mockResolvedValue('OK');
   jest.mocked(redis.incr).mockResolvedValue(1);
   jest.mocked(redis.expire).mockResolvedValue(1);
+});
+
+describe('refreshToken', () => {
+  const refreshSecret = 'test-refresh-secret';
+  const accessSecret = 'test-access-secret';
+  const claims = { id: user.id, role: 'user' };
+  let originalRefreshSecret: string | undefined;
+  let originalAccessSecret: string | undefined;
+
+  beforeEach(() => {
+    originalRefreshSecret = process.env.JWT_REFRESH_TOKEN_SECRET;
+    originalAccessSecret = process.env.JWT_ACCESS_TOKEN_SECRET;
+    process.env.JWT_REFRESH_TOKEN_SECRET = refreshSecret;
+    process.env.JWT_ACCESS_TOKEN_SECRET = accessSecret;
+    jest.mocked(prisma.users.findUnique).mockResolvedValue(user);
+  });
+
+  afterEach(() => {
+    if (originalRefreshSecret === undefined) {
+      delete process.env.JWT_REFRESH_TOKEN_SECRET;
+    } else {
+      process.env.JWT_REFRESH_TOKEN_SECRET = originalRefreshSecret;
+    }
+    if (originalAccessSecret === undefined) {
+      delete process.env.JWT_ACCESS_TOKEN_SECRET;
+    } else {
+      process.env.JWT_ACCESS_TOKEN_SECRET = originalAccessSecret;
+    }
+  });
+
+  test.each([
+    ['missing', () => ({})],
+    ['malformed', () => ({ refresh_token: 'invalid' })],
+    [
+      'expired',
+      () => ({
+        refresh_token: jwt.sign(claims, refreshSecret, { expiresIn: -1 }),
+      }),
+    ],
+    [
+      'wrong signature',
+      () => ({ refresh_token: jwt.sign(claims, 'another-secret') }),
+    ],
+    [
+      'not yet active',
+      () => ({
+        refresh_token: jwt.sign(claims, refreshSecret, { notBefore: '1h' }),
+      }),
+    ],
+    [
+      'missing claims',
+      () => ({ refresh_token: jwt.sign({ id: user.id }, refreshSecret) }),
+    ],
+  ])(
+    'returns an authentication error for a %s token',
+    async (_name, cookies) => {
+      const next = jest.fn();
+      const res = response();
+      await refreshToken(
+        { cookies: cookies() } as Request,
+        res as unknown as Response,
+        next,
+      );
+      expect(next).toHaveBeenCalledWith(expect.any(AuthError));
+      expect(next.mock.calls[0][0].statusCode).toBe(401);
+      expect(prisma.users.findUnique).not.toHaveBeenCalled();
+      expect(res.cookie).not.toHaveBeenCalled();
+    },
+  );
+
+  test('issues a verifiable access cookie for a valid refresh token', async () => {
+    const next = jest.fn();
+    const res = response();
+    await refreshToken(
+      {
+        cookies: { refresh_token: jwt.sign(claims, refreshSecret) },
+      } as Request,
+      res as unknown as Response,
+      next,
+    );
+    expect(next).not.toHaveBeenCalled();
+    expect(res.cookie).toHaveBeenCalledWith(
+      'access_token',
+      expect.any(String),
+      expect.objectContaining({ httpOnly: true }),
+    );
+    const decoded = jwt.verify(res.cookie.mock.calls[0][1], accessSecret);
+    expect(decoded).toMatchObject(claims);
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  test('rejects a refresh token whose account no longer exists', async () => {
+    jest.mocked(prisma.users.findUnique).mockResolvedValue(null);
+    const next = jest.fn();
+    await refreshToken(
+      {
+        cookies: { refresh_token: jwt.sign(claims, refreshSecret) },
+      } as Request,
+      response() as unknown as Response,
+      next,
+    );
+    expect(next).toHaveBeenCalledWith(expect.any(AuthError));
+  });
+
+  test.each(['database', 'configuration'])(
+    'preserves %s failures as server errors',
+    async (failure) => {
+      const databaseError = new Error('Database unavailable');
+      if (failure === 'database') {
+        jest.mocked(prisma.users.findUnique).mockRejectedValue(databaseError);
+      } else {
+        delete process.env.JWT_REFRESH_TOKEN_SECRET;
+      }
+      const next = jest.fn();
+      await refreshToken(
+        {
+          cookies: { refresh_token: jwt.sign(claims, refreshSecret) },
+        } as Request,
+        response() as unknown as Response,
+        next,
+      );
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next.mock.calls[0][0]).toBeInstanceOf(Error);
+      expect(next.mock.calls[0][0]).not.toBeInstanceOf(AuthError);
+      if (failure === 'database') {
+        expect(next).toHaveBeenCalledWith(databaseError);
+      }
+    },
+  );
 });
 
 test('registration and resend send to the normalized submitted email and return cooldown', async () => {

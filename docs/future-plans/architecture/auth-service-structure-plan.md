@@ -3,7 +3,7 @@
 [Documentation index](../../README.md) · [Current authentication flow](../../development/authentication.md)
 
 **Date:** 2026-10-25. **Status:** Proposed refactor; these moves have not been made.
-**Current baseline reviewed:** 2026-11-06.
+**Current baseline reviewed:** 2026-11-10 (refresh/shared middleware).
 This plan reorganizes existing ownership without changing public endpoints.
 Advanced Redis and port configuration are deferred; see the
 [Redis and runtime plan](redis-and-runtime-plan.md).
@@ -25,7 +25,10 @@ this refactor does not add frontend authentication.
 The current issue is mixed responsibilities: `main.ts` builds and starts Express,
 `auth.helper.ts` combines validation with Redis policy and mail orchestration, and
 the controller performs database access, password hashing/comparison, and JWT
-signing. Cookie policy currently lives in `utils/cookies/setCookies.ts`.
+signing and refresh verification. Auth mounts cookie-parser; cookie policy lives
+in `utils/cookies/setCookies.ts`. Shared `packages/middleware/isAuthenticated.ts`
+verifies access JWTs and loads users, but no production route mounts it. Preserve
+that shared boundary when reorganizing app-specific login/refresh behavior.
 Adding directories alone will not solve
 those responsibilities. Move them in small, behavior-preserving steps.
 
@@ -40,7 +43,7 @@ apps/auth-service/
     |-- main.ts                  # Start Express directly; keep bootstrap small
     |-- app.ts                   # Create Express app; CORS, parsing, routes, errors
     |-- auth/
-    |   |-- auth.router.ts       # Preserve existing /api registration, verification, and login routes
+    |   |-- auth.router.ts       # Preserve registration, verification, login, refresh, and recovery routes
     |   |-- auth.controller.ts   # HTTP input/output and error forwarding
     |   |-- registration.service.ts  # Email lookup and OTP delivery orchestration
     |   |-- registration.validation.ts # unknown -> validated, normalized input
@@ -62,6 +65,7 @@ apps/auth-service/
 
 packages/                        # Existing single workspace and tsconfig
 |-- error-handler/               # Shared errors and safe response handling
+|-- middleware/                  # Existing access-token verification; explicit route adoption needed
 `-- libs/
     |-- prisma/                  # Prisma client lifecycle
     `-- redis/                   # Redis connection lifecycle
@@ -114,7 +118,7 @@ module. Never share auth business rules through `packages/libs`.
    Add readiness/shutdown only through the separate future lifecycle work. Keep greeting and health contracts intact.
 2. **Move the feature together.** Move `routes/auth.router.ts` and
    `controller/auth.controller.ts` into `auth/`; update imports. Keep
-   all six `/api` POST route contracts accounted for, including JWT claims and cookie
+   all seven `/api` POST route contracts accounted for, including JWT claims and cookie
    attributes. Improve behavior in separate changes with explicit validation.
 3. **Split the helper by responsibility.** Move validation into
    `registration.validation.ts`, OTP restrictions/storage into `otp.service.ts`, and email
@@ -139,14 +143,16 @@ Verification now reuses registration validation/normalization, OTP helpers throw
 errors without Express `next`, matching-code cleanup is atomic after persistence,
 and duplicate email writes return a validation error. Remaining functional work
 includes consistent login/recovery validation, atomic failed-verification limits,
-token verification/protected requests, refresh/logout,
+mounting verification on protected routes, client session/refresh handling,
+refresh rotation/revocation, logout,
 and browser/CSRF policy. A folder refactor does not establish those behaviors or
 verify live authentication.
 
-Three recovery routes exist. Reset deliberately returns 503 without account
-access until single-use authorization is implemented. OTP verification is awaited
-and mail arguments/template are corrected. Preserve the disabled behavior during
-the refactor; enabling reset requires a separate authorization change. See
+Three recovery routes exist. Reset is enabled with a five-minute single-use
+reset grant bound to the account and current password hash, consumed before a
+conditional password update. Preserve authorization, replay rejection, and
+best-effort notifications during the refactor; existing JWT revocation remains
+unimplemented. See
 [password recovery](../../development/authentication.md#password-recovery).
 
 The OTP record remains a string at `otp:<normalized-email>`, expiring after

@@ -2,7 +2,7 @@
 
 An ecommerce foundation built with TypeScript, Express, Next.js, Nx, and npm
 workspaces. The repository contains an API gateway, an authentication service,
-shared error/database clients, Prisma's MongoDB schema, HTTP smoke tests, and a
+shared error/database clients and authentication middleware, Prisma's MongoDB schema, HTTP smoke tests, and a
 Next.js client with Tailwind v4 design tokens, `next-themes` light/dark switching, and
 shared UI components.
 
@@ -24,8 +24,11 @@ OTP verification (`POST /api/verify-registration`) using Axios and TanStack Quer
 OTP resend reuses registration delivery with a server-enforced cooldown; Google sign-in remains disabled. Storefront features are not implemented. See the
 [client guide](apps/client/README.md) for API setup, theme behavior,
 password visibility controls, header navigation, and registration fields.
-Token verification on protected routes, refresh, logout, and
-commerce APIs remain unfinished or planned. Live integrations are unverified.
+Access-token refresh is implemented at `POST /api/refresh-token`. Shared
+`isAuthenticated` middleware verifies access tokens, but no production route mounts
+it yet. Protected routes, client session/automatic refresh handling, refresh-token
+rotation/revocation, logout, and commerce APIs remain unfinished. Live integrations
+are unverified. See the [refresh contract](docs/reference/api.md#access-token-refresh).
 
 The reusable component library includes Button, form controls, DropdownMenu,
 Modal, Tabs, Tooltip, Badge and Card. Run `npm run storybook` for usage/state
@@ -50,7 +53,9 @@ work have separate documentation areas.
 
 ## Quick start
 
-Use **Node.js 24** (matching CI) and npm. From the repository root:
+Use **Node.js 24** (matching CI) and npm. The shared npm workspace remains
+`@microservice-eshop/shared`; `@packages/*` names are source aliases. From the
+repository root:
 
 ```sh
 npm ci
@@ -84,7 +89,7 @@ for separate startup, configuration, and database synchronization instructions.
 | --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                                                            |
 | Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                                                              |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Six auth POST contracts, including recovery limitations                                                 |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Seven auth POST contracts, including refresh and recovery limitations                                   |
 | Client          | http://localhost:3000/               | Responsive header, theme switch, `/login` form UI, `/sign-up` registration & OTP flow, placeholder home |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
@@ -113,7 +118,7 @@ Cloudflare, and an unconfirmed media provider belong to
 
 ```text
 apps/       # Next.js client, gateway, auth service, and backend E2E projects
-packages/   # One shared workspace: errors, Prisma, Redis, UI, assets
+packages/   # One shared workspace: errors, Prisma, Redis, auth middleware, UI, assets
 prisma/     # MongoDB schema; root prisma.config.ts configures the CLI
 docs/       # Architecture, references, guides, operations, future plans
 ```
@@ -121,8 +126,8 @@ docs/       # Architecture, references, guides, operations, future plans
 Common Nx commands and build ownership are in the
 [development guide](docs/development/development-guide.md). The
 [CI workflow](.github/workflows/ci.yml) runs `lint test build typecheck`; it does
-not explicitly run E2E targets or deploy. Auth has focused controller/helper
-regression tests with mocked dependencies; these have not been run for the latest
-changes. The
+not explicitly run E2E targets or deploy. On 2026-11-10, all 93 auth
+controller/helper/middleware tests passed, as did the auth app/spec TypeScript
+project check. These checks use mocked infrastructure. The
 gateway's generated E2E test has a known port/contract mismatch. Consult
 [testing](docs/development/testing.md) before relying on those checks.

@@ -20,8 +20,10 @@ for registration, OTP verification, and login; see [configuration](../../referen
 - Verification already compares OTPs, tracks attempts, locks after three failed
   attempts. Matching-code cleanup uses atomic Lua comparison/deletion after account
   persistence; failed-verification attempt updates remain sequential.
-- Login signs access/refresh JWT cookies but has no refresh/revocation store or
-  token-verification consumer. Redis still holds OTP state only.
+- Login signs access/refresh JWT cookies. Access refresh validates the refresh
+  cookie and user ID without rotating the refresh JWT; there is no persisted
+  refresh/revocation store. Shared access-token middleware exists but no
+  production route mounts it. Redis still holds OTP/recovery state only.
 - Keep the gateway's default in-memory IP limiter. It does not import Redis.
 - Keep `PORT`: auth defaults to 6001, gateway to 8080. Leave it unset when
   launching both with `npm run dev`; override it in a service's own environment.
@@ -34,7 +36,8 @@ There are no OTP hashes, Redis-backed
 gateway store, live integration suites, or shared configuration
 layer in the current source. See [current authentication](../../development/authentication.md).
 Mocked auth regressions cover verification/write ordering and failure paths;
-they have not been run for the latest changes and do not execute real Redis scripts.
+all 93 auth tests passed on 2026-11-10, including refresh/middleware regressions.
+They do not execute real Redis scripts.
 
 ## Phase 1: Finish the local authentication flow
 

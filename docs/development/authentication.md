@@ -5,6 +5,7 @@
 **Status:** Source implementation, not a verified live integration.
 **Auth backend and client reviewed:** 2026-11-06.
 **Backend recovery updated:** 2026-11-08.
+**Refresh and shared authentication middleware updated:** 2026-11-10.
 
 The Next.js client includes `/login` and `/sign-up` forms with a shared
 `AuthCard`, shared `Input type="password"` eye/eye-off controls, and React Hook Form + Zod
@@ -97,11 +98,49 @@ after 15 minutes even while its cookie is retained. The 200 body contains only
 the login message and `{ id, email, name }`; it excludes tokens and password hash.
 No session record or refresh-token state is persisted.
 
-Cookie writing uses Express `res.cookie`; cookie-parser is not required for
-writing and is not mounted for incoming requests. Browser callers need
+Cookie writing uses Express `res.cookie`. Auth mounts `cookieParser()` after
+JSON parsing and before the router so refresh can read incoming cookies. The
+gateway forwards the Cookie header without parsing it. Browser callers need
 credentials enabled, and the hard-coded Secure policy needs verification in
-the intended HTTPS/browser deployment. Current code does not consume or verify
-the emitted cookies, enforce protected routes, rotate refresh tokens, or log out.
+the intended HTTPS/browser deployment.
+
+## Access-token refresh
+
+`POST /api/refresh-token` reads only `req.cookies.refresh_token`; it has no
+request-body or Authorization-header fallback. The handler verifies the token
+with `JWT_REFRESH_TOKEN_SECRET`, requires truthy `id` and `role` claims, and
+looks up the user by ID. It signs a new 15-minute access JWT using the decoded
+claims and `JWT_ACCESS_TOKEN_SECRET`, then sets only `access_token`.
+HTTP 201 returns `{ "message": "Access token refreshed successfully", "success": true }`.
+The refresh cookie/token is unchanged, so its original seven-day JWT expiry is
+not extended. The replacement access cookie retains the helper's seven-day maxAge.
+
+Missing tokens, invalid claims, and deleted users raise `AuthError` (401).
+`JsonWebTokenError`, including its expired/not-yet-active subclasses, is converted
+to `AuthError`; unexpected database, configuration, or signing failures reach
+shared error handling as 500. A missing refresh signing secret is checked at
+request time; there is no central startup configuration validation.
+
+There is no refresh rotation, persisted revocation state, logout, or frontend
+automatic refresh/session restoration. Password reset does not invalidate
+existing refresh JWTs. See the [API contract](../reference/api.md#access-token-refresh).
+
+## Shared access-token middleware
+
+[`isAuthenticated`](../../packages/middleware/isAuthenticated.ts) is exported
+through `@packages/middleware` and the shared aggregate barrel. It prefers
+`req.cookies.access_token`, then reads the second space-separated Authorization
+header segment (normally `Bearer <token>`; the scheme itself is not validated).
+It verifies with `JWT_ACCESS_TOKEN_SECRET`, requires truthy `id`/`role` claims,
+looks up `users` by ID, assigns the result to `req.user`, and calls `next()`.
+It does not enforce roles or project the user record into a public response.
+
+Missing/invalid/expired/not-yet-active tokens or deleted users return 401 directly
+as `{ "message": "Unauthorized: ..." }`, without the shared `status` field.
+Unexpected database/configuration errors pass to `next(error)` so the application
+can return a server error. Consumers must mount cookie parsing for cookie input
+and shared error handling after routes. No current production route uses this
+middleware; its behavior is covered by isolated auth-service tests.
 
 ## Password recovery
 
@@ -134,7 +173,8 @@ Hashing failure preserves the grant. Expiry or replacement during hashing preven
 password writes. Consumed grants are never restored, including after a database
 failure; obtain a new code. A database timeout may have committed the change,
 so try signing in before retrying recovery. Existing JWTs remain valid until
-issued expiry; no session consumer or revocation store exists. No migration or
+issued expiry; existing refresh JWTs can still mint access tokens until their
+original expiry because no revocation store exists. No migration or
 new environment variable is needed. Live delivery, Redis scripts, and MongoDB
 writes still require integration verification.
 
@@ -143,7 +183,8 @@ writes still require integration verification.
 Run `npm run auth-docs` after route or contract changes. The generator scans
 `main.ts`, follows the `/api` router mount, and reads `#swagger` controller/router
 annotations for required request fields and concrete request/200-response
-examples. Recovery annotations describe expiring single-use reset authorization
+examples. Refresh annotations document cookie input and 201/401/500 responses.
+Recovery annotations describe expiring single-use reset authorization
 and validation/failure responses. These contracts do not prove a live integration. Generation also
 documents the greeting and excludes the Swagger UI/JSON routes.
 Commit the generated JSON, restart auth, and reload `/api-docs`. Cookie headers
@@ -221,12 +262,12 @@ The current Dockerfile has no explicit Prisma-generation step; inspect the
 With registration, verification, and login/token issuance present in source, the remaining authentication
 capabilities include:
 
-- Connect future recovery screens to the backend auth endpoints.
 - Align login loading/error reset with mutation state, implement remember-me
   behavior if required, and add session-aware UI/current-user state.
 - Consistent input validation/normalization and generic login credential failures.
-- JWT verification middleware, protected routes, and current-user lookup.
-- Refresh-token validation/rotation and persisted revocation policy.
+- Mount the implemented JWT middleware on protected routes and add current-user lookup.
+- Connect frontend refresh/session handling and implement refresh-token rotation
+  with a persisted revocation policy.
 - Align access-cookie retention with token expiry and verify browser/CSRF policy.
 - Logout and session/token revocation.
 - Complete and secure the routed password recovery/reset flow described above.
@@ -235,6 +276,7 @@ capabilities include:
 The [future structure plan](../future-plans/architecture/auth-service-structure-plan.md)
 proposes separating app creation, validation, and OTP orchestration. Current code
 still uses `routes/`, `controller/`, `utils/`, and `mail/`.
-Focused auth controller/helper regression tests are present but were not run for
-this update. See [testing](testing.md) for actual coverage
+All 93 auth controller/helper/middleware tests passed on 2026-11-10, alongside
+the auth app/spec TypeScript project check. Infrastructure is mocked; this does
+not verify live services or browser cookies. See [testing](testing.md) for actual coverage
 and [implementation status](../operations/implementation-status.md) for gaps.

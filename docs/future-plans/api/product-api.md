@@ -19,6 +19,10 @@ Likewise, current `POST /api/login` already returns a public user projection and
 sets `access_token`/`refresh_token` JWT cookies. The `/v1` login below is a proposal,
 not an alias. Current token expiries, cookie policies, and differentiated 400/401
 failures belong to the [current login contract](../../reference/api.md#login-and-jwt-cookies).
+Current `POST /api/refresh-token` validates the refresh cookie and replaces only
+the access cookie; it does not rotate/revoke refresh tokens or implement any
+proposed `/v1` route. Shared access-token middleware has no production route
+consumer. See the [refresh contract](../../reference/api.md#access-token-refresh).
 
 ### Common draft conventions
 

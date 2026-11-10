@@ -54,7 +54,11 @@ and reuses `/api/user-registration` rather than adding a duplicate endpoint.
 The login page uses `loginMutation` to post `{ email, password }` to `/api/login`
 with `withCredentials: true`, then navigates to `/` with `next/navigation`.
 The mutation returns a validated message; it does not store the response's user
-projection or establish client session state. The page currently owns a
+projection or establish client session state. The backend now exposes
+`POST /api/refresh-token` using the existing refresh cookie, but the client has no
+refresh mutation, automatic retry interceptor, or session restoration. A future
+caller must enable credentials; see the
+[refresh contract](../../docs/reference/api.md#access-token-refresh). The page currently owns a
 `serverError` message and reads the Axios response message with a fallback.
 Use `getApiErrorMessage` from [`src/api/auth.ts`](src/api/auth.ts) for
 validated server messages, timeout guidance, and an operation-specific fallback.
