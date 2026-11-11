@@ -282,7 +282,9 @@ access expiry, unchanged refresh expiry, and end-to-end error responses.
 Added permanent regressions cover current-user public response/no-store, missing
 account rejection, validated query caching and login invalidation, final 401 versus
 404/500 handling, and public pages staying open on failed current-user refresh.
-These new tests have not been run. The historical 93-test result above predates them.
+The local Nx rerun passed all 95 auth tests and 24 client tests. These use mocked
+dependencies. Workspace `lint test build typecheck` also passed all 17 tasks
+(three from local cache). Browser and live-service checks remain unverified.
 
 Manual checks still required:
 
@@ -375,8 +377,10 @@ No clean install, Nx application build, lint, E2E, browser, live-service, Docker
 or remote CI run was performed. Earlier dated results below do not verify
 unrelated current frontend or runtime behavior.
 
-[CI](../../.github/workflows/ci.yml) runs `lint test build typecheck` across the
-workspace. The Jest plugin excludes both E2E directories from `test` inference;
+[CI](../../.github/workflows/ci.yml) explicitly generates Prisma Client before
+running `lint test build typecheck` across the workspace. Generation uses a
+placeholder MongoDB URL to load Prisma configuration; it does not connect to a
+database. The Jest plugin excludes both E2E directories from `test` inference;
 their explicit `e2e` targets are not in that CI command.
 
 The 2026-10-25 token refresh passed client TypeScript and a direct production
