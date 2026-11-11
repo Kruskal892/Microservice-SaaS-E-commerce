@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Setup](../development/getting-started.md)
 
 **Status:** Inputs read by current source. **Backend snapshot:** 2026-10-25;
-**client configuration updated:** 2026-11-05.
+**client configuration updated:** 2026-11-11.
 
 Both backend application entry points import `dotenv/config`. Use a root `.env` based on
 [.env.example](../../.env.example) and run development commands from the root.
@@ -26,7 +26,7 @@ dotenv through [prisma.config.ts](../../prisma.config.ts).
 | `JWT_ACCESS_TOKEN_SECRET`  | Auth login/refresh; shared middleware | Access JWT signing/verification secret; no fallback; JWT expires in 15 minutes                                    |
 | `JWT_REFRESH_TOKEN_SECRET` | Auth login/refresh                    | Refresh JWT signing/verification secret; no fallback; JWT expires in 7 days                                       |
 | `NODE_ENV`                 | Prisma wrapper / gateway build        | Prisma global reuse outside production; gateway source-map configuration checks production                        |
-| `NEXT_PUBLIC_API_URL`      | Client Axios instance                 | Base URL for browser requests (`apps/client/src/api/client.ts`), e.g. `http://localhost:8080`; 15-second timeout  |
+| `NEXT_PUBLIC_API_URL`      | Client Axios instance                 | Base URL for browser requests (`apps/client/src/utils/axiosInstance.ts`), e.g. `http://localhost:8080`; falls back to `http://localhost:3000`; 15-second timeout |
 | `HOST`                     | E2E setup only                        | Test destination defaults to `localhost`; HTTP apps do not read it as a bind address                              |
 
 The Redis non-null assertion is a TypeScript annotation, not a runtime check.
@@ -35,9 +35,14 @@ configuration parser validates missing inputs or waits for dependencies.
 Redis connection and command timeouts are five seconds, the offline command
 queue is disabled, and requests allow one retry. The client reconnects in the
 background; OTP admission returns 503 until Redis is ready.
-Registration, OTP verification, and login browser requests time out after 15
-seconds and do not retry automatically. Login enables Axios `withCredentials`
-for the request; the shared Axios instance does not enable it globally.
+Browser API requests time out after 15 seconds and include credentials globally.
+The shared Axios instance refreshes and retries a failed request once on 401,
+except login and refresh requests. Concurrent failures share one refresh promise;
+refresh failure rejects waiting requests. A refresh 401 redirects other protected
+requests to `/login`, while current-user checks leave public pages open and return
+signed-out state. Network/server errors remain errors. The shared `['user']`
+query stays fresh for five minutes, refetches when stale on focus/mount, and is
+invalidated after successful login.
 
 Set distinct JWT signing secrets in your local `.env` or deployment environment;
 the `.env.example` values are placeholders. Login passes the values directly to
@@ -68,7 +73,7 @@ and packaging limits.
 
 ## Client configuration
 
-[`apps/client/src/api/client.ts`](../../apps/client/src/api/client.ts) reads
+[`apps/client/src/utils/axiosInstance.ts`](../../apps/client/src/utils/axiosInstance.ts) reads
 `NEXT_PUBLIC_API_URL` (typically configured in `apps/client/.env`, for example
 `http://localhost:8080`) and configures a 15-second Axios timeout. The client has
 no locale or theme environment variables. `npm run client` starts Next.js
@@ -128,8 +133,8 @@ Sources: [gateway](../../apps/api-gateway/src/main.ts),
 Cookies are always marked Secure; there is no `NODE_ENV` override. Their retention
 and JWT expiry differ for the access token. Refresh replaces only the access
 cookie; the original refresh JWT expiry is unchanged. Auth parses incoming
-cookies. Shared middleware verifies access JWTs but is not mounted on current
-production routes. Refresh/middleware check their verification secret at request
+cookies. Shared middleware verifies access JWTs on `GET /api/logged-in-user`;
+the controller returns public account fields with no-store. Refresh/middleware check their verification secret at request
 time; missing configuration remains a server error. Rotation/revocation, logout,
 CSRF policy, and production browser behavior still need implementation/validation.
 Future validation, shared quotas, and ingress decisions are in the

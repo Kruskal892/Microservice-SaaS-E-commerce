@@ -25,9 +25,13 @@ OTP resend reuses registration delivery with a server-enforced cooldown; Google 
 [client guide](apps/client/README.md) for API setup, theme behavior,
 password visibility controls, header navigation, and registration fields.
 Access-token refresh is implemented at `POST /api/refresh-token`. Shared
-`isAuthenticated` middleware verifies access tokens, but no production route mounts
-it yet. Protected routes, client session/automatic refresh handling, refresh-token
-rotation/revocation, logout, and commerce APIs remain unfinished. Live integrations
+`isAuthenticated` middleware protects `GET /api/logged-in-user`, which returns
+only public account fields. A shared client query restores the header's account
+state and powers the read-only `/profile` page. Axios refreshes expired access
+tokens once; signed-out visitors can keep browsing public pages. Refresh-token
+rotation/revocation, logout, authorization for commerce APIs, and commerce APIs
+remain unfinished. See the [beginner session walkthrough](docs/development/session-flow.md).
+Live integrations
 are unverified. See the [refresh contract](docs/reference/api.md#access-token-refresh).
 
 The reusable component library includes Button, form controls, DropdownMenu,
@@ -89,8 +93,8 @@ for separate startup, configuration, and database synchronization instructions.
 | --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                                                            |
 | Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                                                              |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Seven auth POST contracts, including refresh and recovery limitations                                   |
-| Client          | http://localhost:3000/               | Responsive header, theme switch, `/login` form UI, `/sign-up` registration & OTP flow, placeholder home |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Seven auth POST contracts and protected GET current-user lookup |
+| Client          | http://localhost:3000/               | Session-aware header, theme switch, login, registration/OTP, recovery, read-only `/profile`, placeholder home |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any

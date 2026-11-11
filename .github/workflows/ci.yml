@@ -34,6 +34,11 @@ jobs:
 
       - run: npm ci
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: mongodb://127.0.0.1:27017/eshop
+
       # Prepend any command with "nx record --" to record its logs to Nx Cloud
       # - run: npx nx record -- echo Hello World
       - run: npx nx run-many -t lint test build typecheck

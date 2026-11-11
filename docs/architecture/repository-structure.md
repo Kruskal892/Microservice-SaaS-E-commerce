@@ -11,14 +11,17 @@
 |-- apps/
 |   |-- client/
 |   |   |-- src/api/
-|   |   |   |-- client.ts               # Shared Axios instance (NEXT_PUBLIC_API_URL, 15s timeout)
-|   |   |   |-- auth.ts                 # Auth mutation options and validated message/retry helpers
-|   |   |   `-- auth.test.ts            # Permanent Jest message/retry regression tests
+|   |   |   |-- auth.ts                 # Auth mutations, current-user query, message/retry helpers
+|   |   |   |-- auth.test.ts            # Permanent API/cache regression tests
+|   |   |   `-- axiosInstance.test.ts   # Shared refresh/retry and public-page regressions
+|   |   |-- src/hooks/useUser.ts        # Shared current-user query subscription
+|   |   |-- src/utils/axiosInstance.ts  # Credentials, 15s timeout, shared refresh promise
 |   |   |-- src/app/layout.tsx          # Global CSS, Providers, and Header
 |   |   |-- src/app/providers.tsx       # QueryClientProvider and next-themes ThemeProvider
 |   |   |-- src/app/page.tsx            # Placeholder page
 |   |   |-- src/app/global.css          # Tailwind, shared theme import/source, body styles
 |   |   |-- src/app/(routes)/login/page.tsx # RHF + Zod login, credential POST, errors, redirect to /
+|   |   |-- src/app/(routes)/profile/page.tsx # Read-only name/email with loading, guest, error states
 |   |   |-- src/app/(routes)/sign-up/page.tsx # Sign-up and OTP verification flow with RHF, Zod, and TanStack Query
 |   |   |-- src/app/constants/navigation-menu.ts # Header navigation items
 |   |   |-- src/app/api/hello/route.ts   # Local plain-text hello handler
@@ -46,7 +49,7 @@
 |   |-- auth-service/
 |   |   |-- src/
 |   |   |   |-- main.ts                  # Express wiring, Swagger, listener
-|   |   |   |-- routes/auth.router.ts    # Seven /api POST routes; refresh/recovery Swagger annotations
+|   |   |   |-- routes/auth.router.ts    # Seven /api POST routes plus protected current-user GET
 |   |   |   |-- controller/auth.controller.ts
 |   |   |   |-- controller/auth.controller.spec.ts # Mocked auth/OTP/refresh regressions
 |   |   |   |-- middleware/isAuthenticated.spec.ts # Shared access-token middleware regressions
@@ -75,7 +78,7 @@
 |   |   `-- error-middleware.ts
 |   |-- middleware/
 |   |   |-- index.ts                    # @packages/middleware exports
-|   |   `-- isAuthenticated.ts          # Access JWT verification and user lookup; not mounted
+|   |   `-- isAuthenticated.ts          # Access JWT/user lookup for current-user GET and future routes
 |   |-- libs/
 |   |   |-- index.ts
 |   |   |-- prisma/index.ts             # Shared Prisma client

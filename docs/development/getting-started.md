@@ -194,8 +194,9 @@ code sent to your test mailbox. Login issues Secure, HTTP-only JWT cookies;
 enable request credentials in browser clients and check cookie storage in the
 intended HTTPS setup. `POST /api/refresh-token` reads the refresh cookie and
 returns 201 with a replacement access cookie. It does not rotate the refresh
-token; logout and protected routes are not implemented. The shared authentication
-middleware is available but not mounted. See the
+token. `GET /api/logged-in-user` mounts shared authentication middleware and returns
+only public account fields. The client restores header/profile state through a
+shared query and refreshes once on 401. Logout and token revocation remain absent. See the
 [refresh contract](../reference/api.md#access-token-refresh) before testing manually.
 
 ## First-day checklist

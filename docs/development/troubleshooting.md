@@ -166,10 +166,22 @@ remain for 7 days, but the access JWT expires after 15 minutes.
 `POST /api/refresh-token` validates the refresh cookie and replaces the access
 cookie without rotating/extending the refresh JWT. Missing/rejected refresh
 tokens return 401; database/configuration/signing failures return 500. Auth
-mounts cookie-parser before routing. Shared `isAuthenticated` is available but
-is not mounted on production routes, so cookie issuance alone does not establish
-protected requests. The client has no automatic refresh/session restoration. See
+mounts cookie-parser before routing. Shared `isAuthenticated` protects
+`GET /api/logged-in-user`. The client queries it to populate header/profile state,
+shares one refresh across concurrent 401s, and retries once. A signed-out
+current-user check leaves public pages open. See
 [the login contract](../reference/api.md#login-and-jwt-cookies).
+
+## Current-user GET returns 404 or an old response
+
+The route and `useUser` must both use GET. The gateway forwards the path unchanged;
+compare `http://localhost:8080/api/logged-in-user` with the direct auth URL at
+port 6001. Without credentials, a loaded route returns 401 rather than 404.
+If source has GET but both live URLs return 404, inspect
+`apps/auth-service/dist/main.js` for a stale POST registration. Restart the backend
+serve task to load freshly compiled output. A stale bundle can also retain the
+old full-user response even after source excludes the password hash. Refetch the
+client query after reloading the service. See the [session walkthrough](session-flow.md).
 
 ## Theme provider script warning
 

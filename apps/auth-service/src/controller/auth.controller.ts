@@ -12,6 +12,7 @@ import {
 } from '../utils/auth.helper';
 import { setCookie } from '../utils/cookies/setCookies';
 import { completePasswordReset } from '../utils/password-reset';
+import type { users } from '@prisma/client';
 
 // Register a new user
 export const userRegistration = async (
@@ -256,6 +257,27 @@ export const refreshToken = async (
       );
     }
     return next(error);
+  }
+};
+
+// Get logged-in user
+export const getLoggedInUser = async (
+  req: Request & { user?: users },
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user) {
+      return next(new AuthError('Unauthorized: User not found'));
+    }
+    const { id, email, name } = req.user;
+    res.set('Cache-Control', 'no-store');
+    res.status(200).json({
+      success: true,
+      user: { id, email, name },
+    });
+  } catch (error) {
+    next(error);
   }
 };
 

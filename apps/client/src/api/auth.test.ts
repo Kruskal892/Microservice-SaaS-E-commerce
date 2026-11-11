@@ -2,7 +2,11 @@
 import assert from 'node:assert/strict';
 import { afterEach, expect, jest, test } from '@jest/globals';
 import { AxiosError, AxiosHeaders } from 'axios';
+import { QueryClient } from '@tanstack/react-query';
 import {
+  currentUserQuery,
+  registrationMutation,
+  loginMutation,
   getApiErrorMessage,
   getApiErrorRetryAfterSeconds,
   getApiMessage,
@@ -11,11 +15,133 @@ import {
   verifyRecoveryOtpMutation,
   resetPasswordMutation,
 } from './auth';
-import { api } from './client';
+import { axiosInstance } from '@/utils/axiosInstance';
 
 afterEach(() => jest.restoreAllMocks());
 
 const fallback = 'Unable to request a verification code. Please try again.';
+
+test('registration validates contact fields and excludes password confirmation', async () => {
+  assert.ok(registrationMutation.mutationFn);
+  const post = jest
+    .spyOn(axiosInstance, 'post')
+    .mockResolvedValueOnce({ data: {} });
+  const payload = {
+    name: ' Alex Smith ',
+    email: ' Alex@Example.COM ',
+    password: ' a safe password ',
+    confirmPassword: ' a safe password ',
+  };
+  await registrationMutation.mutationFn(payload, undefined as never);
+  expect(post).toHaveBeenCalledWith('/api/user-registration', {
+    name: 'Alex Smith',
+    email: 'Alex@Example.COM',
+    password: payload.password,
+  });
+});
+
+test('login validates contact fields and preserves password whitespace', async () => {
+  assert.ok(loginMutation.mutationFn);
+  const post = jest
+    .spyOn(axiosInstance, 'post')
+    .mockResolvedValueOnce({ data: {} });
+  const payload = {
+    email: ' Alex@Example.COM ',
+    password: ' a safe password ',
+  };
+  await loginMutation.mutationFn(payload, undefined as never);
+  expect(post).toHaveBeenCalledWith('/api/login', {
+    email: 'Alex@Example.COM',
+    password: payload.password,
+  });
+  expect(axiosInstance.defaults.withCredentials).toBe(true);
+});
+
+test('invalid registration and login inputs fail before sending requests', async () => {
+  assert.ok(registrationMutation.mutationFn);
+  assert.ok(loginMutation.mutationFn);
+  const post = jest.spyOn(axiosInstance, 'post');
+  await assert.rejects(
+    registrationMutation.mutationFn(
+      { name: ' ', email: 'alex@example.com', password: 'a safe password' },
+      undefined as never,
+    ),
+  );
+  await assert.rejects(
+    loginMutation.mutationFn(
+      { email: 'invalid', password: 'a safe password' },
+      undefined as never,
+    ),
+  );
+  expect(post).not.toHaveBeenCalled();
+});
+
+test('the current-user query validates and caches only public account fields', async () => {
+  const user = { id: 'user-id', name: 'Alex Smith', email: 'alex@example.com' };
+  const get = jest.spyOn(axiosInstance, 'get').mockResolvedValueOnce({
+    data: { success: true, user: { ...user, password: 'must-not-be-cached' } },
+  });
+  const client = new QueryClient();
+  try {
+    expect(await client.fetchQuery(currentUserQuery)).toEqual(user);
+    expect(await client.fetchQuery(currentUserQuery)).toEqual(user);
+    expect(get).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledWith('/api/logged-in-user', {
+      signal: expect.any(AbortSignal),
+    });
+  } finally {
+    client.clear();
+  }
+});
+
+test.each([401, 404, 500])(
+  'the current-user query treats only 401 as signed out (status %s)',
+  async (status) => {
+    const error = new AxiosError('Request failed');
+    error.response = {
+      data: {},
+      status,
+      statusText: 'Error',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+    };
+    jest.spyOn(axiosInstance, 'get').mockRejectedValueOnce(error);
+    const client = new QueryClient();
+    try {
+      if (status === 401) {
+        expect(await client.fetchQuery(currentUserQuery)).toBeNull();
+      } else {
+        await expect(client.fetchQuery(currentUserQuery)).rejects.toBe(error);
+      }
+    } finally {
+      client.clear();
+    }
+  },
+);
+
+test('login cache invalidation replaces the cached signed-out state', async () => {
+  const user = { id: 'user-id', name: 'Alex Smith', email: 'alex@example.com' };
+  jest
+    .spyOn(axiosInstance, 'get')
+    .mockRejectedValueOnce(
+      new AxiosError('Unauthorized', undefined, undefined, undefined, {
+        data: {},
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      }),
+    )
+    .mockResolvedValueOnce({ data: { user } });
+  const client = new QueryClient();
+  try {
+    expect(await client.fetchQuery(currentUserQuery)).toBeNull();
+    await client.invalidateQueries({ queryKey: currentUserQuery.queryKey });
+    expect(await client.fetchQuery(currentUserQuery)).toEqual(user);
+  } finally {
+    client.clear();
+  }
+});
 
 test('OTP cooldown accepts non-negative integer seconds only', () => {
   for (const seconds of [0, 31, 60, 1800, 3600]) {
@@ -132,7 +258,7 @@ test('both Axios timeout codes preserve the registration-specific guidance', () 
 
 test('recovery delivery normalizes email and preserves the server cooldown', async () => {
   assert.ok(forgotPasswordMutation.mutationFn);
-  const post = jest.spyOn(api, 'post').mockResolvedValueOnce({
+  const post = jest.spyOn(axiosInstance, 'post').mockResolvedValueOnce({
     data: { message: 'Code sent', retryAfterSeconds: 31 },
   });
   const result = await forgotPasswordMutation.mutationFn(
@@ -150,7 +276,7 @@ test('recovery verification preserves leading zeroes and validates authorization
   assert.ok(verifyRecoveryOtpMutation.mutationFn);
   const authorization = { resetToken: 'a'.repeat(64), expiresInSeconds: 300 };
   const post = jest
-    .spyOn(api, 'post')
+    .spyOn(axiosInstance, 'post')
     .mockResolvedValueOnce({ data: authorization });
   assert.deepEqual(
     await verifyRecoveryOtpMutation.mutationFn(
@@ -181,7 +307,7 @@ test('recovery verification preserves leading zeroes and validates authorization
 test('password reset sends authorization and password without confirmation fields', async () => {
   assert.ok(resetPasswordMutation.mutationFn);
   const post = jest
-    .spyOn(api, 'post')
+    .spyOn(axiosInstance, 'post')
     .mockResolvedValueOnce({ data: { message: 'Password changed' } });
   const payload = {
     email: ' Alex@Example.COM ',
@@ -211,7 +337,7 @@ test('invalid recovery payloads fail before sending HTTP requests', async () => 
   assert.ok(forgotPasswordMutation.mutationFn);
   assert.ok(verifyRecoveryOtpMutation.mutationFn);
   assert.ok(resetPasswordMutation.mutationFn);
-  const post = jest.spyOn(api, 'post');
+  const post = jest.spyOn(axiosInstance, 'post');
   await assert.rejects(
     forgotPasswordMutation.mutationFn({ email: 'invalid' }, undefined as never),
   );

@@ -27,7 +27,7 @@ The current issue is mixed responsibilities: `main.ts` builds and starts Express
 the controller performs database access, password hashing/comparison, and JWT
 signing and refresh verification. Auth mounts cookie-parser; cookie policy lives
 in `utils/cookies/setCookies.ts`. Shared `packages/middleware/isAuthenticated.ts`
-verifies access JWTs and loads users, but no production route mounts it. Preserve
+verifies access JWTs and loads users on `GET /api/logged-in-user`. Preserve
 that shared boundary when reorganizing app-specific login/refresh behavior.
 Adding directories alone will not solve
 those responsibilities. Move them in small, behavior-preserving steps.
@@ -118,7 +118,7 @@ module. Never share auth business rules through `packages/libs`.
    Add readiness/shutdown only through the separate future lifecycle work. Keep greeting and health contracts intact.
 2. **Move the feature together.** Move `routes/auth.router.ts` and
    `controller/auth.controller.ts` into `auth/`; update imports. Keep
-   all seven `/api` POST route contracts accounted for, including JWT claims and cookie
+   all seven `/api` POST contracts and current-user GET accounted for, including JWT claims and cookie
    attributes. Improve behavior in separate changes with explicit validation.
 3. **Split the helper by responsibility.** Move validation into
    `registration.validation.ts`, OTP restrictions/storage into `otp.service.ts`, and email
@@ -143,7 +143,7 @@ Verification now reuses registration validation/normalization, OTP helpers throw
 errors without Express `next`, matching-code cleanup is atomic after persistence,
 and duplicate email writes return a validation error. Remaining functional work
 includes consistent login/recovery validation, atomic failed-verification limits,
-mounting verification on protected routes, client session/refresh handling,
+authorization for additional protected resources,
 refresh rotation/revocation, logout,
 and browser/CSRF policy. A folder refactor does not establish those behaviors or
 verify live authentication.

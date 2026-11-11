@@ -59,6 +59,7 @@ flowchart TD
     Route -->|"POST /api/verify-registration"| Verification["Verification controller"]
     Route -->|"POST /api/login"| Login["Login controller<br/>bcrypt, JWT signing, cookies"]
     Route -->|"POST /api/refresh-token"| Refresh["Refresh controller<br/>Verify cookie, user lookup, access JWT"]
+    Route -->|"GET /api/logged-in-user"| CurrentUser["isAuthenticated then current-user controller<br/>200 public fields or 401; no-store"]
     Route -->|"POST /api/forgot-password-user"| Forgot["Recovery helper<br/>Recovery email and OTP storage"]
     Route -->|"POST /api/verify-forgot-password-user"| RecoveryOTP["OTP helper directly<br/>Atomic verification; issue reset token"]
     Route -->|"POST /api/reset-password-user"| Reset["Reset controller<br/>Consume grant; conditional password update"]
@@ -77,7 +78,8 @@ Auth mounts seven POST routes: registration, registration verification, login,
 refresh, and three recovery routes. Recovery uses expiring single-use reset
 authorization; browser/live integrations and JWT revocation remain unverified or
 absent. Logout, current-user, protected, and commerce routes are not implemented.
-The shared access-token middleware is not mounted on these routes.
+The public registration/login/recovery/refresh routes do not require access-token
+middleware. The separate current-user GET route does.
 
 ## Registration and OTP delivery
 
@@ -224,7 +226,7 @@ Both JWTs contain user ID and fixed `role: 'user'`; each uses its own environmen
 signing secret. Both cookies use HttpOnly, Secure, SameSite=None, and a 7-day
 cookie lifetime. A retained access cookie does not extend the JWT's 15-minute
 expiry. Refresh consumes the refresh cookie as described below. Shared access-token
-middleware exists but has no production route consumer. Logout and persistent
+middleware protects `GET /api/logged-in-user`. Logout and persistent
 session/revocation state are absent. Unexpected errors, including absent-body destructuring or
 missing signing secrets, are forwarded to shared error handling. See the
 [API contract](../reference/api.md#login-and-jwt-cookies) for exact responses.
@@ -255,13 +257,17 @@ sequenceDiagram
 ```
 
 Database/configuration/signing errors use shared 500 handling. The access cookie
-retains seven days even though the JWT lasts 15 minutes. There is no automatic
-frontend refresh, rotation, or revocation.
+retains seven days even though the JWT lasts 15 minutes. Axios shares one refresh
+Promise across concurrent 401s and retries each request once. A final current-user
+401 becomes signed out without redirecting public pages. Rotation and revocation
+remain absent. See the [end-to-end session walkthrough](../development/session-flow.md).
 
 ## Shared middleware invocation
 
-[`isAuthenticated`](../../packages/middleware/isAuthenticated.ts) is available
-for future protected routes; no production router mounts it today.
+[`isAuthenticated`](../../packages/middleware/isAuthenticated.ts) protects
+`GET /api/logged-in-user` and remains reusable for future protected routes.
+The current-user controller returns only public fields with HTTP 200/no-store;
+the header and `/profile` share that result through `currentUserQuery`.
 
 ```mermaid
 flowchart TD

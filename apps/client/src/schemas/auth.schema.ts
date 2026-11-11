@@ -35,19 +35,29 @@ export const signUpSchema = loginSchema
 
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
 
+export const currentUserSchema = z.object({
+  id: z.string().min(1),
+  name: signUpSchema.shape.name,
+  email: loginSchema.shape.email,
+});
+
 export const otpCodeSchema = z
   .string()
   .length(4, 'Enter the four-digit code')
   .regex(/^[0-9]+$/, 'Use digits only');
 
-export const verifyOtpSchema = z.object({
+export const registrationSchema = z.object({
   name: signUpSchema.shape.name,
-  email: signUpSchema.shape.email.transform((email) => email.toLowerCase()),
+  email: signUpSchema.shape.email,
   password: signUpSchema.shape.password,
-  otp: otpCodeSchema,
 });
 
-export type VerifyOtpPayload = z.infer<typeof verifyOtpSchema>;
+export const verifyOtpSchema = registrationSchema.extend({
+  email: registrationSchema.shape.email.transform((email) =>
+    email.toLowerCase(),
+  ),
+  otp: otpCodeSchema,
+});
 
 export const forgotPasswordSchema = z.object({
   email: signUpSchema.shape.email.transform((email) => email.toLowerCase()),
@@ -58,8 +68,6 @@ export type ForgotPasswordPayload = z.infer<typeof forgotPasswordSchema>;
 export const verifyRecoveryOtpSchema = forgotPasswordSchema.extend({
   otp: otpCodeSchema,
 });
-
-export type VerifyRecoveryOtpPayload = z.infer<typeof verifyRecoveryOtpSchema>;
 
 export const recoveryAuthorizationSchema = z.object({
   resetToken: z
@@ -85,5 +93,3 @@ export const resetPasswordPayloadSchema = forgotPasswordSchema.extend({
   resetToken: recoveryAuthorizationSchema.shape.resetToken,
   newPassword: signUpSchema.shape.password,
 });
-
-export type ResetPasswordPayload = z.infer<typeof resetPasswordPayloadSchema>;

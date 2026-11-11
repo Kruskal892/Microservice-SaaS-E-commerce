@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "title": "Auth Service API",
-    "description": "Authentication, registration, email verification, cookie-based access-token refresh, and password recovery with expiring single-use reset authorization. Existing JWTs are not revoked by password reset; refresh tokens are not rotated. See endpoint descriptions.",
+    "description": "Authentication, registration, email verification, protected current-user lookup, cookie-based access-token refresh, and password recovery with expiring single-use reset authorization. Existing JWTs are not revoked by password reset; refresh tokens are not rotated. See endpoint descriptions.",
     "version": "1.0.0"
   },
   "host": "localhost:6001",
@@ -575,6 +575,77 @@
           },
           "500": {
             "description": "Unexpected database, JWT configuration, or signing failure.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Something went wrong please try again"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/logged-in-user": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get the authenticated user",
+        "description": "Requires an access_token cookie or Authorization header token. Shared middleware verifies the access JWT and loads the existing account. Returns only public id, email, and name fields with Cache-Control: no-store. Does not create a session or refresh tokens; the client may call the refresh endpoint after a 401 and retry once.",
+        "responses": {
+          "200": {
+            "description": "Authenticated account; no password hash or token values.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "user": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "customer@example.com"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Example Customer"
+                    }
+                  }
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Access token missing, invalid, expired, missing claims, or associated account deleted.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Unauthorized: Access token is missing"
+                }
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected database or JWT configuration failure.",
             "schema": {
               "type": "object",
               "properties": {

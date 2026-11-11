@@ -1,9 +1,10 @@
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './global.css';
 import Header from '@/components/layout/Header';
 import Providers from './providers';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Eshop',
   description: 'Thoughtful finds for everyday life.',
 };

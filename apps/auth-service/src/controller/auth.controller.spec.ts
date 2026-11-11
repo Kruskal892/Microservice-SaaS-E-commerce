@@ -5,6 +5,7 @@ import redis from '@packages/libs/redis';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import {
+  getLoggedInUser,
   refreshToken,
   resetUserPassword,
   userRegistration,
@@ -93,6 +94,31 @@ beforeEach(() => {
   jest.mocked(redis.set).mockResolvedValue('OK');
   jest.mocked(redis.incr).mockResolvedValue(1);
   jest.mocked(redis.expire).mockResolvedValue(1);
+});
+
+test('the current-user response contains only public account fields', async () => {
+  const res = response();
+  const next = jest.fn();
+  await getLoggedInUser(
+    { user } as Request & { user: typeof user },
+    res as unknown as Response,
+    next,
+  );
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.set).toHaveBeenCalledWith('Cache-Control', 'no-store');
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    user: { id: user.id, email: user.email, name: user.name },
+  });
+  expect(next).not.toHaveBeenCalled();
+});
+
+test('the current-user handler rejects a missing authenticated account', async () => {
+  const res = response();
+  const next = jest.fn();
+  await getLoggedInUser({} as Request, res as unknown as Response, next);
+  expect(next).toHaveBeenCalledWith(expect.any(AuthError));
+  expect(res.json).not.toHaveBeenCalled();
 });
 
 describe('refreshToken', () => {

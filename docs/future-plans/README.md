@@ -25,8 +25,9 @@ The current baseline includes a Next.js client scaffold with
 responsive header navigation, connected `/login` and `/sign-up` forms, and backend
 OTP delivery/verification, account persistence,
 and login with access/refresh JWT cookies. Cookie-based access refresh and
-shared access-token middleware now exist; no production route mounts the
-middleware and the client has no automatic refresh/session restoration.
+shared access-token middleware protect `GET /api/logged-in-user`. The client
+restores header/profile state through a shared user query and refreshes once
+on 401. See the [current session flow](../development/session-flow.md).
 Completing identity below still means consistent validation, protected requests,
 refresh rotation, logout/revocation,
 browser security, and meaningful integration coverage. See the
@@ -35,7 +36,7 @@ browser security, and meaningful integration coverage. See the
 Registration, OTP verification, and login submission are connected through
 `src/api/auth.ts`. Login enables cookie credentials and redirects to `/`.
 OTP resend reuses registration delivery with a server-enforced cooldown.
-Google sign-in and session-aware UI remain incomplete; recovery UI is connected;
+Google sign-in remains incomplete; session-aware header/profile and recovery UI are connected;
 backend reset now requires a five-minute single-use token. These source-level additions do not complete the proposed
 identity journey or its browser verification gates.
 

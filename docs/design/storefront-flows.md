@@ -3,8 +3,9 @@
 This is the behaviour reference for the proposed customer site. Header, login
 and sign-up UI are implemented, including registration, OTP verification, and login
 requests. Resend reuses registration delivery with a server-enforced cooldown. Other
-storefront routes/APIs, session-aware UI, and recovery
-remain planned. Backend password reset supports expiring single-use authorization; frontend email, OTP, password confirmation, and success states are connected.
+storefront routes/APIs remain planned. The account action now reflects a shared
+current-user query and links signed-in users to a read-only `/profile` page.
+Backend password reset supports expiring single-use authorization; frontend email, OTP, password confirmation, and success states are connected.
 All product, shop, address, price, policy and order
 data is illustrative. Currency and dates must be formatted from the actual
 market/data when implemented; this proposal does not establish business policy.

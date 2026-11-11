@@ -84,7 +84,8 @@ is a fixed controller value.
 
 Refresh (`POST /api/refresh-token`) reads `users.findUnique({ where: { id } })`
 after verifying the refresh JWT. Shared `isAuthenticated` performs the same ID
-lookup for access JWTs when invoked; it has no production route consumer. Both
+lookup for access JWTs on `GET /api/logged-in-user`. Its controller returns only
+`id`, `email`, and `name`; the password hash remains server-side. Both
 reject deleted accounts. Neither writes session, refresh-token, rotation, or
 revocation state. No schema change accompanies these additions.
 

@@ -5,7 +5,8 @@ includes `Header` (with desktop navigation, product search,
 account/wishlist/cart links, and a light/dark `ThemeToggle`), a placeholder `/`
 page, and `/login` and `/sign-up` forms built with shared `@packages/ui`
 controls, `AuthCard`, React Hook Form, and Zod validation. Registration, OTP
-verification, resend, and login requests are connected. Storefront screens,
+verification, resend, and login requests are connected. A shared current-user
+query drives signed-in header navigation and a read-only `/profile` page. Storefront screens,
 commerce flows, and localization are not implemented.
 
 ## Run and check
@@ -33,12 +34,19 @@ PowerShell blocks the `.ps1` wrappers. Build before using `start`.
 
 ## API requests and TanStack Query
 
-Use [`src/api/client.ts`](src/api/client.ts) for HTTP requests. It configures
-`NEXT_PUBLIC_API_URL` and a 15-second timeout once. API feature modules such as
-[`src/api/auth.ts`](src/api/auth.ts) own request payloads, response data, and
+Use [`src/utils/axiosInstance.ts`](src/utils/axiosInstance.ts) for HTTP requests.
+It configures `NEXT_PUBLIC_API_URL`, credentials, and a 15-second timeout once.
+API feature modules such as [`src/api/auth.ts`](src/api/auth.ts) own request payloads, response data, and
 TanStack options. Define each request inline in its `mutationFn` or `queryFn`,
 return the response data, and let failures reject so TanStack can track the error
 state.
+
+Every auth mutation follows one schema-driven pattern:
+`payload: z.input<typeof schema>` derives its TypeScript input, and
+`schema.parse(payload)` validates/transforms the body before Axios sends it.
+Registration uses `registrationSchema` without the form-only confirmation field.
+Named form-value types remain available for React Hook Form; API request types
+come directly from their request schemas.
 
 Export `mutationOptions({ mutationKey, mutationFn, ... })` for writes, and
 `queryOptions({ queryKey, queryFn, ... })` for reads. Consumers pass those options
@@ -53,11 +61,20 @@ options and submitted details. This preserves the original registration snapshot
 and reuses `/api/user-registration` rather than adding a duplicate endpoint.
 The login page uses `loginMutation` to post `{ email, password }` to `/api/login`
 with `withCredentials: true`, then navigates to `/` with `next/navigation`.
-The mutation returns a validated message; it does not store the response's user
-projection or establish client session state. The backend now exposes
-`POST /api/refresh-token` using the existing refresh cookie, but the client has no
-refresh mutation, automatic retry interceptor, or session restoration. A future
-caller must enable credentials; see the
+The mutation returns a validated message. On success, the page cancels an older
+lookup and invalidates the
+shared `currentUserQuery` (`['user']`), awaits the active refetch, then navigates
+home. `useUser` shares this query between header actions, the mobile menu, and
+`/profile`. It validates the public user response, caches it for five minutes,
+and maps a final 401 to `null`. Stale queries can refetch on focus; no polling or
+localStorage token storage is used. Network/server errors stay errors.
+On a protected request's 401, the
+Axios interceptor shares one `POST /api/refresh-token` call across waiting requests
+and retries each request once. Refresh failure rejects every waiter. A refresh
+401 redirects other protected requests to `/login`; current-user checks leave
+public pages open and show signed-out state. Server/network failures never force
+that redirect. Login and refresh preserve their own errors without starting
+another refresh. See the [session walkthrough](../../docs/development/session-flow.md) and
 [refresh contract](../../docs/reference/api.md#access-token-refresh). The page currently owns a
 `serverError` message and reads the Axios response message with a fallback.
 Use `getApiErrorMessage` from [`src/api/auth.ts`](src/api/auth.ts) for
@@ -197,7 +214,10 @@ introduction/form at desktop widths and one column on mobile.
 `GoogleButton` remains disabled until OAuth is implemented.
 Both `common` and `layout` are re-exported from `src/components/index.ts`.
 
-The header links to `/login`, `/wishlist`, and `/cart`. `/login` renders the
+The account action shows a user's initial and links to `/profile` when signed in,
+or to `/login` when signed out. The compact menu follows the same state. While
+checking, the action is not a sign-in link. Errors open `/profile` for retry.
+Wishlist/cart links are unchanged. `/login` renders the
 login form with backend submission and `/sign-up` renders registration and OTP verification.
 `/forgot-password` connects email submission, recovery OTP verification, and new-password
 confirmation to the backend. Resend respects server cooldowns and conflicting actions
@@ -212,6 +232,7 @@ visible branding both use Eshop. No search backend is connected.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `/`                | Placeholder page with the header, `ThemeToggle`, and sticky `HeaderBottom` navigation                               |
 | `/login`           | Validated credential POST to `/api/login`, server error feedback, and redirect to `/` on success                    |
+| `/profile`         | Current account name/email, initial loading state, retryable errors, or a sign-in prompt |
 | `/sign-up`         | Registration and 4-digit `OtpInput` verification flow with Zod/RHF validation, TanStack Query mutations, and reveal |
 | `/forgot-password` | Recovery email, four-digit OTP verification, new-password confirmation, and success with a sign-in link             |
 | `/api/hello`       | Plain text `Hello, from API!` from a Next.js route handler                                                          |
@@ -246,10 +267,9 @@ node --experimental-strip-types --test apps/client/src/schemas/auth.schema.test.
 ```
 
 Login's **Remember me** checkbox is not included in the request and does not
-change the backend's fixed cookie lifetime. Its loading indicator currently uses
-React Hook Form's `isSubmitting`, while the submit handler starts a mutation
-without awaiting it; a pending-request lock is not implemented on this page.
-Server errors are stored locally and are not cleared when another attempt starts.
+change the backend's fixed cookie lifetime. Its loading indicator includes
+mutation pending state through the post-login current-user refetch. Server
+errors are stored locally and clear when another attempt starts.
 The backend login lookup does not normalize email case. Browser cookie acceptance,
 redirect behavior, and the theme script remount workaround remain unverified.
 
