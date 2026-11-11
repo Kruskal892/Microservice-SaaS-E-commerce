@@ -18,11 +18,14 @@ form controls (`Field`, `Label`, `Input`, `FieldError`, `Checkbox`, `Button`),
 and client-side validation via `react-hook-form` and `zod` (`loginSchema` in
 `src/schemas/auth.schema.ts` with `zodResolver` in `src/utils/zod-resolver.ts`).
 `/sign-up` connects registration (`POST /api/user-registration`) and OTP
-verification (`POST /api/verify-registration`) through `src/api/` (`client.ts`,
-`auth.ts`). `auth.ts` owns auth mutations and message/retry parsing; the separate
+verification (`POST /api/verify-registration`) through `src/api/auth.ts` and the
+shared `src/utils/axiosInstance.ts`. `auth.ts` owns auth mutations, the
+current-user query, and message/retry parsing; the separate
 `messages.ts` module was removed. `/login` uses `loginMutation` to post credentials
 with `withCredentials: true` and navigates to `/` on success. Resend reuses registration delivery.
-Session-aware UI and commerce flows remain unwired.
+`useUser` shares the current-user cache between desktop/mobile account links and
+the read-only `/profile` page. Login invalidates it before navigation. Commerce
+flows remain unwired. See the [session walkthrough](../development/session-flow.md).
 
 The shared `packages/ui/theme.css`, imported by client global CSS, owns the
 Tailwind CSS-first `@theme` that registers brand/status colors, font, spacing,
@@ -176,13 +179,14 @@ two JWTs, and returns a public user projection. Tokens carry a fixed user role;
 there is no role lookup or session persistence. `POST /api/refresh-token`
 verifies the refresh cookie, checks the user by ID, and signs a replacement access
 JWT. Shared `isAuthenticated` verifies an access cookie or header token and loads
-`req.user`, but no production route mounts it. The access/refresh secrets are
+`req.user` on `GET /api/logged-in-user`. That controller returns only public
+`id`, `email`, and `name` fields with no-store. The access/refresh secrets are
 separate environment inputs.
 
 The cookie helper sets both tokens as HttpOnly/Secure/SameSite=None cookies with
 a 7-day lifetime; the access JWT itself expires after 15 minutes. Browser cookie
 policy, generic credential errors, input normalization, refresh rotation/revocation,
-logout, and mounting middleware on protected routes remain follow-ups. Refresh
+logout, and authorization for future resource routes remain follow-ups. Refresh
 leaves the original refresh cookie and JWT expiry unchanged. Expected JWT failures
 return 401; database/configuration failures remain server errors. Exact behavior is in the
 [login contract](../reference/api.md#login-and-jwt-cookies).

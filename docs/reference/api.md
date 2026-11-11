@@ -3,7 +3,7 @@
 [Documentation hub](../README.md) · [Request flow diagrams](../architecture/request-flows.md)
 
 **Status:** Current source contracts; runtime integrations unverified.
-**Reviewed:** 2026-11-10 (refresh and middleware); other contracts retain their source baseline.
+**Reviewed:** 2026-11-11 (current user and client session flow); other contracts retain their source baseline.
 
 ## Available routes
 
@@ -32,6 +32,7 @@ schemas and password confirmation are separate from these backend contracts.
 | POST   | `/api/verify-forgot-password-user` | Auth               | Verify recovery OTP and issue a five-minute single-use reset token |
 | POST   | `/api/reset-password-user`         | Auth               | Consume reset token and conditionally update the verified password |
 | POST   | `/api/refresh-token`               | Auth               | Validate refresh cookie; set access cookie; 201                    |
+| GET    | `/api/logged-in-user`              | Auth + middleware  | Verify access token; 200 public user, no-store; 401 if rejected |
 | GET    | `/api-docs`                        | Auth               | Swagger UI; Express/Swagger may redirect to trailing slash         |
 | GET    | `/docs-json`                       | Auth               | Committed Swagger 2.0 JSON                                         |
 
@@ -40,8 +41,8 @@ Gateway forwards other paths unchanged to `AUTH_SERVICE_URL`, default
 gateway `/api/user-registration`, `/api/verify-registration`, and `/api/login`
 forward to auth unchanged, as do `/api/refresh-token` and the three password-recovery routes.
 Unmatched auth paths use Express's default 404.
-Logout, current-user lookup, protected routes, and commerce remain unavailable.
-Shared access-token middleware exists but is not mounted on production routes.
+Logout and commerce remain unavailable. Shared access-token middleware protects
+current-user lookup; future protected resources still need authentication and authorization.
 
 ## Registration
 
@@ -215,8 +216,8 @@ not extend JWT validity. The helper has no development/environment override;
 verify browser cookie acceptance in the intended HTTPS setup. Browser callers
 need credentials enabled, for example `fetch(url, { credentials: 'include' })`.
 The refresh endpoint below verifies the refresh cookie and replaces the access
-cookie. Shared middleware can verify access tokens but has no production route
-consumer. There is no persistent session/refresh-token store, logout, revocation,
+cookie. Shared middleware verifies access tokens on `GET /api/logged-in-user`.
+There is no persistent session/refresh-token store, logout, revocation,
 or role lookup; login assigns `role: 'user'`.
 
 ## Access-token refresh
@@ -247,7 +248,29 @@ claims. It sets `access_token` through the existing cookie helper and returns:
 has HttpOnly/Secure/SameSite=None and seven-day retention; its JWT still expires
 after 15 minutes. The refresh cookie and original seven-day JWT expiry are
 unchanged. No token is returned in JSON, and there is no rotation, revocation,
-logout, or frontend automatic refresh. Existing refresh JWTs survive password reset.
+or logout. The client automatically shares refresh across concurrent failed
+requests and retries each once. Existing refresh JWTs survive password reset.
+
+## Current authenticated user
+
+`GET http://localhost:6001/api/logged-in-user` (also forwarded unchanged by the gateway).
+No body or user ID is accepted. Send the access cookie, or an Authorization
+header token. `isAuthenticated` verifies the access JWT and loads its account.
+
+HTTP 200, with `Cache-Control: no-store`:
+
+```json
+{ "success": true, "user": { "id": "507f1f77bcf86cd799439011", "email": "customer@example.com", "name": "Example Customer" } }
+```
+
+Only these public fields are returned; password hashes and tokens are excluded.
+Missing/rejected/expired tokens or deleted accounts return 401 with
+`{ "message": "Unauthorized: ..." }`. Database/configuration failures remain 500.
+The client attempts refresh and one retry after 401, then maps final 401 to
+signed out. A 404/network/500 response remains an error. Signed-out current-user
+checks do not redirect public pages. Login invalidates the shared user query;
+header/mobile account actions link authenticated users to `/profile`.
+See the [session walkthrough](../development/session-flow.md).
 
 ## Password recovery
 
@@ -383,7 +406,8 @@ Class definitions are in [technical design](../architecture/technical-design.md#
 ## Swagger coverage
 
 [swagger-output.json](../../apps/auth-service/src/swagger-output.json) declares
-Swagger 2.0, host `localhost:6001`, and documents all seven auth POST routes.
+Swagger 2.0, host `localhost:6001`, and documents all seven auth POST routes plus
+the protected current-user GET route.
 JSON-body routes include required request fields, examples, and 200 responses.
 Refresh documents cookie input, a 201 response, and 401/500 errors.
 Recovery routes describe validation, purpose-specific OTPs, single-use reset authorization,

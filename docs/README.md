@@ -7,20 +7,25 @@ request an email OTP, verify it to create an account, and log in to receive JWT
 cookies. Three recovery routes support purpose-specific OTP verification and
 [expiring single-use reset authorization](development/authentication.md#password-recovery).
 Cookie-based [access-token refresh](reference/api.md#access-token-refresh) and shared
-access-token verification middleware are implemented. The middleware is not mounted
-on any production route. Protected routes, refresh rotation/revocation, logout,
-client session handling, storefront, and commerce remain unfinished. The client renders a header with sticky navigation and `ThemeToggle`,
+access-token verification middleware are implemented. The middleware protects
+`GET /api/logged-in-user`. The header and read-only `/profile` share a current-user
+query, and Axios handles one access-token refresh and retry. Refresh
+rotation/revocation, logout, storefront, and commerce remain unfinished. The client renders a header with sticky navigation and `ThemeToggle`,
 a placeholder `/` page, and `/login` and `/sign-up` pages with shared
 controls and Zod/React Hook Form validation; `/sign-up` connects registration and
 OTP verification to the backend via Axios and TanStack Query. `/login` now posts
 credentials with cookies enabled and redirects to `/` on success. OTP resend reuses registration delivery with a server-enforced cooldown.
-Google sign-in, session-aware UI, and shopping flows remain incomplete. Backend
+Google sign-in and shopping flows remain incomplete. Backend
 password reset is enabled and connected to `/forgot-password`; existing JWT revocation remains absent. **Auth/client baseline reviewed: 2026-11-06.**
-Refresh/middleware source and documentation reviewed 2026-11-10; 93 mocked auth
-tests and auth app/spec TypeScript checks pass. Live integrations are unverified.
+Current-user/header/profile source and documentation updated 2026-11-11;
+new regressions, lint, builds, and live browser/API flows were not run for this update.
+The 2026-11-10 checkpoint passed 93 mocked auth tests and auth app/spec TypeScript
+checks; that historical result does not validate the new changes.
 The shared workspace remains `@microservice-eshop/shared`; folder imports such as
 `@packages/middleware` resolve through source aliases.
 
+Start with [how login and the current-user API work](development/session-flow.md)
+for a beginner walkthrough of cookies, JWTs, refresh, caching, and security limits.
 The [client guide](../apps/client/README.md) owns the current `ThemeProvider`
 configuration, mounted switch behavior, auth form limits, password reveal
 controls, and responsive header behavior. Source and documentation checks are

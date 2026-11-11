@@ -124,8 +124,9 @@ so adding a folder does not require editing the aggregate barrel or wildcard.
 `packages/middleware/index.ts` now exports `isAuthenticated`, and the aggregate
 barrel re-exports it. Consumers can import from `@packages/middleware`. It verifies
 access JWTs, loads `req.user`, returns 401 for rejected credentials, and forwards
-unexpected errors. No production route mounts it yet; consumers must explicitly
-choose protected routes and mount their error handler afterward.
+unexpected errors. `GET /api/logged-in-user` mounts it and projects only public
+fields. Future consumers must explicitly choose protected routes and mount
+their error handler afterward. See the [session walkthrough](session-flow.md).
 
 Auth's solution `tsconfig.json` references its app/spec configs; the shared-library
 reference remains in `tsconfig.app.json`. Auth also has `bundle: true` in its esbuild target.

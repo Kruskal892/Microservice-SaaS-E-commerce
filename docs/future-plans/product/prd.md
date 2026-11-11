@@ -12,8 +12,8 @@ Customers need to find products, manage a cart, and place and review orders.
 Developers need an Nx workspace with explicit service ownership and contracts.
 Today gateway/auth source includes greetings, registration/OTP delivery,
 verification/account persistence, login with access/refresh JWT cookies,
-cookie-based access refresh, and shared access-token middleware. Protected route
-consumers, client session handling, refresh rotation/revocation, logout, and the
+cookie-based access refresh, and middleware-protected current-user GET. Header
+and read-only profile share that user query. Refresh rotation/revocation, logout, and the
 customer purchase journey remain
 unfinished; live identity integrations are unverified. See
 [current implementation status](../../operations/implementation-status.md).
@@ -22,7 +22,7 @@ The client now has `/login` and `/sign-up` form scaffolds, local validation,
 password visibility controls, a responsive header, and persisted `next-themes`
 switching. Registration, OTP verification, and login submit to backend auth;
 login enables cookie credentials and redirects to `/`. OTP resend uses registration delivery with a server-enforced cooldown. Google
-sign-in is disabled and session-aware UI is absent. Backend password reset uses
+sign-in is disabled; session-aware account navigation and `/profile` are connected. Backend password reset uses
 expiring single-use tokens, with connected frontend email, OTP, password confirmation, and success states. This is not a completed identity flow.
 
 The repository name includes SaaS, but tenant isolation, subscriptions, merchant

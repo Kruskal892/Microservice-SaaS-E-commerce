@@ -128,9 +128,10 @@ deployment. Both cookies have 7-day retention, while the access JWT expires in
 15 minutes. `POST /api/refresh-token` validates the refresh cookie and replaces
 the access cookie without rotation or extending the refresh JWT expiry. Auth
 parses incoming cookies; the gateway forwards them. Shared access-token
-verification middleware exists but no production route mounts it. Logout,
-revocation state, frontend session/refresh handling, and production identity
-enforcement remain incomplete. Verify that database/configuration failures
+verification middleware protects current-user lookup. Header/profile state is
+restored through a shared query, and Axios coordinates access refresh. Logout,
+revocation state, and authorization for future resources remain incomplete.
+Current-user responses exclude password hashes and use no-store. Verify that database/configuration failures
 remain server errors, while rejected credentials return 401.
 
 ## Health, database rollout, and shutdown

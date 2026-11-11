@@ -67,8 +67,9 @@ public errors and structured/correlated logging; do not log credentials or
 personal request payloads.
 
 Current auth signs access/refresh JWTs and exposes cookie-based access refresh.
-Shared authentication middleware verifies access JWTs but has no production
-route consumer. Refresh rotation, logout, and revocation state remain absent. The existing
+Shared authentication middleware verifies access JWTs on current-user GET;
+the header/profile share the result and Axios coordinates access refresh.
+Refresh rotation, logout, and revocation state remain absent. The existing
 fixed role and Secure/HttpOnly/SameSite=None cookie policy are the baseline to
 review when deciding production identity and browser security, rather than a
 completed implementation of this target. See [current authentication](../../development/authentication.md).

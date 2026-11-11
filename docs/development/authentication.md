@@ -6,6 +6,9 @@
 **Auth backend and client reviewed:** 2026-11-06.
 **Backend recovery updated:** 2026-11-08.
 **Refresh and shared authentication middleware updated:** 2026-11-10.
+**Current-user query, header, and profile updated:** 2026-11-11.
+
+New to backend authentication? Start with the [session walkthrough](session-flow.md).
 
 The Next.js client includes `/login` and `/sign-up` forms with a shared
 `AuthCard`, shared `Input type="password"` eye/eye-off controls, and React Hook Form + Zod
@@ -13,8 +16,8 @@ validation (`loginSchema`, `signUpSchema`, `otpCodeSchema`, and `verifyOtpSchema
 Login posts `{ email, password }` through `loginMutation` with cookies enabled,
 shows a local server error on failure, and navigates to `/` on success. Its
 remember-me checkbox does not change the request or fixed cookie lifetime.
-The loading indicator uses React Hook Form's `isSubmitting` rather than mutation
-pending state, and server errors are not cleared on retry. These remain limitations.
+The loading indicator includes mutation pending state, server errors clear on
+submission, and success invalidates the shared current-user query before navigation.
 Sign-up collects name, email, password,
 and password confirmation, posts validated details to `/api/user-registration`
 via `registrationMutation`, and opens the `OtpInput` verification view on
@@ -33,7 +36,8 @@ sign-in is disabled. The forgot-password link opens the connected recovery flow:
 request an email code, verify it, enter and confirm a new password, then return to
 sign-in from the success message. Requests have mutation pending guards, resend
 cooldowns, server error feedback, and recovery after uncertain delivery.
-There is no client session handling or cookie consumption yet. Use the
+The header and `/profile` obtain public account data from `GET /api/logged-in-user`;
+Axios sends HttpOnly cookies and coordinates refresh. Use the
 [client README](../../apps/client/README.md) for frontend setup.
 
 ## Current registration behavior
@@ -121,8 +125,10 @@ to `AuthError`; unexpected database, configuration, or signing failures reach
 shared error handling as 500. A missing refresh signing secret is checked at
 request time; there is no central startup configuration validation.
 
-There is no refresh rotation, persisted revocation state, logout, or frontend
-automatic refresh/session restoration. Password reset does not invalidate
+The Axios interceptor coordinates one refresh across concurrent 401s and retries
+each request once. Login and refresh requests bypass that interception.
+The current-user query maps final 401 to signed out without redirecting public pages.
+There is no refresh rotation, persisted revocation state, or logout. Password reset does not invalidate
 existing refresh JWTs. See the [API contract](../reference/api.md#access-token-refresh).
 
 ## Shared access-token middleware
@@ -139,8 +145,10 @@ Missing/invalid/expired/not-yet-active tokens or deleted users return 401 direct
 as `{ "message": "Unauthorized: ..." }`, without the shared `status` field.
 Unexpected database/configuration errors pass to `next(error)` so the application
 can return a server error. Consumers must mount cookie parsing for cookie input
-and shared error handling after routes. No current production route uses this
-middleware; its behavior is covered by isolated auth-service tests.
+and shared error handling after routes. `GET /api/logged-in-user` mounts this
+middleware, then returns only `{ id, email, name }` with HTTP 200 and no-store.
+The header, mobile menu, and profile share a five-minute TanStack cache; login
+invalidates it. This UI cache does not authorize other backend operations.
 
 ## Password recovery
 
@@ -262,11 +270,11 @@ The current Dockerfile has no explicit Prisma-generation step; inspect the
 With registration, verification, and login/token issuance present in source, the remaining authentication
 capabilities include:
 
-- Align login loading/error reset with mutation state, implement remember-me
-  behavior if required, and add session-aware UI/current-user state.
+- Implement remember-me behavior if required; the header/current-user cache and
+  login pending/error lifecycle are now connected.
 - Consistent input validation/normalization and generic login credential failures.
-- Mount the implemented JWT middleware on protected routes and add current-user lookup.
-- Connect frontend refresh/session handling and implement refresh-token rotation
+- Authenticate and authorize future protected resources; current-user lookup is mounted.
+- Implement refresh-token rotation
   with a persisted revocation policy.
 - Align access-cookie retention with token expiry and verify browser/CSRF policy.
 - Logout and session/token revocation.

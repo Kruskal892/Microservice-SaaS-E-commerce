@@ -10,9 +10,9 @@ assignments, estimates, tickets, or dates are supplied.
 
 Gateway/auth tooling, OTP delivery, and registration verification with account
 creation exist. Login now compares password hashes and issues access/refresh JWT
-cookies. Access refresh and shared access-token middleware now exist, but the
-middleware has no production route consumer. A complete identity lifecycle
-(protected requests, client session handling, refresh rotation,
+cookies. Access refresh and shared middleware protect current-user GET; the
+header/profile share a user query with automatic access refresh. A complete identity lifecycle
+(authorization for future resources, refresh rotation,
 logout/revocation), customer purchase journey, and production infrastructure do not.
 [Implementation status](../operations/implementation-status.md) tracks evidence.
 Prisma 6.19 and users/images provide part of D-01; F-02/F-03/F-04, A-02, and R-01 also
@@ -32,7 +32,7 @@ system tracking, and cross-tab synchronization), a placeholder `/` page, `/login
 forms connected to registration, OTP verification, and login, and the supplied
 [design tokens](../reference/design-tokens.md). Login enables cookie credentials
 and redirects to `/`; backend reset uses expiring single-use authorization. This is partial U-01
-foundation, not completion: catalog/cart screens, session-aware UI,
+foundation, not completion: catalog/cart screens, profile editing,
 existing JWT revocation, localization, responsive verification, and a runnable
 browser/UI test target remain open. Permanent standalone client schema/message
 tests and mocked auth controller/helper/middleware regressions exist; all 93 auth

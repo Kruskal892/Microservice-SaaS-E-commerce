@@ -6,8 +6,10 @@ import {
   userRegistration,
   userVerification,
   refreshToken,
+  getLoggedInUser,
 } from '../controller/auth.controller';
 import { verifyForgotPasswordOtp } from '../utils/auth.helper';
+import { isAuthenticated } from '@packages/middleware';
 
 const router: Router = express.Router();
 
@@ -124,4 +126,26 @@ router.post(
   refreshToken,
 );
 
+router.get(
+  '/logged-in-user',
+  /* #swagger.auto = false
+     #swagger.tags = ['Authentication']
+     #swagger.summary = 'Get the authenticated user'
+     #swagger.description = 'Requires an access_token cookie or Authorization header token. Shared middleware verifies the access JWT and loads the existing account. Returns only public id, email, and name fields with Cache-Control: no-store. Does not create a session or refresh tokens; the client may call the refresh endpoint after a 401 and retry once.'
+     #swagger.responses[200] = {
+       description: 'Authenticated account; no password hash or token values.',
+       schema: { success: true, user: { id: '507f1f77bcf86cd799439011', email: 'customer@example.com', name: 'Example Customer' } }
+     }
+     #swagger.responses[401] = {
+       description: 'Access token missing, invalid, expired, missing claims, or associated account deleted.',
+       schema: { message: 'Unauthorized: Access token is missing' }
+     }
+     #swagger.responses[500] = {
+       description: 'Unexpected database or JWT configuration failure.',
+       schema: { error: 'Something went wrong please try again' }
+     }
+  */
+  isAuthenticated,
+  getLoggedInUser,
+);
 export default router;

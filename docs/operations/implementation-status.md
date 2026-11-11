@@ -2,8 +2,8 @@
 
 [Documentation hub](../README.md) · [Future implementation plan](../future-plans/implementation-plan.md)
 
-**Reviewed:** Refresh, shared authentication middleware, workspace naming, and related
-documentation 2026-11-10; other areas retain their dated snapshots.
+**Reviewed:** Current-user GET, session-aware header/profile, client refresh,
+and related documentation 2026-11-11; other areas retain their dated snapshots.
 This inventory reflects source/configuration inspection, not full runtime verification.
 The capability inventory and dated client sections describe the current UI.
 Older dated sections retain historical implementation and validation records;
@@ -14,15 +14,15 @@ their UI details and command results do not verify the current working tree.
 | Area                            | Present in source/configuration                                                                                                                                                                              | Remaining work                                                                                                                         |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Workspace                       | Nx/npm, strict TypeScript, shared aliases and project references                                                                                                                                             | Verify relevant targets as code changes                                                                                                |
-| Client scaffold                 | Shared Header/ThemeToggle, registration, OTP verification and resend, login credential POST, password recovery, placeholder home                                                                             | Session-aware UI, storefront, localization, browser/E2E checks                                                                         |
+| Client scaffold                 | Session-aware header/mobile account links, read-only profile, shared current-user query, registration/OTP, login, recovery, home | Storefront, localization, browser/E2E checks |
 | Design tokens                   | Tailwind v4 brand/status and light/dark semantic colors, font/type/spacing/radius scales (`--text-callout`), named breakpoints (`desktop:` 1440px auth split), pre-paint `data-theme` initialization         | Component styling across future storefront screens, font/browser and accessibility verification                                        |
 | Shared UI                       | `@packages/ui` native/Radix controls, typed props/refs, shared tokens, overridable Button hover/active classes, Storybook states and play checks                                                             | Run authored play/a11y checks, browser verification, complete Figma draft, adoption checks in additional apps                          |
 | Shared assets                   | Repo-wide SVG files and exports in `packages/assets` (all monochrome icons use `currentColor`, plus `GoogleIcon`, `SunIcon`, `MoonIcon`, `EyeIcon`, `EyeOffIcon`), typed SVG declarations, client SVGR rules | Additional-app bundler adoption and production validation                                                                              |
 | Gateway                         | Local health, configurable auth proxy, in-memory quota, body limit, timeout, shared errors                                                                                                                   | E2E alignment, production identity/proxy policy, explicit upstream failure mapping                                                     |
 | Registration                    | Validation/normalization, Prisma lookup, SET NX cooldown, INCR request counter, SMTP delivery, resend countdown                                                                                              | Verify bounded send timing, concurrency, and Redis/SMTP failures                                                                       |
 | Verification and identity       | Shared registration validation/normalization, OTP validation, post-persistence matching-code cleanup, bcrypt hashing, unique email persistence                                                               | Run regression tests; verify live database indexes and failure handling                                                                |
-| Login and JWT cookies           | Client login POST and redirect to /; backend bcrypt comparison, access/refresh JWT cookies, public user response                                                                                             | Loading/error lifecycle, remember-me behavior, protected routes, refresh rotation/revocation, logout, browser cookie/CSRF verification |
-| Refresh and access verification | `POST /api/refresh-token`, incoming cookie parsing, shared `isAuthenticated` export with user lookup and infrastructure-error forwarding                                                                     | Mount middleware on protected routes; frontend session/automatic refresh; rotation/revocation                                          |
+| Login and JWT cookies           | Login POST, pending/error feedback, user-cache invalidation before redirect; bcrypt comparison, JWT cookies, public user response | Remember-me, commerce authorization, rotation/revocation, logout, browser cookie/CSRF verification |
+| Refresh and access verification | Protected current-user GET/no-store; cookie parsing, shared refresh Promise, one retry, guest state without public-page redirect | Rotation/revocation, live cookie/concurrency verification |
 | Password recovery               | Recovery OTPs, atomic verification, five-minute single-use reset grants, conditional password update and notification                                                                                        | Existing JWT revocation, account enumeration mitigation, browser and live integration verification                                     |
 | Data                            | Prisma 6.19 MongoDB users/images schema (unused imagesId removed), shared client wrapper, active write path                                                                                                  | Verify live connectivity, applied indexes, and seed/migration workflow                                                                 |
 | Redis                           | Bounded ioredis client; native sending commands; Lua matching-code cleanup after account creation                                                                                                            | Atomic failed-verification updates, live checks, lifecycle cleanup                                                                     |
@@ -44,10 +44,10 @@ their UI details and command results do not verify the current working tree.
   slower/background sending needs ownership checks. Registration failed-verification
   counters remain sequential and can race; recovery verification uses a Lua script. SMTP acceptance precedes OTP storage;
   a later Redis failure can leave delivery/storage unconfirmed.
-- Gateway counters are process-local; direct auth access bypasses them. Neither
-  service mounts access-token verification on production routes or trusts a
-  configured production ingress. Shared middleware is implemented, but login
-  and refresh do not themselves protect other routes.
+- Gateway counters are process-local; direct auth access bypasses them. Auth
+  mounts access-token verification on current-user GET, but future resource
+  routes need their own authentication/authorization. Neither service trusts a
+  configured production ingress. Login and refresh do not protect unrelated routes.
 - Login checks field truthiness only and does not normalize email. Unknown users
   return 400 while wrong passwords return 401, revealing different failure cases.
   Missing parsed bodies or signing secrets can reach the generic 500 handler.
@@ -56,10 +56,9 @@ their UI details and command results do not verify the current working tree.
   refresh rotation, logout, persisted revocation state, or browser/CSRF verification.
   Refresh validates the existing refresh cookie and replaces only the access
   cookie without extending the refresh JWT expiry.
-- Client login's remember-me checkbox is not submitted. Its loading indicator
-  uses `isSubmitting` while the handler starts a mutation without awaiting it;
-  mutation pending state does not lock the form. Local server errors persist on
-  retry, and the user projection is not stored as client session state.
+- Client login's remember-me checkbox is not submitted. Pending state now locks
+  submission through the user-query invalidation; server errors clear on retry.
+  The five-minute user cache drives UI only and is not authorization proof.
 - The theme provider's executable-server/inert-client bootstrap workaround is
   present in `src/app/providers.tsx`; no browser/hydration verification followed it.
 - Database synchronization and successful persistence against live MongoDB
@@ -77,6 +76,23 @@ Detailed behavior belongs in [architecture](../architecture/overview.md),
 [request flows](../architecture/request-flows.md),
 [testing](../development/testing.md), and [deployment](deployment.md).
 
+## Session-aware header and profile: 2026-11-11
+
+- Current-user GET mounts `isAuthenticated`, returns only `{ id, email, name }`,
+  and sets no-store. Header account actions show the user's initial and link to
+  `/profile`; the compact menu also changes to a profile link.
+- `currentUserQuery`/`useUser` share a five-minute cache, validate public fields,
+  and map only final 401 to signed out. Login invalidates that cache before
+  navigating. Profile has loading, read-only details, guest, and retry states.
+- Axios shares one refresh Promise and retries each original request once.
+  Guest current-user checks never force public pages to login; transient errors
+  stay errors. Login/refresh bypass refresh interception.
+- Permanent API/cache/refresh/controller regressions were added or updated but
+  not run. Tests, lint, builds, and live browser verification remain unrun for
+  this update. Historical counts below do not validate the new behavior.
+- [Beginner session walkthrough](../development/session-flow.md) explains the
+  requests, cookies, JWT expiry, cache, and remaining security work.
+
 ## Access-token refresh and shared middleware: 2026-11-10
 
 - `POST /api/refresh-token` validates the `refresh_token` cookie, checks the user
@@ -87,8 +103,9 @@ Detailed behavior belongs in [architecture](../architecture/overview.md),
   the access cookie, then a header token, verifies claims, loads `req.user`, and
   calls `next()`. It returns 401 for rejected credentials and forwards unexpected
   errors. It is exported through `@packages/middleware` and the aggregate barrel.
-- No production route mounts the middleware. Frontend automatic refresh/session
-  restoration, refresh rotation/revocation, logout, and role authorization are absent.
+- At this historical checkpoint the middleware was not mounted and frontend
+  refresh/session restoration was absent; the 2026-11-11 update above adds both.
+  Refresh rotation/revocation, logout, and role authorization remain absent.
   Existing JWTs, including refresh JWTs, are not invalidated by password reset.
 - The workspace npm name remains `@microservice-eshop/shared`, consistent across
   the shared manifest, backend dependencies, and lockfile. `@packages/*` remains

@@ -1,6 +1,10 @@
 'use client';
 
-import { loginMutation } from '@/api/auth';
+import {
+  currentUserQuery,
+  getApiErrorMessage,
+  loginMutation,
+} from '@/api/auth';
 import { AuthCard } from '@/components';
 import { type LoginFormValues, loginSchema } from '@/schemas';
 import { zodResolver } from '@/utils/zod-resolver';
@@ -12,8 +16,7 @@ import {
   Input,
   Label,
 } from '@packages/ui';
-import { useMutation } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,6 +25,7 @@ import { useForm } from 'react-hook-form';
 export default function Login() {
   const [serverError, setServerError] = useState<string | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const {
     register,
     handleSubmit,
@@ -33,18 +37,22 @@ export default function Login() {
 
   const useLoginMutation = useMutation({
     ...loginMutation,
-    onSuccess: (data) => {
+    onSuccess: async () => {
+      await queryClient.cancelQueries({ queryKey: currentUserQuery.queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: currentUserQuery.queryKey,
+      });
       router.push('/');
     },
-    onError: (error: AxiosError) => {
-      const errorMessage =
-        (error.response?.data as { message?: string })?.message ||
-        'Login failed. Please try again.';
-      setServerError(errorMessage);
+    onError: (error) => {
+      setServerError(
+        getApiErrorMessage(error, 'Login failed. Please try again.'),
+      );
     },
   });
 
   const onSubmit = (data: LoginFormValues) => {
+    setServerError(null);
     useLoginMutation.mutate(data);
   };
 
@@ -131,7 +139,7 @@ export default function Login() {
         <Button
           type="submit"
           size="lg"
-          loading={isSubmitting}
+          loading={isSubmitting || useLoginMutation.isPending}
           className="w-full"
         >
           Sign in

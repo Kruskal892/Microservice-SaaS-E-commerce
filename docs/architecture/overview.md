@@ -16,7 +16,10 @@ page, and a local hello route. Both forms use Zod/React Hook Form validation.
 `/sign-up` connects registration (`POST /api/user-registration`) and OTP
 verification (`POST /api/verify-registration`) via Axios and TanStack Query;
 `/login` posts credentials with cookies enabled and redirects to `/` on success.
-OTP resend reuses registration delivery with a server-enforced cooldown; Google sign-in remains disabled. Client session-aware UI is not implemented.
+OTP resend reuses registration delivery with a server-enforced cooldown; Google
+sign-in remains disabled. The header, mobile menu, and read-only `/profile`
+share a current-user query backed by the protected GET API. Login invalidates
+that cache, and Axios coordinates one refresh/retry for expired access tokens.
 The gateway has one upstream, auth; it does not yet route among multiple
 business services or authenticate users.
 
@@ -82,12 +85,12 @@ client TanStack Query mutations cover registration, OTP verification, and login
 (`registrationMutation`, `verifyOtpMutation`, and `loginMutation`). Resend reuses the registration mutation in a separate instance. Auth login uses jsonwebtoken and Express
 cookie writing and validates refresh cookies at `POST /api/refresh-token`.
 Shared `isAuthenticated` middleware verifies access JWTs, loads the user, and
-sets `req.user`; no production route mounts it yet.
+sets `req.user`; `GET /api/logged-in-user` mounts it and returns only public fields.
 
 Shared authentication middleware is exported from
 [`packages/middleware`](../../packages/middleware/index.ts). Missing or rejected
 access tokens return 401; database/configuration errors pass to application error
-handling. It is available for future routes and does not enforce authorization
+handling. It also remains available for future routes and does not enforce authorization
 roles. See [authentication development](../development/authentication.md#shared-access-token-middleware).
 
 ## Runtime constraints
@@ -104,7 +107,7 @@ roles. See [authentication development](../development/authentication.md#shared-
   refresh JWTs, and sets both cookies with a 7-day lifetime. Cookies always use
   Secure, HttpOnly, and SameSite=None. Refresh validates the refresh cookie and
   replaces the access cookie without rotating/extending the refresh JWT. Logout,
-  revocation, and protected route consumers remain unimplemented; browser policy
+  revocation, and commerce authorization remain unimplemented; browser policy
   is unverified.
 - OTP cooldown acquisition uses atomic `SET NX` and request counting uses `INCR`.
   The overall sequence and failed-verification updates are separate commands.
@@ -115,7 +118,8 @@ roles. See [authentication development](../development/authentication.md#shared-
   password update. The frontend connects recovery steps; existing JWT revocation is absent.
   See [password recovery](../development/authentication.md#password-recovery).
 - Both entry points call `app.listen()` directly. Dependency readiness,
-  graceful shutdown, request identity enforcement, and production ingress are absent.
+  graceful shutdown and production ingress are absent. Request identity is
+  enforced on current-user lookup; future resource APIs need their own checks.
 - Docker packaging is an unverified scaffold. Its current single-stage
   Dockerfile uses `node:lts-alpine` and `npm --omit=dev -f install`; it has no
   explicit Prisma generation or non-root user configuration.

@@ -1,6 +1,7 @@
 'use client';
 
 import { NAV_MENU } from '@/app/constants/navigation-menu';
+import useUser from '@/hooks/useUser';
 import {
   Button,
   Icon,
@@ -22,7 +23,7 @@ export function HeaderBottom() {
   return (
     <nav
       aria-label="Main navigation"
-      className="mx-auto hidden min-h-12 max-w-[1440px] items-center gap-3 px-12 min-[64rem]:flex desktop:px-20"
+      className="mx-auto hidden min-h-12 max-w-360 items-center gap-3 px-12 min-[64rem]:flex desktop:px-20"
     >
       {NAV_MENU.map((item) => (
         <Link
@@ -40,6 +41,7 @@ export function HeaderBottom() {
 
 export function MobileNavigation() {
   const pathname = usePathname();
+  const { user, isLoading, isError } = useUser();
   return (
     <Modal>
       <ModalTrigger asChild>
@@ -52,7 +54,7 @@ export function MobileNavigation() {
           <Icon name="AlignLeftMenuIcon" className="size-6" />
         </Button>
       </ModalTrigger>
-      <ModalContent className="start-auto end-0 top-0 h-dvh max-h-dvh w-[min(24rem,100%)] max-w-none translate-x-0 translate-y-0 rounded-none border-y-0 border-e-0 rtl:translate-x-0">
+      <ModalContent className="inset-s-auto inset-e-0 top-0 h-dvh max-h-dvh w-[min(24rem,100%)] max-w-none translate-x-0 translate-y-0 rounded-none border-y-0 border-e-0 rtl:translate-x-0">
         <div className="flex items-center justify-between gap-4">
           <ModalTitle>Menu</ModalTitle>
           <ModalClose asChild>
@@ -65,9 +67,21 @@ export function MobileNavigation() {
           Browse Eshop and your saved products.
         </ModalDescription>
         <nav aria-label="Mobile navigation" className="flex flex-col gap-2">
+          {isLoading && <p role="status">Checking your account…</p>}
           {[
             ...NAV_MENU,
-            { title: 'Your account', href: '/login' },
+            ...(!isLoading
+              ? [
+                  {
+                    title: user
+                      ? 'Your profile'
+                      : isError
+                        ? 'Your account'
+                        : 'Sign in',
+                    href: user || isError ? '/profile' : '/login',
+                  },
+                ]
+              : []),
             { title: 'Wishlist', href: '/wishlist' },
           ].map((item) => (
             <ModalClose key={item.href} asChild>

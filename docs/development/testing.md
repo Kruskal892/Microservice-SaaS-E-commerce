@@ -131,9 +131,9 @@ The following browser checks are suggested, not completed for this change:
 3. Open `/login` and `/sign-up`. Check required fields, invalid email, password
    length, mismatched confirmation, and error-to-field associations. Login posts
    `{ email, password }` to `/api/login` with credentials enabled; check server
-   errors and redirect to `/` on success. Remember-me is not submitted, no
-   session-aware UI exists, and mutation pending state is not currently used by
-   the login loading indicator. Signup posts validated
+   errors and redirect to `/` on success. Remember-me is not submitted. Check
+   the mutation remains pending through the current-user cache invalidation,
+   and that the header changes to a profile link. Signup posts validated
    details to `/api/user-registration`; verify the button remains busy during
    a slow request and failures are visible on the registration form. A successful
    response opens OTP entry automatically; **I received a code** also opens it
@@ -237,7 +237,9 @@ shared 7-day cookie retention, then exercise browser credentials and Secure-cook
 behavior in the intended HTTPS setup. Such integration checks have not been run
 for this change. Refresh exists and requires the refresh cookie; exercise it
 with live user lookup, browser credentials, and the original refresh JWT expiry.
-Logout and protected routes remain absent.
+`GET /api/logged-in-user` is protected by shared middleware. Verify 200 with only
+`id`, `email`, and `name`, plus no-store, for valid credentials; 401 when rejected;
+and 500 for infrastructure errors. Logout remains absent.
 
 Recovery unit regressions cover authorization and reset with mocked dependencies.
 They do not prove a usable recovery journey. With disposable accounts and live
@@ -271,9 +273,29 @@ continuation, and forwarding the original database/configuration errors without
 sending a 401 response. These middleware tests invoke the function directly;
 they do not prove route protection or browser cookie acceptance.
 
-The production router does not mount `isAuthenticated`. Integration checks still
+The production router now mounts `isAuthenticated` on current-user GET. Integration checks still
 need actual cookie/header parsing, live user lookup, deleted-account behavior,
 access expiry, unchanged refresh expiry, and end-to-end error responses.
+
+## Current-user, header, and profile checks: 2026-11-11
+
+Added permanent regressions cover current-user public response/no-store, missing
+account rejection, validated query caching and login invalidation, final 401 versus
+404/500 handling, and public pages staying open on failed current-user refresh.
+These new tests have not been run. The historical 93-test result above predates them.
+
+Manual checks still required:
+
+1. As a guest, load `/`, `/sign-up`, and `/forgot-password`; remain on that page
+   after current-user/refresh 401s. Account links should point to `/login`.
+2. Log in. Confirm the busy state lasts through the current-user refetch, the
+   avatar initial appears, and desktop/mobile account links open `/profile`.
+3. Reload `/profile`; verify name/email and the absence of password hashes or
+   token values in the GET response. No profile edit action is implemented.
+4. With a valid refresh cookie and expired access JWT, verify one shared refresh
+   followed by a single retry per waiting request. Login/refresh 401s must not loop.
+5. Without a valid session, `/profile` should offer sign in; 404/500/network failures
+   should offer retry. Confirm keyboard labels, focus, and narrow-menu behavior.
 
 ## Password recovery integration checks: 2026-11-08
 
