@@ -20,6 +20,9 @@
     },
     {
       "path": "./apps/client"
+    },
+    {
+      "path": "./apps/vendor"
     }
   ]
 }

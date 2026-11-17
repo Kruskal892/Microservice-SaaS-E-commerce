@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@import '../../../../packages/ui/theme.css';
+
+@source '../../../../packages/ui';
+
+@layer base {
+  body {
+    @apply bg-background font-sans text-text antialiased;
+  }
+}
