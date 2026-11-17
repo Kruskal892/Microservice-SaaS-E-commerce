@@ -6,6 +6,7 @@
     "dev": "npx nx run-many --target=serve --all",
     "auth-docs": "node apps/auth-service/src/swagger.js",
     "client": "nx dev @microservice-eshop/client",
+    "vendor": "nx dev @microservice-eshop/vendor",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "storybook": "storybook dev -p 6006 --no-open --disable-telemetry",
