@@ -42,6 +42,16 @@
 |   |   |-- tsconfig.json               # Bundler resolution, aliases, shared-source inclusion/reference
 |   |   |-- package.json                # @microservice-eshop/client
 |   |   `-- README.md
+|   |-- vendor/
+|   |   |-- src/app/layout.tsx          # Global CSS and Eshop Seller Center metadata
+|   |   |-- src/app/page.tsx            # Static Seller Center overview (KPIs, recent orders, checklist)
+|   |   |-- src/app/global.css          # Tailwind v4 and shared theme import/source
+|   |   |-- src/app/api/hello/route.ts  # Local plain-text hello handler
+|   |   |-- postcss.config.mjs          # @tailwindcss/postcss
+|   |   |-- next.config.js
+|   |   |-- tsconfig.json               # Bundler resolution, @/* and @packages/* aliases, shared reference
+|   |   |-- package.json                # @microservice-eshop/vendor
+|   |   `-- README.md
 |   |-- api-gateway/
 |   |   |-- src/main.ts                  # Middleware, local health, proxy, listener
 |   |   |-- webpack.config.js            # Build and @packages alias resolution
@@ -123,10 +133,13 @@ flowchart TD
     Root --> Gateway["api-gateway"]
     Root --> Client["client<br/>Next.js and Tailwind"]
     Client --> Next["Next.js build<br/>apps/client/.next"]
+    Root --> Vendor["vendor<br/>Next.js Seller Center"]
+    Vendor --> VendorNext["Next.js build<br/>apps/vendor/.next"]
     Root --> Shared["shared workspace<br/>packages/"]
     Root --> AuthE2E["auth-service-e2e"]
     Root --> GatewayE2E["api-gateway-e2e"]
     Client -->|"TypeScript reference and browser source imports"| Shared
+    Vendor -->|"TypeScript reference and shared theme/UI tokens"| Shared
     Auth -->|"TypeScript reference and bundled aliases"| Shared
     Gateway -->|"TypeScript reference and Webpack aliases"| Shared
     AuthE2E -->|"build and serve dependencies"| Auth

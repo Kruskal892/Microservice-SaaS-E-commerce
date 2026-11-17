@@ -1,8 +1,9 @@
 # Project documentation
 
 Microservice Eshop is an Nx/npm TypeScript monorepo with an Express API gateway,
-an authentication service, shared infrastructure modules, and a Next.js client
-with Tailwind v4 design tokens and `next-themes` light/dark switching. Registration can
+an authentication service, shared infrastructure modules, a Next.js customer client
+(`apps/client`) with Tailwind v4 design tokens and `next-themes` light/dark switching,
+and a Next.js Seller Center app (`apps/vendor`) with a static merchant overview UI. Registration can
 request an email OTP, verify it to create an account, and log in to receive JWT
 cookies. Three recovery routes support purpose-specific OTP verification and
 [expiring single-use reset authorization](development/authentication.md#password-recovery).
@@ -53,7 +54,7 @@ Use the [common component recipes](reference/common-components.md),
 | Follow a request or OTP email          | [Request flows](architecture/request-flows.md)                                                                              |
 | Call an available endpoint             | [API reference](reference/api.md)                                                                                           |
 | Configure a service                    | [Configuration reference](reference/configuration.md)                                                                       |
-| Run or style the client                | [Client README](../apps/client/README.md), [design tokens](reference/design-tokens.md), [shared UI](reference/shared-ui.md) |
+| Run or style frontend apps             | [Client README](../apps/client/README.md), [Vendor README](../apps/vendor/README.md), [design tokens](reference/design-tokens.md), [shared UI](reference/shared-ui.md) |
 | Assess what exists and what is missing | [Implementation status](operations/implementation-status.md)                                                                |
 | Review proposals and upcoming work     | [Future plans](future-plans/README.md)                                                                                      |
 

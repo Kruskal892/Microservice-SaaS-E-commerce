@@ -15,6 +15,7 @@ npx nx show projects
 npx nx show project @microservice-eshop/auth-service
 npx nx show project @microservice-eshop/api-gateway
 npx nx show project @microservice-eshop/client
+npx nx show project @microservice-eshop/vendor
 npx nx graph
 ```
 
@@ -37,9 +38,12 @@ Both E2E projects define their own `e2e` executor and dependencies. Nx's default
 | -------------------------- | ---------------------------------------------------------------------------- |
 | Serve backend applications | `npm run dev`                                                                |
 | Develop client             | `npm run client`                                                             |
+| Develop vendor (seller)    | `npm run vendor`                                                             |
 | Build client               | `npx nx build @microservice-eshop/client`                                    |
+| Build vendor               | `npx nx build @microservice-eshop/vendor`                                    |
 | Start built client         | `npx nx start @microservice-eshop/client`                                    |
 | Check client types         | `node node_modules/typescript/bin/tsc -p apps/client/tsconfig.json --noEmit` |
+| Check vendor types         | `node node_modules/typescript/bin/tsc -p apps/vendor/tsconfig.json --noEmit` |
 | Serve auth                 | `npx nx serve @microservice-eshop/auth-service`                              |
 | Serve gateway              | `npx nx serve @microservice-eshop/api-gateway`                               |
 | Build auth                 | `npx nx build @microservice-eshop/auth-service`                              |
@@ -86,9 +90,9 @@ TypeScript configuration is split across:
   and declarations into the package's `dist`. Root and auth project references
   include this library through the root grouping and auth application config, respectively.
 
-The client uses Next.js for runtime output in `apps/client/.next`; it does not
+The client and vendor apps use Next.js for runtime output in `apps/client/.next` and `apps/vendor/.next`; they do not
 use a backend `tsconfig.app.json` or esbuild/Webpack service executor. The root
-TypeScript solution also references `apps/client`.
+TypeScript solution also references `apps/client` and `apps/vendor`.
 
 The root npm workspace list includes `apps/*` and `packages` itself. The shared
 TypeScript config maps `@packages/*` to `./packages/*`.
