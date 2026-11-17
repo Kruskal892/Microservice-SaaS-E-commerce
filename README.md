@@ -2,8 +2,8 @@
 
 An ecommerce foundation built with TypeScript, Express, Next.js, Nx, and npm
 workspaces. The repository contains an API gateway, an authentication service,
-shared error/database clients and authentication middleware, Prisma's MongoDB schema, HTTP smoke tests, and a
-Next.js client with Tailwind v4 design tokens, `next-themes` light/dark switching, and
+shared error/database clients and authentication middleware, Prisma's MongoDB schema, HTTP smoke tests, a
+Next.js customer client (`apps/client`), and a Next.js seller center app (`apps/vendor`) with Tailwind v4 design tokens, `next-themes` light/dark switching, and
 shared UI components.
 
 Registration currently validates input, checks for an existing email, and sends
@@ -50,7 +50,7 @@ work have separate documentation areas.
 | System and code layout      | [Architecture](docs/architecture/overview.md), [repository structure](docs/architecture/repository-structure.md)                  |
 | Visual request walkthroughs | [HTTP and OTP flows](docs/architecture/request-flows.md)                                                                          |
 | Endpoints and environment   | [API](docs/reference/api.md), [configuration](docs/reference/configuration.md)                                                    |
-| Client and styling          | [Client setup](apps/client/README.md), [design tokens](docs/reference/design-tokens.md), [shared UI](docs/reference/shared-ui.md) |
+| Client and seller apps      | [Client setup](apps/client/README.md), [Vendor setup](apps/vendor/README.md), [design tokens](docs/reference/design-tokens.md), [shared UI](docs/reference/shared-ui.md) |
 | Contributor workflow        | [Development guide](docs/development/development-guide.md), [testing](docs/development/testing.md)                                |
 | Packaging and current gaps  | [Deployment](docs/operations/deployment.md), [implementation status](docs/operations/implementation-status.md)                    |
 | Roadmap and draft designs   | [Future plans](docs/future-plans/README.md)                                                                                       |
@@ -74,16 +74,20 @@ npx prisma generate
 npm run dev
 ```
 
-Start the client in a separate terminal:
+Start the client or seller center in a separate terminal:
 
 ```sh
 npm run client
+# or for the Seller Center:
+npm run vendor
 ```
 
 The client defaults to `http://localhost:3000` and renders its placeholder,
 `/login`, and `/sign-up` UI pages without backend credentials. Submitting `/sign-up`
 or `/login` requires `NEXT_PUBLIC_API_URL` in `apps/client/.env` and running backend services.
-`npm run dev` starts backend `serve` targets; it does not start the client's `dev` target.
+The seller app (`apps/vendor`) renders a static Seller Center overview with
+hardcoded merchant metrics, recent orders, and an onboarding checklist.
+`npm run dev` starts backend `serve` targets; it does not start the Next.js `dev` targets.
 
 Leave `PORT` unset when starting both backend applications together. Each service reads
 the same variable in its own process. See [setup](docs/development/getting-started.md)
@@ -95,6 +99,7 @@ for separate startup, configuration, and database synchronization instructions.
 | Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                                                              |
 | Auth Swagger UI | http://localhost:6001/api-docs       | Seven auth POST contracts and protected GET current-user lookup |
 | Client          | http://localhost:3000/               | Session-aware header, theme switch, login, registration/OTP, recovery, read-only `/profile`, placeholder home |
+| Vendor          | http://localhost:3000/ (or `--port`) | Static Eshop Seller Center overview with KPI cards, recent orders table, and store setup checklist            |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any
@@ -121,7 +126,7 @@ Cloudflare, and an unconfirmed media provider belong to
 [future plans](docs/future-plans/README.md).
 
 ```text
-apps/       # Next.js client, gateway, auth service, and backend E2E projects
+apps/       # Next.js client, Next.js vendor (Seller Center), gateway, auth service, and backend E2E projects
 packages/   # One shared workspace: errors, Prisma, Redis, auth middleware, UI, assets
 prisma/     # MongoDB schema; root prisma.config.ts configures the CLI
 docs/       # Architecture, references, guides, operations, future plans

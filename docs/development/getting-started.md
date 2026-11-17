@@ -78,13 +78,21 @@ Or:
 npx nx serve @microservice-eshop/api-gateway
 ```
 
-## Run the client
+## Run the client or Seller Center (`vendor`)
 
 After the root `npm ci`, use a separate terminal:
 
 ```sh
 npm run client
 ```
+
+Or run the Seller Center application (`@microservice-eshop/vendor`):
+
+```sh
+npm run vendor
+```
+
+To run both Next.js apps simultaneously, pass a custom port to the second app (for example, `npx nx dev @microservice-eshop/vendor --port=3001`). See the [Vendor README](../../apps/vendor/README.md) for Seller Center commands and routes.
 
 Open `http://localhost:3000`. The root script selects
 `nx dev @microservice-eshop/client`; `npm run dev` selects backend `serve` targets

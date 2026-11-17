@@ -20,6 +20,9 @@ OTP resend reuses registration delivery with a server-enforced cooldown; Google
 sign-in remains disabled. The header, mobile menu, and read-only `/profile`
 share a current-user query backed by the protected GET API. Login invalidates
 that cache, and Axios coordinates one refresh/retry for expired access tokens.
+`apps/vendor` (`@microservice-eshop/vendor`) provides a separate Next.js App Router
+application for the **Eshop Seller Center**, connected to the shared Tailwind v4
+monochrome theme and currently rendering a static merchant dashboard overview.
 The gateway has one upstream, auth; it does not yet route among multiple
 business services or authenticate users.
 
@@ -46,6 +49,7 @@ See [request flows](request-flows.md) for execution order and failure paths.
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Gateway        | CORS, HTTP logging, local health, IP limits, proxy body limit and timeout                                                                                   | [main.ts](../../apps/api-gateway/src/main.ts)                                                                           |
 | Client         | Next.js App Router, shared UI/icons/theme, Header, `ThemeToggle`, `/sign-up` registration & OTP verify (`src/api/`), `/login` credential POST, `/api/hello` | [Client README](../../apps/client/README.md), [tokens](../reference/design-tokens.md)                                   |
+| Vendor         | Next.js App Router Seller Center (`@microservice-eshop/vendor`), shared Tailwind v4 theme tokens, static merchant overview UI, `/api/hello`                 | [Vendor README](../../apps/vendor/README.md), [page.tsx](../../apps/vendor/src/app/page.tsx)                            |
 | Auth           | Registration/verification, email lookup, OTP policy, password hashing/comparison, user persistence, login/JWT cookies, access-token refresh                 | [main.ts](../../apps/auth-service/src/main.ts), [controller](../../apps/auth-service/src/controller/auth.controller.ts) |
 | Shared errors  | Error classes and JSON error middleware used by both apps                                                                                                   | [error-handler](../../packages/error-handler/index.ts)                                                                  |
 | Shared clients | Prisma client reuse and a simple ioredis instance                                                                                                           | [Prisma](../../packages/libs/prisma/index.ts), [Redis](../../packages/libs/redis/index.ts)                              |
