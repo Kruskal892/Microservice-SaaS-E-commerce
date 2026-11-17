@@ -19,19 +19,23 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@packages": ["../../packages/index.ts"],
+      "@packages/*": ["../../packages/*"]
     },
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "../..",
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
   "include": [
+    "../../packages/ui/**/*.ts",
+    "../../packages/ui/**/*.tsx",
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.js",
     "src/**/*.jsx",
-    "../../apps/vendor/.next/types/**/*.ts",
-    "../../dist/apps/vendor/.next/types/**/*.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
     "index.d.ts",
     "next-env.d.ts"
   ],
@@ -43,9 +47,15 @@
     "jest.config.cts",
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
-    ".next",
+    "../../packages/ui/**/*.stories.tsx",
+    "../../packages/ui/**/*.test.tsx",
     "eslint.config.js",
     "eslint.config.cjs",
     "eslint.config.mjs"
+  ],
+  "references": [
+    {
+      "path": "../../packages"
+    }
   ]
 }
