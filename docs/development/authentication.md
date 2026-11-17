@@ -125,10 +125,15 @@ to `AuthError`; unexpected database, configuration, or signing failures reach
 shared error handling as 500. A missing refresh signing secret is checked at
 request time; there is no central startup configuration validation.
 
-The Axios interceptor coordinates one refresh across concurrent 401s and retries
-each request once. Login and refresh requests bypass that interception.
-The current-user query maps final 401 to signed out without redirecting public pages.
-There is no refresh rotation, persisted revocation state, or logout. Password reset does not invalidate
+The [Axios instance](../../apps/client/src/utils/axiosInstance.ts) coordinates
+client-side token refresh and retry:
+
+- **Shared client setup:** Configures `baseURL` (`NEXT_PUBLIC_API_URL` or `http://localhost:3000`), `timeout: 15_000`, `Content-Type: application/json`, and `withCredentials: true` for `HttpOnly` cookies.
+- **Interceptor bypass rules:** Ignores non-401 errors, requests without `config`, requests already marked with `_retry = true`, and direct calls to `/api/login` or `/api/refresh-token`.
+- **Single-flight refresh (`refreshPromise`):** Deduplicates concurrent 401 failures behind a single `POST /api/refresh-token` promise (`refreshPromise ??= ...`) and resets `refreshPromise` to `null` in `finally()`.
+- **Request replay and logout fallback:** Replays `axiosInstance(originalRequest)` once after a successful refresh. If refresh fails with 401 on any request other than `/api/logged-in-user`, `handleLogout()` navigates to `/login` (when in the browser and not already on `/login`). The current-user query (`/api/logged-in-user`) maps a final 401 to signed out (`null`) without redirecting public pages.
+
+There is no refresh rotation, persisted revocation state, or logout endpoint. Password reset does not invalidate
 existing refresh JWTs. See the [API contract](../reference/api.md#access-token-refresh).
 
 ## Shared access-token middleware

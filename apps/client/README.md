@@ -35,7 +35,23 @@ PowerShell blocks the `.ps1` wrappers. Build before using `start`.
 ## API requests and TanStack Query
 
 Use [`src/utils/axiosInstance.ts`](src/utils/axiosInstance.ts) for HTTP requests.
-It configures `NEXT_PUBLIC_API_URL`, credentials, and a 15-second timeout once.
+It configures `NEXT_PUBLIC_API_URL` (defaulting to `http://localhost:3000`),
+`withCredentials: true` for `HttpOnly` cookie transmission, `Content-Type: application/json`,
+and a 15-second timeout once.
+
+### Axios response interceptor and token refresh (`axiosInstance.ts`)
+
+1. **Base configuration:** Creates a shared Axios client with `baseURL`, `timeout: 15_000`, JSON headers, and `withCredentials: true` so browser requests automatically attach `access_token` and `refresh_token` cookies.
+2. **Bypass & loop guards:** Passes successful responses straight through. On errors, it immediately rethrows without refreshing if:
+   - The status is not `401 Unauthorized`.
+   - `error.config` (`originalRequest`) is missing.
+   - `originalRequest._retry` is already `true` (prevents infinite retry loops).
+   - The failed endpoint is `/api/login` or `/api/refresh-token` (preserves their own `401` errors).
+3. **Single-flight refresh deduplication (`refreshPromise`):** Marks `originalRequest._retry = true` and uses `refreshPromise ??= axiosInstance.post('/api/refresh-token', {}).finally(...)` so concurrent `401` responses share a single in-flight refresh call instead of firing duplicate requests. Once settled, `refreshPromise` resets to `null`.
+4. **Retry or conditional logout:**
+   - **Refresh succeeds:** Replays `axiosInstance(originalRequest)` with the newly issued `access_token` cookie.
+   - **Refresh fails:** Rethrows `refreshError` to reject all waiting callers. If the refresh itself failed with `401` and the original call was **not** `/api/logged-in-user`, `handleLogout()` redirects the browser to `/login` (unless already on `/login`). Background session checks to `/api/logged-in-user` never force a redirect, leaving public pages open in a signed-out state.
+
 API feature modules such as [`src/api/auth.ts`](src/api/auth.ts) own request payloads, response data, and
 TanStack options. Define each request inline in its `mutationFn` or `queryFn`,
 return the response data, and let failures reject so TanStack can track the error

@@ -78,6 +78,7 @@ docs/
 |   |-- getting-started.md
 |   |-- development-guide.md
 |   |-- authentication.md
+|   |-- session-flow.md            # End-to-end cookie, JWT, and refresh walkthrough
 |   |-- testing.md
 |   |-- storybook.md                # Isolated component development
 |   `-- troubleshooting.md
@@ -108,6 +109,8 @@ introduction and quick start; this index owns documentation navigation.
   imports, debugging, formatting, and commits.
 - [Authentication development](development/authentication.md): OTP keys,
   account creation, login/JWT cookies, password recovery, and remaining work.
+- [Session and authentication walkthrough](development/session-flow.md):
+  end-to-end login cookies, `isAuthenticated`, `axiosInstance` refresh deduplication, and `useUser` cache.
 - [Testing](development/testing.md): existing coverage and E2E lifecycle limits.
 - [Troubleshooting](development/troubleshooting.md): setup and runtime diagnosis.
 - [Deployment and CI](operations/deployment.md): actual Dockerfile, ports,
