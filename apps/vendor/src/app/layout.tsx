@@ -1,4 +1,5 @@
 import './global.css';
+import Providers from './providers';
 
 export const metadata = {
   title: 'Eshop Seller Center',
@@ -12,7 +13,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>
+          <a
+            href="#main-content"
+            className="sr-only fixed top-3 left-3 z-100 rounded-sm bg-action px-4 py-3 text-on-action focus:not-sr-only focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            Skip to content
+          </a>
+          {children}
+        </Providers>
+      </body>
     </html>
   );
 }
