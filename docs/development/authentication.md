@@ -38,7 +38,12 @@ sign-in from the success message. Requests have mutation pending guards, resend
 cooldowns, server error feedback, and recovery after uncertain delivery.
 The header and `/profile` obtain public account data from `GET /api/logged-in-user`;
 Axios sends HttpOnly cookies and coordinates refresh. Use the
-[client README](../../apps/client/README.md) for frontend setup.
+[client README](../../apps/client/README.md) for frontend setup. The Seller Center
+app (`apps/vendor`) also provides a merchant `/login` route with its own Seller
+Center `AuthCard` layout, `loginSchema`, `loginMutation`, and `axiosInstance`
+refresh interceptor (currently targeting `/api/login` and `/api/logged-in-user`
+until dedicated seller auth endpoints are added); see the
+[vendor README](../../apps/vendor/README.md).
 
 ## Current registration behavior
 

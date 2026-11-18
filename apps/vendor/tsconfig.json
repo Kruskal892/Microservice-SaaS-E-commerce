@@ -28,6 +28,7 @@
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
   "include": [
+    "../../packages/assets/**/*.ts",
     "../../packages/ui/**/*.ts",
     "../../packages/ui/**/*.tsx",
     "src/**/*.ts",
