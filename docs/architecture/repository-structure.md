@@ -43,12 +43,19 @@
 |   |   |-- package.json                # @microservice-eshop/client
 |   |   `-- README.md
 |   |-- vendor/
-|   |   |-- src/app/layout.tsx          # Global CSS and Eshop Seller Center metadata
+|   |   |-- src/api/auth.ts             # Vendor login mutation, current-user query, error helpers
+|   |   |-- src/utils/axiosInstance.ts  # Credentials, 15s timeout, shared refresh promise
+|   |   |-- src/utils/zod-resolver.ts   # Zod v4 resolver adapter for react-hook-form
+|   |   |-- src/schemas/                # Vendor Zod validation schemas (loginSchema, currentUserSchema)
+|   |   |-- src/components/common/      # Seller Center AuthCard and GoogleButton
+|   |   |-- src/app/layout.tsx          # Global CSS, Providers, skip link, and Seller Center metadata
+|   |   |-- src/app/providers.tsx       # QueryClientProvider
 |   |   |-- src/app/page.tsx            # Static Seller Center overview (KPIs, recent orders, checklist)
+|   |   |-- src/app/(routes)/login/page.tsx # Seller Center RHF + Zod login form and credential POST
 |   |   |-- src/app/global.css          # Tailwind v4 and shared theme import/source
 |   |   |-- src/app/api/hello/route.ts  # Local plain-text hello handler
 |   |   |-- postcss.config.mjs          # @tailwindcss/postcss
-|   |   |-- next.config.js
+|   |   |-- next.config.js              # SVGR configuration for Turbopack and Webpack
 |   |   |-- tsconfig.json               # Bundler resolution, @/* and @packages/* aliases, shared reference
 |   |   |-- package.json                # @microservice-eshop/vendor
 |   |   `-- README.md

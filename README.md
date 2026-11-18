@@ -44,16 +44,16 @@ and [design contract](docs/design/shared-ui-system.md).
 Start with the [documentation hub](docs/README.md). Current behavior and proposed
 work have separate documentation areas.
 
-| Topic                       | Guide                                                                                                                             |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Setup                       | [Getting started](docs/development/getting-started.md)                                                                            |
-| System and code layout      | [Architecture](docs/architecture/overview.md), [repository structure](docs/architecture/repository-structure.md)                  |
-| Visual request walkthroughs | [HTTP and OTP flows](docs/architecture/request-flows.md)                                                                          |
-| Endpoints and environment   | [API](docs/reference/api.md), [configuration](docs/reference/configuration.md)                                                    |
+| Topic                       | Guide                                                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Setup                       | [Getting started](docs/development/getting-started.md)                                                                                                                   |
+| System and code layout      | [Architecture](docs/architecture/overview.md), [repository structure](docs/architecture/repository-structure.md)                                                         |
+| Visual request walkthroughs | [HTTP and OTP flows](docs/architecture/request-flows.md)                                                                                                                 |
+| Endpoints and environment   | [API](docs/reference/api.md), [configuration](docs/reference/configuration.md)                                                                                           |
 | Client and seller apps      | [Client setup](apps/client/README.md), [Vendor setup](apps/vendor/README.md), [design tokens](docs/reference/design-tokens.md), [shared UI](docs/reference/shared-ui.md) |
-| Contributor workflow        | [Development guide](docs/development/development-guide.md), [testing](docs/development/testing.md)                                |
-| Packaging and current gaps  | [Deployment](docs/operations/deployment.md), [implementation status](docs/operations/implementation-status.md)                    |
-| Roadmap and draft designs   | [Future plans](docs/future-plans/README.md)                                                                                       |
+| Contributor workflow        | [Development guide](docs/development/development-guide.md), [testing](docs/development/testing.md)                                                                       |
+| Packaging and current gaps  | [Deployment](docs/operations/deployment.md), [implementation status](docs/operations/implementation-status.md)                                                           |
+| Roadmap and draft designs   | [Future plans](docs/future-plans/README.md)                                                                                                                              |
 
 ## Quick start
 
@@ -85,21 +85,23 @@ npm run vendor
 The client defaults to `http://localhost:3000` and renders its placeholder,
 `/login`, and `/sign-up` UI pages without backend credentials. Submitting `/sign-up`
 or `/login` requires `NEXT_PUBLIC_API_URL` in `apps/client/.env` and running backend services.
-The seller app (`apps/vendor`) renders a static Seller Center overview with
-hardcoded merchant metrics, recent orders, and an onboarding checklist.
+The seller app (`apps/vendor`) renders a static Seller Center overview (`/`) with
+hardcoded merchant metrics, recent orders, and an onboarding checklist, plus a
+merchant `/login` route built with `@packages/ui` controls, React Hook Form + Zod
+validation, and TanStack Query / Axios credential submission.
 `npm run dev` starts backend `serve` targets; it does not start the Next.js `dev` targets.
 
 Leave `PORT` unset when starting both backend applications together. Each service reads
 the same variable in its own process. See [setup](docs/development/getting-started.md)
 for separate startup, configuration, and database synchronization instructions.
 
-| Application     | Default URL                          | Source-defined response                                                                                 |
-| --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                                                            |
-| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                                                              |
-| Auth Swagger UI | http://localhost:6001/api-docs       | Seven auth POST contracts and protected GET current-user lookup |
+| Application     | Default URL                          | Source-defined response                                                                                       |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Auth            | http://localhost:6001/               | `{ "message": "Hello API" }`                                                                                  |
+| Gateway         | http://localhost:8080/gateway-health | `{ "message": "Welcome to api-gateway!" }`                                                                    |
+| Auth Swagger UI | http://localhost:6001/api-docs       | Seven auth POST contracts and protected GET current-user lookup                                               |
 | Client          | http://localhost:3000/               | Session-aware header, theme switch, login, registration/OTP, recovery, read-only `/profile`, placeholder home |
-| Vendor          | http://localhost:3000/ (or `--port`) | Static Eshop Seller Center overview with KPI cards, recent orders table, and store setup checklist            |
+| Vendor          | http://localhost:3000/ (or `--port`) | Seller Center `/login` route and static overview (`/`) with KPI cards, recent orders, and setup checklist     |
 
 The gateway forwards other paths to `AUTH_SERVICE_URL`, defaulting to
 `http://localhost:6001`. Its local health response does not check auth or any
